@@ -1,0 +1,30 @@
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Dependencies and build outputs
+node_modules/
+dist/
+build/
+.turbo/
+.cache/
+.next/
+.astro/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+.dev.vars
+
+# Cloudflare
+.wrangler/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
