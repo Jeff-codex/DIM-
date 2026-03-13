@@ -1,0 +1,24 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#FBFAF8"/>
+  <rect x="96" y="92" width="48" height="6" fill="#D72013"/>
+  <text x="96" y="174" fill="#111111" font-family="Georgia, serif" font-size="86" font-weight="700">
+    From product
+  </text>
+  <text x="96" y="274" fill="#111111" font-family="Georgia, serif" font-size="86" font-weight="700">
+    to operating layer
+  </text>
+  <text x="96" y="398" fill="#5B5B5B" font-family="Arial, sans-serif" font-size="30" letter-spacing="4">
+    STARTUPS / DEPTH INTELLIGENCE MAGAZINE
+  </text>
+  <line x1="96" y1="454" x2="1504" y2="454" stroke="#E7E3DC"/>
+  <text x="96" y="532" fill="#111111" font-family="Arial, sans-serif" font-size="44">
+    Startups scale when they capture more of the
+  </text>
+  <text x="96" y="592" fill="#111111" font-family="Arial, sans-serif" font-size="44">
+    customer&apos;s recurring operating flow.
+  </text>
+  <rect x="1184" y="600" width="320" height="180" stroke="#E7E3DC"/>
+  <text x="1220" y="700" fill="#D72013" font-family="Arial, sans-serif" font-size="22" letter-spacing="5">
+    DIM
+  </text>
+</svg>

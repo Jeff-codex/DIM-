@@ -1,0 +1,116 @@
+:root {
+  --color-background: #f7f3ed;
+  --color-background-alt: #efe9e1;
+  --color-surface: #ffffff;
+  --color-surface-muted: #fbf8f3;
+  --color-surface-quiet: #f4efe8;
+  --color-text-primary: #111111;
+  --color-text-secondary: #5b5b5b;
+  --color-divider: #e3ddd4;
+  --color-divider-strong: rgba(17, 17, 17, 0.14);
+  --color-outline-soft: rgba(17, 17, 17, 0.08);
+  --color-accent: #d72013;
+  --color-accent-hover: #b81b10;
+  --color-selection: #f4d4d1;
+  --layout-container: 1200px;
+  --layout-reading: 720px;
+  --radius-small: 6px;
+  --shadow-soft: 0 10px 28px rgba(17, 17, 17, 0.035);
+  --shadow-paper: 0 18px 48px rgba(17, 17, 17, 0.045);
+  --section-space-xl: 72px;
+  --section-space-lg: 56px;
+  --section-space-md: 40px;
+}
+
+html,
+body {
+  max-width: 100vw;
+  min-height: 100%;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body), sans-serif;
+  font-size: 16px;
+  line-height: 1.68;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: var(--color-selection);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.site-frame {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 26%),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.018) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(17, 17, 17, 0.012) 1px, transparent 1px),
+    var(--color-background);
+  background-size:
+    auto,
+    auto,
+    160px 160px,
+    160px 160px,
+    auto;
+}
+
+.site-main {
+  min-height: calc(100vh - 144px);
+}
+
+.container {
+  width: min(calc(100% - 32px), var(--layout-container));
+  margin-inline: auto;
+}
+
+.reading-width {
+  width: min(calc(100% - 32px), var(--layout-reading));
+  margin-inline: auto;
+}

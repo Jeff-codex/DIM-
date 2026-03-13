@@ -10,6 +10,7 @@ Rebuild DIM from a clean slate with a controlled repository, explicit infra assu
 - Git remote: `https://github.com/Jeff-codex/DIM-.git`
 - Production domain: `https://depthintelligence.kr/`
 - Infra provider: Cloudflare
+- Chosen application stack: `Next.js 16 + TypeScript + Cloudflare Workers`
 
 ## Guardrails
 
@@ -19,13 +20,8 @@ Rebuild DIM from a clean slate with a controlled repository, explicit infra assu
 
 ## Recommended starting sequence
 
-1. Decide the first shipped surface area:
-   - public site only
-   - public site plus admin
-   - API-first
-2. Lock the web stack:
-   - `Astro + Cloudflare` if editorial/content delivery is the priority
-   - `Next.js + Cloudflare` if application-style interactivity is the priority
+1. Build the public web surface first in `apps/web`.
+2. Keep deployment on `Cloudflare Workers`, not Pages, for the primary app runtime.
 3. Confirm Cloudflare data services:
    - `D1` for relational data
    - `R2` for media assets if uploads are needed
@@ -44,3 +40,13 @@ The safest first milestone is:
 2. wire staging and production environments
 3. prove database connectivity
 4. add one vertical slice such as article listing/detail
+
+## Current checkpoint
+
+As of `2026-03-13`, the repository has moved beyond the initial bootstrap:
+
+1. the public web app exists in `apps/web`
+2. the current site is a Korean-first editorial intelligence magazine draft
+3. review previews are deployed through the `dim-preview` Pages project
+4. production runtime remains `Cloudflare Workers`
+5. the next-session restart order is tracked in `docs/session-resume.md`

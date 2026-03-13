@@ -1,0 +1,13 @@
+.quote {
+  margin: 36px 0;
+  padding-left: 20px;
+  border-left: 2px solid var(--color-accent);
+}
+
+.quote :global(p) {
+  margin-top: 0;
+  font-family: var(--font-display), serif;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+}

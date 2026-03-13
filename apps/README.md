@@ -1,9 +1,12 @@
 # Apps
 
-Application code will be added here once the first implementation target and runtime stack are fixed.
+Application code lives here.
 
-Suggested future layout:
+Current layout:
 
 - `apps/web`
+
+Possible later additions:
+
 - `apps/admin`
 - `apps/api`

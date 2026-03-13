@@ -1,0 +1,22 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#F8F6F2"/>
+  <rect x="96" y="92" width="48" height="6" fill="#D72013"/>
+  <text x="96" y="174" fill="#111111" font-family="Georgia, serif" font-size="84" font-weight="700">
+    Bundled pricing
+  </text>
+  <text x="96" y="274" fill="#111111" font-family="Georgia, serif" font-size="84" font-weight="700">
+    in AI products
+  </text>
+  <text x="96" y="398" fill="#5B5B5B" font-family="Arial, sans-serif" font-size="30" letter-spacing="4">
+    INDUSTRY ANALYSIS / DEPTH INTELLIGENCE MAGAZINE
+  </text>
+  <line x1="96" y1="454" x2="1504" y2="454" stroke="#E7E3DC"/>
+  <text x="96" y="532" fill="#111111" font-family="Arial, sans-serif" font-size="42">
+    The next competition will not be model quality alone.
+  </text>
+  <text x="96" y="592" fill="#111111" font-family="Arial, sans-serif" font-size="42">
+    It will be how AI gets packaged into the default product.
+  </text>
+  <path d="M1202 160H1406V364H1202V160Z" stroke="#E7E3DC"/>
+  <path d="M1244 202H1364V322H1244V202Z" fill="#D72013"/>
+</svg>

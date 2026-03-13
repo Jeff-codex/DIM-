@@ -1,0 +1,25 @@
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+}
+
+.link {
+  padding: 8px 0;
+  border-bottom: 1px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.link:hover {
+  color: var(--color-text-primary);
+}
+
+.active {
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}

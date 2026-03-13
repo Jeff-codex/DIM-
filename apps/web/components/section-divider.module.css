@@ -1,0 +1,20 @@
+.divider {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-divider) 14%,
+    var(--color-divider) 86%,
+    transparent
+  );
+}
+
+.divider::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: min(12%, 72px);
+  width: 72px;
+  border-top: 1px solid rgba(215, 32, 19, 0.34);
+}

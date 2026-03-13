@@ -11,7 +11,9 @@ build/
 .turbo/
 .cache/
 .next/
+.open-next/
 .astro/
+apps/web/out/
 
 # Environment and secrets
 .env
@@ -21,6 +23,8 @@ build/
 
 # Cloudflare
 .wrangler/
+apps/web-worker-template-backup/
+apps/web/content/generated/
 
 # Logs
 *.log

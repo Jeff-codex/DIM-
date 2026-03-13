@@ -1,0 +1,60 @@
+.frame {
+  position: relative;
+  display: grid;
+  max-width: 46ch;
+}
+
+.default {
+  gap: 8px;
+  padding: 16px 18px 18px 18px;
+  border: 1px solid var(--color-outline-soft);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 245, 239, 0.86)),
+    var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.default::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  border-top: 2px solid rgba(215, 32, 19, 0.32);
+}
+
+.compact {
+  gap: 0;
+  padding: 4px 0 0 14px;
+  border-left: 1px solid rgba(215, 32, 19, 0.24);
+}
+
+.label {
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.body {
+  line-height: 1.72;
+}
+
+.default .body {
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+}
+
+.compact .label {
+  display: none;
+}
+
+.compact .body {
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

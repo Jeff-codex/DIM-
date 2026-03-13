@@ -1,0 +1,44 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "prepare-content": "node ./scripts/generate-content.mjs",
+    "predev": "npm run prepare-content",
+    "prebuild": "npm run prepare-content",
+    "prelint": "npm run prepare-content",
+    "dev": "next dev",
+    "build": "next build",
+    "build:static": "node ./scripts/build-static.mjs",
+    "start": "next start",
+    "lint": "eslint",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "preview:serve-static": "node ./scripts/serve-static-preview.mjs",
+    "preview:deploy": "node ./scripts/deploy-pages-preview.mjs",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "next": "16.1.6",
+    "next-mdx-remote": "^6.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "unified": "^11.0.5",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "^1.17.1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "typescript": "^5",
+    "wrangler": "^4.72.0"
+  }
+}
