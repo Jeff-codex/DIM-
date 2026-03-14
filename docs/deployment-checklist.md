@@ -25,31 +25,35 @@ Run from `apps/web`.
    - `/about`
    - `/submit`
 5. Share only the verified external URL.
+6. If resuming from the current checkpoint, the latest known-good review preview is:
+   - `https://home-copy-one-line-pass-2026.dim-preview.pages.dev`
 
 ## Production deployment checklist
 
 Run from `apps/web`.
 
 1. Confirm the user explicitly approved production deployment in the current turn.
-2. Confirm no uncommitted work is being skipped by mistake.
-3. Confirm env is available:
+2. Confirm the user considers the current design/content pass complete enough for the real domain.
+3. Confirm no uncommitted work is being skipped by mistake.
+4. Confirm env is available:
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID`
-4. Run:
+5. Run:
    - `npm run lint`
    - `npm run build`
-5. Deploy:
+6. Deploy:
    - `npm run deploy`
-6. Verify the production target after deployment:
+7. Verify the production target after deployment:
    - home page
    - articles page
    - one article detail page
    - about page
    - submit page
-7. If the real domain is part of the task, verify `depthintelligence.kr` after the Cloudflare deployment completes.
+8. If the real domain is part of the task, verify `depthintelligence.kr` after the Cloudflare deployment completes.
 
 ## Notes
 
 - Review previews use the `dim-preview` Pages project.
 - Production runtime is Cloudflare Workers, not Pages.
 - Use verified external URLs only; do not share `localhost`.
+- Current product rule: do not deploy to the real domain until final sign-off; preview first, then production.
