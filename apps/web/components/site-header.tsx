@@ -18,7 +18,7 @@ export function SiteHeader() {
           />
           <div className={styles.brandText}>
             <strong>Depth Intelligence Magazine</strong>
-            <span>깊게 읽는 산업 해석 매거진</span>
+            <span>스타트업과 산업을 해석하는 매거진</span>
           </div>
         </Link>
         <SiteNav />

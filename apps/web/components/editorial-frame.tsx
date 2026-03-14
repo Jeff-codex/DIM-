@@ -9,7 +9,7 @@ type EditorialFrameProps = {
 
 export function EditorialFrame({
   frame,
-  label = "핵심 해석",
+  label = "한 줄 해석",
   className,
   variant = "default",
 }: EditorialFrameProps) {

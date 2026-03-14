@@ -1,23 +1,55 @@
-<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1600" height="900" fill="#F6F3EE"/>
-  <rect x="96" y="92" width="48" height="6" fill="#D72013"/>
-  <text x="96" y="174" fill="#111111" font-family="Georgia, serif" font-size="88" font-weight="700">
-    AI work tools
-  </text>
-  <text x="96" y="274" fill="#111111" font-family="Georgia, serif" font-size="88" font-weight="700">
-    are becoming
-  </text>
-  <text x="96" y="374" fill="#111111" font-family="Georgia, serif" font-size="88" font-weight="700">
-    management layers
-  </text>
-  <text x="96" y="500" fill="#5B5B5B" font-family="Arial, sans-serif" font-size="30" letter-spacing="4">
-    PRODUCT LAUNCHES / DEPTH INTELLIGENCE MAGAZINE
-  </text>
-  <line x1="96" y1="560" x2="1504" y2="560" stroke="#E7E3DC"/>
-  <text x="96" y="636" fill="#111111" font-family="Arial, sans-serif" font-size="44">
-    The real competition is not generation quality alone.
-  </text>
-  <text x="96" y="696" fill="#111111" font-family="Arial, sans-serif" font-size="44">
-    It is who owns review loops, context, and operational control.
-  </text>
+<svg width="1600" height="1066" viewBox="0 0 1600 1066" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="1066" fill="#F7F3ED"/>
+  <rect x="78" y="78" width="1444" height="910" rx="28" fill="#FBF8F3" stroke="#D9D1C7"/>
+  <rect x="114" y="114" width="430" height="838" rx="24" fill="#111111"/>
+  <rect x="584" y="114" width="902" height="220" rx="22" fill="#FFFFFF" stroke="#DDD5CB"/>
+  <rect x="584" y="364" width="438" height="278" rx="22" fill="#FFFFFF" stroke="#DDD5CB"/>
+  <rect x="1048" y="364" width="438" height="278" rx="22" fill="#FBF8F3" stroke="#DDD5CB"/>
+  <rect x="584" y="672" width="902" height="280" rx="22" fill="#FFFFFF" stroke="#DDD5CB"/>
+  <rect x="584" y="114" width="902" height="18" rx="9" fill="#D72013"/>
+  <rect x="150" y="150" width="358" height="170" rx="18" fill="#1B1B1B" stroke="#343434"/>
+  <rect x="180" y="182" width="188" height="18" rx="9" fill="#F7F3ED" fill-opacity="0.86"/>
+  <rect x="180" y="222" width="286" height="12" rx="6" fill="#5B5B5B"/>
+  <rect x="180" y="252" width="252" height="12" rx="6" fill="#5B5B5B"/>
+  <rect x="150" y="356" width="164" height="248" rx="18" fill="#F2EEE7"/>
+  <rect x="344" y="356" width="164" height="248" rx="18" fill="#F2EEE7"/>
+  <rect x="184" y="392" width="96" height="12" rx="6" fill="#111111"/>
+  <rect x="378" y="392" width="96" height="12" rx="6" fill="#111111"/>
+  <rect x="184" y="428" width="84" height="84" rx="18" fill="#D72013"/>
+  <rect x="378" y="428" width="84" height="84" rx="18" fill="#D72013" fill-opacity="0.88"/>
+  <path d="M206 468L226 488L258 448" stroke="#F7F3ED" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M404 470H438" stroke="#F7F3ED" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="606" cy="224" r="12" fill="#D72013"/>
+  <circle cx="686" cy="224" r="12" fill="#111111"/>
+  <circle cx="766" cy="224" r="12" fill="#D9D1C7"/>
+  <rect x="606" y="174" width="282" height="16" rx="8" fill="#111111"/>
+  <rect x="606" y="260" width="384" height="14" rx="7" fill="#7A746D"/>
+  <rect x="606" y="290" width="308" height="14" rx="7" fill="#B3ABA1"/>
+  <rect x="620" y="408" width="154" height="198" rx="18" fill="#FBF8F3" stroke="#E2DBD1"/>
+  <rect x="802" y="408" width="184" height="198" rx="18" fill="#111111"/>
+  <rect x="1090" y="408" width="148" height="198" rx="18" fill="#FFFFFF" stroke="#E2DBD1"/>
+  <rect x="1264" y="408" width="188" height="198" rx="18" fill="#F2EEE7"/>
+  <rect x="648" y="440" width="98" height="12" rx="6" fill="#111111"/>
+  <rect x="648" y="474" width="84" height="70" rx="14" fill="#D72013" fill-opacity="0.92"/>
+  <rect x="836" y="442" width="112" height="12" rx="6" fill="#FBF8F3" fill-opacity="0.92"/>
+  <rect x="836" y="476" width="112" height="12" rx="6" fill="#5B5B5B"/>
+  <rect x="836" y="510" width="88" height="12" rx="6" fill="#5B5B5B"/>
+  <rect x="1118" y="442" width="92" height="12" rx="6" fill="#111111"/>
+  <circle cx="1164" cy="514" r="42" fill="#F2EEE7" stroke="#111111" stroke-width="4"/>
+  <circle cx="1164" cy="514" r="10" fill="#D72013"/>
+  <rect x="1302" y="442" width="118" height="12" rx="6" fill="#111111"/>
+  <rect x="1302" y="476" width="110" height="12" rx="6" fill="#7A746D"/>
+  <rect x="1302" y="510" width="84" height="12" rx="6" fill="#B3ABA1"/>
+  <path d="M774 506H802" stroke="#D72013" stroke-width="6" stroke-linecap="round"/>
+  <path d="M986 506H1090" stroke="#D72013" stroke-width="6" stroke-linecap="round"/>
+  <path d="M1238 514H1264" stroke="#D72013" stroke-width="6" stroke-linecap="round"/>
+  <rect x="620" y="718" width="830" height="42" rx="21" fill="#111111"/>
+  <rect x="620" y="786" width="514" height="18" rx="9" fill="#5B5B5B"/>
+  <rect x="620" y="826" width="432" height="18" rx="9" fill="#B3ABA1"/>
+  <rect x="620" y="866" width="562" height="18" rx="9" fill="#B3ABA1"/>
+  <rect x="1224" y="736" width="226" height="168" rx="18" fill="#F7F3ED" stroke="#DDD5CB"/>
+  <rect x="1256" y="772" width="108" height="12" rx="6" fill="#111111"/>
+  <rect x="1256" y="808" width="158" height="12" rx="6" fill="#7A746D"/>
+  <rect x="1256" y="844" width="132" height="12" rx="6" fill="#B3ABA1"/>
+  <rect x="1256" y="886" width="76" height="10" rx="5" fill="#D72013"/>
 </svg>

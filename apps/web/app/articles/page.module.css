@@ -1,20 +1,20 @@
 .page {
-  padding: 48px 0 120px;
+  padding: 68px 0 176px;
 }
 
 .header {
   position: relative;
   display: grid;
-  gap: 14px;
-  padding: 22px 0 18px 24px;
+  gap: 18px;
+  padding: 34px 0 48px 30px;
   border-top: 1px solid var(--color-divider);
 }
 
 .header::before {
   content: "";
   position: absolute;
-  top: 22px;
-  bottom: 16px;
+  top: 34px;
+  bottom: 34px;
   left: 0;
   width: 1px;
   background: linear-gradient(180deg, rgba(215, 32, 19, 0.56), rgba(215, 32, 19, 0));
@@ -24,11 +24,13 @@
 .sectionLabel {
   display: inline-flex;
   align-items: center;
+  width: fit-content;
   gap: 10px;
   color: var(--color-accent);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.22em;
+  line-height: 1;
   text-transform: uppercase;
 }
 
@@ -41,33 +43,33 @@
 }
 
 .title {
-  max-width: 10ch;
+  max-width: 7.6em;
   font-family: var(--font-display), serif;
-  font-size: clamp(2.45rem, 4.4vw, 4.1rem);
+  font-size: clamp(1.46rem, 2.15vw, 1.98rem);
   font-weight: 500;
-  line-height: 1.02;
-  letter-spacing: -0.055em;
+  line-height: 1.18;
+  letter-spacing: -0.046em;
 }
 
 .description {
-  max-width: 42ch;
+  max-width: 28rem;
   color: var(--color-text-secondary);
-  line-height: 1.84;
+  line-height: 1.8;
 }
 
 .leadSection {
-  padding: var(--section-space-lg) 0 var(--section-space-lg);
+  padding: var(--section-space-xl) 0 var(--section-space-lg);
 }
 
 .leadHeader,
 .archiveHeader {
   display: grid;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 14px;
+  margin-bottom: 34px;
 }
 
 .archiveSection {
-  padding: 34px 32px 36px;
+  padding: 58px 42px 62px;
   border: 1px solid var(--color-outline-soft);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(246, 240, 232, 0.9)),
@@ -77,23 +79,24 @@
 
 .archiveTitle {
   font-family: var(--font-display), serif;
-  font-size: clamp(1.8rem, 3.2vw, 2.55rem);
+  max-width: 10.8em;
+  font-size: clamp(1.38rem, 2.05vw, 1.82rem);
   font-weight: 500;
-  line-height: 1.08;
+  line-height: 1.22;
   letter-spacing: -0.042em;
 }
 
 .list {
   display: grid;
-  gap: 14px;
+  gap: 20px;
 }
 
 @media (max-width: 640px) {
   .header {
-    padding-left: 18px;
+    padding-left: 22px;
   }
 
   .archiveSection {
-    padding: 28px 20px 30px;
+    padding: 38px 24px 42px;
   }
 }

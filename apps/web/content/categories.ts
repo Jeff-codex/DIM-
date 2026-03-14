@@ -4,29 +4,29 @@ export const categories: Category[] = [
   {
     id: "startups",
     name: "스타트업",
-    description: "무엇을 만들었는지보다 어떤 구조를 바꾸는지를 봅니다.",
+    description: "새 서비스 하나보다 사업이 움직이는 방식을 먼저 봅니다.",
     perspective:
-      "좋은 스타트업은 기능 소개보다 고객 흐름과 운영 방식의 변화를 먼저 드러냅니다.",
+      "제품 소개만으로는 부족합니다. 고객 흐름과 운영 방식이 함께 보여야 합니다.",
   },
   {
     id: "product-launches",
     name: "제품 출시",
-    description: "런칭은 이벤트보다 방향을 보여주는 선택에 가깝습니다.",
+    description: "런칭은 기능 설명보다 방향을 더 분명하게 드러냅니다.",
     perspective:
-      "DIM은 기능, 가격, 유통 방식이 어떻게 달라졌는지를 함께 읽습니다.",
+      "DIM은 제품, 가격, 유통 방식이 함께 바뀌는 지점을 봅니다.",
   },
   {
     id: "market-signals",
     name: "시장 신호",
-    description: "중요한 변화는 한 번의 뉴스보다 반복되는 움직임 속에서 드러납니다.",
+    description: "중요한 변화는 반복되는 움직임에서 먼저 드러납니다.",
     perspective:
-      "비슷한 장면이 쌓일 때 시장은 이미 방향을 바꾸고 있습니다.",
+      "비슷한 움직임이 이어질 때 시장의 방향도 함께 드러납니다.",
   },
   {
     id: "industry-analysis",
     name: "산업 해석",
-    description: "산업 변화는 기술보다 수익 구조와 유통의 이동에서 선명해집니다.",
+    description: "산업의 방향은 기술만이 아니라 수익과 유통 구조에서 선명해집니다.",
     perspective:
-      "DIM은 제품 뒤에 있는 비즈니스 구조의 변화를 함께 읽습니다.",
+      "DIM은 제품 뒤에 놓인 비즈니스 구조까지 함께 읽습니다.",
   },
 ];

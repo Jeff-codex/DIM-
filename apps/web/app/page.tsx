@@ -25,9 +25,9 @@ export default async function HomePage() {
           <h1 className={styles.statement}>{siteConfig.statement}</h1>
           <p className={styles.heroProof}>{siteConfig.positioning}</p>
           <div className={styles.actions}>
-            <CTAButton href="/articles">글 보기</CTAButton>
+            <CTAButton href="/articles">피처 보기</CTAButton>
             <CTAButton href="/submit" variant="secondary">
-              프로젝트 제출
+              피처 제안
             </CTAButton>
           </div>
         </div>
@@ -43,8 +43,8 @@ export default async function HomePage() {
 
       <section className={`container ${styles.latestSection}`}>
         <div className={styles.sectionHeader}>
-          <p className={styles.sectionLabel}>최근 글</p>
-          <h2 className={styles.sectionTitle}>최근 발행된 글</h2>
+          <p className={styles.sectionLabel}>최근 피처</p>
+          <h2 className={styles.sectionTitle}>최근 피처</h2>
         </div>
         <div className={styles.list}>
           {latestArticles.map((article) => (
@@ -57,8 +57,8 @@ export default async function HomePage() {
 
       <section className={`container ${styles.lensesSection}`}>
         <div className={styles.sectionHeader}>
-          <p className={styles.sectionLabel}>읽는 기준</p>
-          <h2 className={styles.sectionTitle}>DIM은 이런 흐름을 봅니다.</h2>
+          <p className={styles.sectionLabel}>DIM의 기준</p>
+          <h2 className={styles.sectionTitle}>무엇을 먼저 보는가</h2>
         </div>
         <div className={styles.categories}>
           {categories.map((category) => (
@@ -75,16 +75,16 @@ export default async function HomePage() {
 
       <section className={`container ${styles.loopSection}`}>
         <div className={styles.sectionHeader}>
-          <p className={styles.sectionLabel}>만드는 방식</p>
-          <h2 className={styles.sectionTitle}>프로젝트 제출부터 발행까지</h2>
+          <p className={styles.sectionLabel}>이렇게 다룹니다</p>
+          <h2 className={styles.sectionTitle}>피처 제안부터 소개까지</h2>
         </div>
         <IntelligenceLoop />
         <div className={styles.loopFooter}>
           <div className={styles.submitBlock}>
-            <p className={styles.submitLabel}>프로젝트 제출</p>
-            <h3 className={styles.submitTitle}>DIM은 제출된 정보를 그대로 올리지 않습니다.</h3>
+            <p className={styles.submitLabel}>피처 제안</p>
+            <h3 className={styles.submitTitle}>소개할 만한 제안을 기다립니다</h3>
             <p className={styles.submitText}>
-              브랜드와 서비스의 맥락을 함께 정리해 읽을 만한 콘텐츠로 발행합니다.
+              브랜드와 서비스의 배경, 판단, 변화가 함께 보이는 제안이라면 DIM에서 피처로 다룰 수 있습니다.
             </p>
           </div>
           <div className={styles.reasonList}>
@@ -96,7 +96,7 @@ export default async function HomePage() {
             ))}
           </div>
           <CTAButton href="/submit" variant="secondary">
-            프로젝트 제출
+            피처 제안
           </CTAButton>
         </div>
       </section>

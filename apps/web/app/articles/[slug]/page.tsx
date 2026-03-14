@@ -82,12 +82,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <header className={`reading-width ${styles.hero}`}>
           <div className={styles.metaTop}>
             <CategoryLabel category={article.category} />
-            {article.featured ? <span className={styles.featured}>대표 아티클</span> : null}
           </div>
           <h1 className={styles.title}>{article.title}</h1>
           <dl className={styles.meta}>
             <div>
-              <dt>발행일</dt>
+              <dt>날짜</dt>
               <dd>{formatDate(article.publishedAt)}</dd>
             </div>
             <div>

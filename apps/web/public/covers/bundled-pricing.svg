@@ -1,22 +1,46 @@
-<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1600" height="900" fill="#F8F6F2"/>
-  <rect x="96" y="92" width="48" height="6" fill="#D72013"/>
-  <text x="96" y="174" fill="#111111" font-family="Georgia, serif" font-size="84" font-weight="700">
-    Bundled pricing
-  </text>
-  <text x="96" y="274" fill="#111111" font-family="Georgia, serif" font-size="84" font-weight="700">
-    in AI products
-  </text>
-  <text x="96" y="398" fill="#5B5B5B" font-family="Arial, sans-serif" font-size="30" letter-spacing="4">
-    INDUSTRY ANALYSIS / DEPTH INTELLIGENCE MAGAZINE
-  </text>
-  <line x1="96" y1="454" x2="1504" y2="454" stroke="#E7E3DC"/>
-  <text x="96" y="532" fill="#111111" font-family="Arial, sans-serif" font-size="42">
-    The next competition will not be model quality alone.
-  </text>
-  <text x="96" y="592" fill="#111111" font-family="Arial, sans-serif" font-size="42">
-    It will be how AI gets packaged into the default product.
-  </text>
-  <path d="M1202 160H1406V364H1202V160Z" stroke="#E7E3DC"/>
-  <path d="M1244 202H1364V322H1244V202Z" fill="#D72013"/>
+<svg width="1600" height="1066" viewBox="0 0 1600 1066" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="1066" fill="#F7F3ED"/>
+  <rect x="78" y="78" width="1444" height="910" rx="28" fill="#FBF8F3" stroke="#D9D1C7"/>
+  <rect x="112" y="112" width="1376" height="842" rx="26" fill="#FFFFFF" stroke="#D9D1C7"/>
+  <rect x="146" y="146" width="492" height="774" rx="24" fill="#111111"/>
+  <rect x="674" y="146" width="780" height="258" rx="24" fill="#F3EFE8"/>
+  <rect x="674" y="438" width="780" height="482" rx="24" fill="#FBF8F3" stroke="#E2DBD1"/>
+  <rect x="184" y="188" width="106" height="12" rx="6" fill="#D72013"/>
+  <rect x="184" y="236" width="246" height="18" rx="9" fill="#F7F3ED"/>
+  <rect x="184" y="276" width="198" height="14" rx="7" fill="#8C8881"/>
+  <rect x="184" y="348" width="416" height="504" rx="22" fill="#F7F3ED"/>
+  <rect x="214" y="388" width="114" height="16" rx="8" fill="#111111"/>
+  <rect x="214" y="430" width="354" height="114" rx="20" fill="#FFFFFF" stroke="#DDD5CB"/>
+  <rect x="248" y="468" width="138" height="12" rx="6" fill="#111111"/>
+  <rect x="248" y="506" width="104" height="14" rx="7" fill="#7A746D"/>
+  <rect x="448" y="452" width="84" height="64" rx="18" fill="#D72013"/>
+  <rect x="214" y="578" width="354" height="114" rx="20" fill="#FFFFFF" stroke="#DDD5CB"/>
+  <rect x="248" y="616" width="126" height="12" rx="6" fill="#111111"/>
+  <rect x="248" y="654" width="164" height="14" rx="7" fill="#7A746D"/>
+  <rect x="448" y="600" width="84" height="64" rx="18" fill="#111111"/>
+  <path d="M532 484H610" stroke="#D72013" stroke-width="8" stroke-linecap="round"/>
+  <path d="M532 632H610" stroke="#D72013" stroke-width="8" stroke-linecap="round"/>
+  <path d="M714 196H1034" stroke="#111111" stroke-width="18" stroke-linecap="round"/>
+  <path d="M714 244H1314" stroke="#7A746D" stroke-width="14" stroke-linecap="round"/>
+  <path d="M714 290H1226" stroke="#B3ABA1" stroke-width="14" stroke-linecap="round"/>
+  <rect x="1208" y="178" width="200" height="168" rx="20" fill="#FFFFFF" stroke="#DDD5CB"/>
+  <rect x="1240" y="214" width="84" height="84" rx="20" fill="#D72013"/>
+  <rect x="1338" y="230" width="42" height="12" rx="6" fill="#111111"/>
+  <rect x="1338" y="264" width="28" height="12" rx="6" fill="#7A746D"/>
+  <rect x="714" y="474" width="218" height="382" rx="22" fill="#FFFFFF" stroke="#DDD5CB"/>
+  <rect x="958" y="474" width="252" height="382" rx="22" fill="#111111"/>
+  <rect x="1236" y="474" width="182" height="382" rx="22" fill="#F3EFE8"/>
+  <rect x="744" y="514" width="88" height="12" rx="6" fill="#111111"/>
+  <rect x="744" y="548" width="126" height="14" rx="7" fill="#7A746D"/>
+  <rect x="744" y="612" width="158" height="162" rx="22" fill="#FBF8F3" stroke="#DDD5CB"/>
+  <path d="M782 680H866" stroke="#D72013" stroke-width="10" stroke-linecap="round"/>
+  <rect x="998" y="512" width="116" height="14" rx="7" fill="#F7F3ED"/>
+  <rect x="998" y="548" width="174" height="14" rx="7" fill="#8C8881"/>
+  <rect x="998" y="604" width="172" height="170" rx="24" fill="#D72013"/>
+  <path d="M1038 650H1132" stroke="#F7F3ED" stroke-width="10" stroke-linecap="round"/>
+  <path d="M1038 700H1104" stroke="#F7F3ED" stroke-width="10" stroke-linecap="round"/>
+  <rect x="1268" y="512" width="94" height="12" rx="6" fill="#111111"/>
+  <rect x="1268" y="548" width="116" height="14" rx="7" fill="#7A746D"/>
+  <rect x="1268" y="604" width="116" height="116" rx="20" fill="#FFFFFF" stroke="#DDD5CB"/>
+  <rect x="1298" y="638" width="56" height="56" rx="14" fill="#111111"/>
 </svg>

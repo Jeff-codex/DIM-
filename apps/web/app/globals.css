@@ -13,13 +13,13 @@
   --color-accent-hover: #b81b10;
   --color-selection: #f4d4d1;
   --layout-container: 1200px;
-  --layout-reading: 720px;
+  --layout-reading: 704px;
   --radius-small: 6px;
   --shadow-soft: 0 10px 28px rgba(17, 17, 17, 0.035);
   --shadow-paper: 0 18px 48px rgba(17, 17, 17, 0.045);
-  --section-space-xl: 72px;
-  --section-space-lg: 56px;
-  --section-space-md: 40px;
+  --section-space-xl: 88px;
+  --section-space-lg: 68px;
+  --section-space-md: 48px;
 }
 
 html,
@@ -106,11 +106,11 @@ dd {
 }
 
 .container {
-  width: min(calc(100% - 32px), var(--layout-container));
+  width: min(calc(100% - 40px), var(--layout-container));
   margin-inline: auto;
 }
 
 .reading-width {
-  width: min(calc(100% - 32px), var(--layout-reading));
+  width: min(calc(100% - 40px), var(--layout-reading));
   margin-inline: auto;
 }

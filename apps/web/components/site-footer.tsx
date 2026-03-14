@@ -7,12 +7,12 @@ export function SiteFooter() {
       <div className={`container ${styles.inner}`}>
         <div className={styles.copy}>
           <p className={styles.label}>DIM</p>
-          <p>브랜드와 서비스 정보를 받아 해석을 거쳐 글로 발행하는 DIM의 공개 지면입니다.</p>
+          <p>스타트업, 서비스, 산업 변화를 다루는 DIM의 공개 매거진입니다.</p>
         </div>
         <div className={styles.links}>
           <Link href="/">홈</Link>
-          <Link href="/articles">글</Link>
-          <Link href="/submit">프로젝트 제출</Link>
+          <Link href="/articles">피처</Link>
+          <Link href="/submit">피처 제안</Link>
           <Link href="/about">소개</Link>
         </div>
       </div>

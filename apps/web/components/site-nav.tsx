@@ -6,8 +6,8 @@ import styles from "./site-nav.module.css";
 
 const navItems = [
   { href: "/", label: "홈" },
-  { href: "/articles", label: "글" },
-  { href: "/submit", label: "프로젝트 제출" },
+  { href: "/articles", label: "피처" },
+  { href: "/submit", label: "피처 제안" },
   { href: "/about", label: "소개" },
 ];
 

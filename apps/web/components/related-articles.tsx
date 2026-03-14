@@ -14,8 +14,8 @@ export function RelatedArticles({ articles }: RelatedArticlesProps) {
   return (
     <section className={styles.section}>
       <div className={styles.header}>
-        <p className={styles.label}>이어 읽기</p>
-        <h2 className={styles.title}>같이 읽을 글</h2>
+        <p className={styles.label}>이어보기</p>
+        <h2 className={styles.title}>더 읽을 피처</h2>
       </div>
       <div className={styles.list}>
         {articles.map((article) => (

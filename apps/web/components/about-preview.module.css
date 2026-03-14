@@ -2,8 +2,8 @@
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: 36px;
-  padding: 36px 32px 38px;
+  gap: 48px;
+  padding: 52px 40px 56px;
   border: 1px solid var(--color-outline-soft);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 242, 235, 0.92)),
@@ -15,8 +15,8 @@
   content: "";
   position: absolute;
   top: 0;
-  left: 32px;
-  width: 84px;
+  left: 40px;
+  width: 94px;
   border-top: 2px solid rgba(215, 32, 19, 0.32);
 }
 
@@ -27,42 +27,51 @@
 
 .eyebrow {
   color: var(--color-accent);
-  font-size: 0.72rem;
+  width: fit-content;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.22em;
+  line-height: 1;
   text-transform: uppercase;
 }
 
 .title {
-  max-width: 15ch;
+  max-width: none;
+  width: fit-content;
   font-family: var(--font-display), serif;
-  font-size: clamp(2.2rem, 4.2vw, 3.4rem);
+  font-size: clamp(1.54rem, 2.45vw, 2.16rem);
   font-weight: 500;
-  line-height: 1.06;
-  letter-spacing: -0.045em;
+  line-height: 1.16;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
 }
 
 .body {
   display: grid;
   align-content: end;
-  gap: 18px;
+  gap: 20px;
 }
 
 .body p {
-  max-width: 42ch;
+  max-width: 32rem;
   color: var(--color-text-secondary);
-  line-height: 1.88;
+  line-height: 1.82;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
 }
 
 @media (max-width: 900px) {
   .preview {
     grid-template-columns: 1fr;
-    padding: 32px 24px 34px;
+    padding: 38px 24px 40px;
+  }
+
+  .title {
+    width: auto;
+    white-space: normal;
   }
 }

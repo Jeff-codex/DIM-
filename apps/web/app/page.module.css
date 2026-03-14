@@ -1,25 +1,25 @@
 .page {
-  padding: 28px 0 128px;
+  padding: 48px 0 172px;
 }
 
 .heroSection {
-  padding: 36px 0 40px;
+  padding: 52px 0 76px;
 }
 
 .hero {
   position: relative;
   display: grid;
-  gap: 18px;
-  max-width: 60ch;
-  padding: 24px 0 12px 24px;
+  gap: 20px;
+  max-width: 44rem;
+  padding: 34px 0 22px 30px;
   border-top: 1px solid var(--color-divider);
 }
 
 .hero::before {
   content: "";
   position: absolute;
-  top: 24px;
-  bottom: 12px;
+  top: 34px;
+  bottom: 22px;
   left: 0;
   width: 1px;
   background: linear-gradient(180deg, rgba(215, 32, 19, 0.55), rgba(215, 32, 19, 0));
@@ -30,11 +30,13 @@
 .submitLabel {
   display: inline-flex;
   align-items: center;
+  width: fit-content;
   gap: 10px;
   color: var(--color-accent);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.22em;
+  line-height: 1;
   text-transform: uppercase;
 }
 
@@ -48,29 +50,34 @@
 }
 
 .statement {
-  max-width: 10ch;
+  max-width: none;
+  width: fit-content;
   font-family: var(--font-display), serif;
-  font-size: clamp(2.3rem, 4.1vw, 3.7rem);
+  font-size: clamp(1.52rem, 2.35vw, 2.22rem);
   font-weight: 500;
-  line-height: 1.04;
-  letter-spacing: -0.052em;
+  line-height: 1.14;
+  letter-spacing: -0.048em;
+  white-space: nowrap;
 }
 
 .heroProof {
-  max-width: 43ch;
+  max-width: none;
+  width: fit-content;
   color: var(--color-text-secondary);
-  font-size: 1rem;
-  line-height: 1.86;
+  font-size: 0.98rem;
+  line-height: 1.82;
+  white-space: nowrap;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  padding-top: 4px;
 }
 
 .featureSection {
-  padding: 0 0 64px;
+  padding: 0 0 118px;
 }
 
 .latestSection,
@@ -81,21 +88,21 @@
 }
 
 .latestSection {
-  padding: 34px 32px 36px;
+  padding: 56px 42px 60px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(248, 244, 237, 0.82)),
     var(--color-surface-muted);
 }
 
 .lensesSection {
-  padding: 38px 32px 40px;
+  padding: 60px 42px 68px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 242, 235, 0.92)),
     var(--color-surface);
 }
 
 .loopSection {
-  padding: 40px 32px 42px;
+  padding: 64px 42px 72px;
   border-color: rgba(17, 17, 17, 0.12);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(241, 235, 226, 0.96)),
@@ -105,34 +112,34 @@
 
 .sectionHeader {
   display: grid;
-  gap: 10px;
-  margin-bottom: 28px;
+  gap: 14px;
+  margin-bottom: 40px;
 }
 
 .sectionTitle {
-  max-width: 15ch;
+  max-width: 11.2em;
   font-family: var(--font-display), serif;
-  font-size: clamp(1.95rem, 3.7vw, 2.85rem);
+  font-size: clamp(1.42rem, 2.25vw, 1.94rem);
   font-weight: 500;
-  line-height: 1.08;
-  letter-spacing: -0.045em;
+  line-height: 1.22;
+  letter-spacing: -0.04em;
 }
 
 .list {
   display: grid;
-  gap: 14px;
+  gap: 22px;
 }
 
 .categories {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px 20px;
+  gap: 34px 28px;
 }
 
 .category {
   display: grid;
-  gap: 10px;
-  padding: 18px 18px 20px;
+  gap: 14px;
+  padding: 28px 24px 30px;
   border: 1px solid var(--color-outline-soft);
   background: rgba(255, 255, 255, 0.72);
   box-shadow: var(--shadow-soft);
@@ -140,65 +147,69 @@
 
 .categoryName {
   color: var(--color-accent);
-  font-size: 0.72rem;
+  width: fit-content;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.2em;
+  line-height: 1;
   text-transform: uppercase;
 }
 
 .categoryDescription {
-  max-width: 24ch;
+  max-width: 10.8em;
   font-family: var(--font-display), serif;
-  font-size: 1.34rem;
-  line-height: 1.26;
+  font-size: 1.24rem;
+  line-height: 1.32;
   letter-spacing: -0.024em;
 }
 
 .categoryPerspective {
-  max-width: 38ch;
+  max-width: 25rem;
   color: var(--color-text-secondary);
-  line-height: 1.78;
+  line-height: 1.82;
 }
 
 .loopFooter {
   display: grid;
-  gap: 24px;
-  padding-top: 28px;
-  margin-top: 28px;
+  gap: 36px;
+  padding-top: 48px;
+  margin-top: 48px;
   border-top: 1px solid var(--color-divider);
 }
 
 .submitBlock {
   display: grid;
-  gap: 10px;
-  max-width: 46ch;
+  gap: 14px;
+  max-width: 30rem;
 }
 
 .submitTitle {
-  max-width: 16ch;
+  max-width: none;
+  width: fit-content;
   font-family: var(--font-display), serif;
-  font-size: clamp(1.78rem, 3vw, 2.35rem);
+  font-size: clamp(1.34rem, 2.1vw, 1.7rem);
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.2;
   letter-spacing: -0.038em;
+  white-space: nowrap;
 }
 
 .submitText {
-  max-width: 44ch;
+  max-width: 27rem;
   color: var(--color-text-secondary);
-  line-height: 1.78;
+  line-height: 1.82;
 }
 
 .reasonList {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 24px;
 }
 
 .reason {
   display: grid;
-  gap: 8px;
-  padding: 16px 16px 18px;
+  gap: 12px;
+  padding: 24px 22px 26px;
   border: 1px solid rgba(17, 17, 17, 0.08);
   background: rgba(255, 255, 255, 0.65);
 }
@@ -211,7 +222,7 @@
 
 .reason p {
   color: var(--color-text-secondary);
-  line-height: 1.72;
+  line-height: 1.78;
 }
 
 @media (max-width: 980px) {
@@ -223,16 +234,23 @@
 
 @media (max-width: 640px) {
   .page {
-    padding-top: 16px;
+    padding-top: 20px;
+  }
+
+  .statement,
+  .heroProof,
+  .submitTitle {
+    width: auto;
+    white-space: normal;
   }
 
   .hero {
-    padding-left: 18px;
+    padding-left: 22px;
   }
 
   .latestSection,
   .lensesSection,
   .loopSection {
-    padding: 28px 20px 30px;
+    padding: 38px 24px 42px;
   }
 }

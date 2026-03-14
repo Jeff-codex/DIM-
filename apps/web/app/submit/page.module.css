@@ -1,19 +1,19 @@
 .page {
-  padding: 48px 0 120px;
+  padding: 68px 0 176px;
 }
 
 .header {
   position: relative;
   display: grid;
-  gap: 16px;
-  padding: 8px 0 40px 24px;
+  gap: 20px;
+  padding: 16px 0 80px 30px;
 }
 
 .header::before {
   content: "";
   position: absolute;
-  top: 8px;
-  bottom: 40px;
+  top: 16px;
+  bottom: 80px;
   left: 0;
   width: 1px;
   background: linear-gradient(180deg, rgba(215, 32, 19, 0.56), rgba(215, 32, 19, 0));
@@ -26,11 +26,13 @@
 .statusLabel {
   display: inline-flex;
   align-items: center;
+  width: fit-content;
   gap: 10px;
   color: var(--color-accent);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.22em;
+  line-height: 1;
   text-transform: uppercase;
 }
 
@@ -46,24 +48,27 @@
 }
 
 .title {
-  max-width: 12ch;
+  max-width: none;
+  width: fit-content;
   font-family: var(--font-display), serif;
-  font-size: clamp(2.45rem, 4.6vw, 4.15rem);
+  font-size: clamp(1.38rem, 2.05vw, 1.84rem);
   font-weight: 500;
-  line-height: 1.03;
-  letter-spacing: -0.055em;
+  line-height: 1.18;
+  letter-spacing: -0.046em;
+  white-space: nowrap;
 }
 
 .lead {
-  max-width: 42ch;
+  max-width: 27rem;
   color: var(--color-text-secondary);
-  line-height: 1.86;
+  font-size: 0.98rem;
+  line-height: 1.82;
 }
 
 .statementBlock {
   display: grid;
-  gap: 12px;
-  padding: 26px 28px 30px;
+  gap: 20px;
+  padding: 40px 36px 42px;
   border: 1px solid var(--color-outline-soft);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 240, 232, 0.9)),
@@ -72,29 +77,31 @@
 }
 
 .statement {
-  max-width: 24ch;
+  max-width: none;
+  width: fit-content;
   font-family: var(--font-display), serif;
-  font-size: clamp(1.68rem, 3.4vw, 2.56rem);
+  font-size: clamp(1.24rem, 1.9vw, 1.68rem);
   font-weight: 500;
-  line-height: 1.12;
+  line-height: 1.28;
   letter-spacing: -0.04em;
+  white-space: nowrap;
 }
 
 .participantBlock {
-  padding-top: 34px;
+  padding-top: 72px;
 }
 
 .participantGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-  padding-top: 16px;
+  gap: 24px;
+  padding-top: 28px;
 }
 
 .participant {
   display: grid;
-  gap: 8px;
-  padding: 18px 18px 20px;
+  gap: 12px;
+  padding: 26px 24px 28px;
   border: 1px solid var(--color-outline-soft);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 243, 236, 0.86)),
@@ -104,18 +111,19 @@
 
 .participant h2 {
   font-family: var(--font-display), serif;
-  font-size: 1.22rem;
+  max-width: 10.5em;
+  font-size: 1.18rem;
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.34;
 }
 
 .participant p {
   color: var(--color-text-secondary);
-  line-height: 1.72;
+  line-height: 1.78;
 }
 
 .section {
-  padding: 34px 32px 38px;
+  padding: 58px 44px 62px;
   border: 1px solid var(--color-outline-soft);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 240, 232, 0.9)),
@@ -124,102 +132,148 @@
 }
 
 .section + .section {
-  margin-top: var(--section-space-xl);
+  margin-top: 108px;
 }
 
 .sectionHeader {
   display: grid;
-  gap: 10px;
-  margin-bottom: 24px;
+  gap: 14px;
+  margin-bottom: 42px;
 }
 
 .sectionTitle {
-  max-width: 18ch;
+  max-width: none;
+  width: fit-content;
   font-family: var(--font-display), serif;
-  font-size: clamp(1.82rem, 3.4vw, 2.6rem);
+  font-size: clamp(1.38rem, 2.1vw, 1.84rem);
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.24;
   letter-spacing: -0.04em;
+  white-space: nowrap;
 }
 
 .topicGrid,
 .outputGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 24px;
 }
 
 .card {
   display: grid;
-  gap: 8px;
-  padding: 18px 18px 20px;
+  gap: 12px;
+  padding: 26px 24px 28px;
   border: 1px solid var(--color-outline-soft);
   background: rgba(255, 255, 255, 0.72);
 }
 
 .card h3 {
-  max-width: 18ch;
+  max-width: 10.8em;
   font-family: var(--font-display), serif;
-  font-size: 1.3rem;
+  font-size: 1.18rem;
   font-weight: 500;
-  line-height: 1.24;
+  line-height: 1.34;
   letter-spacing: -0.03em;
 }
 
 .card p {
-  max-width: 34ch;
+  max-width: 21rem;
   color: var(--color-text-secondary);
-  line-height: 1.76;
+  line-height: 1.8;
 }
 
 .fieldList {
   display: grid;
+  gap: 18px;
 }
 
 .fieldRow {
   display: grid;
-  grid-template-columns: minmax(180px, 0.36fr) minmax(0, 1fr);
-  gap: 20px;
-  padding: 18px 18px 18px 0;
-  border-top: 1px solid var(--color-divider);
+  grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+  padding: 26px 24px 28px;
+  border: 1px solid var(--color-outline-soft);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.fieldLabel {
+  margin-top: 2px;
 }
 
 .fieldValue,
-.statusBody {
-  max-width: 48ch;
+.formStatus {
+  max-width: 27rem;
   color: var(--color-text-secondary);
-  line-height: 1.78;
+  line-height: 1.82;
 }
 
 .form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 18px;
-  padding: 24px;
+  gap: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.formGroup {
+  min-inline-size: 0;
+  display: grid;
+  gap: 18px;
+  padding: 28px 26px 30px;
+  margin: 0;
   border: 1px solid var(--color-outline-soft);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 242, 235, 0.92)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 242, 235, 0.86)),
     var(--color-surface);
-  box-shadow: var(--shadow-soft);
+}
+
+.groupTitle {
+  display: block;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-display), serif;
+  max-width: 11em;
+  font-size: 1.22rem;
+  font-weight: 500;
+  line-height: 1.28;
+  letter-spacing: -0.03em;
+}
+
+.groupNote {
+  max-width: 27rem;
+  color: var(--color-text-secondary);
+  line-height: 1.78;
+}
+
+.groupFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 24px;
 }
 
 .inputGroup {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  align-content: start;
 }
 
 .inputGroup span {
-  font-size: 0.92rem;
+  display: block;
+  font-size: 0.88rem;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .inputGroup input,
 .inputGroup select,
 .inputGroup textarea {
   width: 100%;
-  padding: 14px 16px;
+  min-height: 56px;
+  padding: 16px 18px;
   border: 1px solid var(--color-outline-soft);
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.96);
   color: var(--color-text-primary);
   line-height: 1.65;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
@@ -233,7 +287,7 @@
 }
 
 .inputGroup textarea {
-  min-height: 120px;
+  min-height: 156px;
   resize: vertical;
 }
 
@@ -241,47 +295,54 @@
   appearance: none;
 }
 
+.formHint {
+  max-width: none;
+  width: fit-content;
+  color: var(--color-text-secondary);
+  line-height: 1.78;
+  white-space: nowrap;
+}
+
 .full {
   grid-column: 1 / -1;
 }
 
-.formHint {
-  color: var(--color-text-secondary);
-  line-height: 1.76;
+.formFooter {
+  display: grid;
+  gap: 14px;
+  padding: 4px 0 0;
+}
+
+.formStatus {
+  max-width: none;
+  width: fit-content;
+  white-space: nowrap;
 }
 
 .formButton {
   min-width: 220px;
-  min-height: 44px;
-  padding: 14px 18px;
+  min-height: 46px;
+  padding: 15px 20px;
+  margin-top: 6px;
   border: 1px solid rgba(215, 32, 19, 0.14);
   background: linear-gradient(180deg, #f4ede6, #efe7df);
   color: #83796e;
   text-align: center;
   cursor: not-allowed;
+  justify-self: start;
 }
 
 .closing {
   display: grid;
-  gap: 20px;
-  padding: 72px 0 0;
-}
-
-.statusBox {
-  display: grid;
-  gap: 10px;
-  padding: 26px 28px 28px;
-  border: 1px solid var(--color-outline-soft);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(239, 232, 223, 0.9)),
-    var(--color-surface-quiet);
-  box-shadow: var(--shadow-soft);
+  gap: 18px;
+  padding: 80px 0 0;
+  border-top: 1px solid var(--color-divider);
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
 }
 
 @media (max-width: 900px) {
@@ -290,30 +351,37 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .topicGrid,
   .outputGrid,
-  .form {
+  .groupFields {
     grid-template-columns: 1fr;
   }
 
   .fieldRow {
     grid-template-columns: 1fr;
-    gap: 10px;
-    padding-right: 0;
+    gap: 12px;
+  }
+
+  .title,
+  .statement,
+  .sectionTitle,
+  .formHint,
+  .formStatus {
+    width: auto;
+    white-space: normal;
   }
 }
 
 @media (max-width: 640px) {
   .header {
-    padding-left: 18px;
+    padding-left: 20px;
   }
 
   .statementBlock,
   .section,
-  .statusBox,
   .form {
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: 24px;
+    padding-right: 24px;
   }
 }

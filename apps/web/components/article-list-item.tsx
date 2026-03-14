@@ -31,11 +31,13 @@ export function ArticleListItem({
             <Link href={`/articles/${article.slug}`}>{article.title}</Link>
           </h3>
           <p className={styles.excerpt}>{article.excerpt}</p>
-          <EditorialFrame
-            frame={article.interpretiveFrame}
-            variant={isLead ? "default" : "compact"}
-            className={styles.frame}
-          />
+          {isLead ? (
+            <EditorialFrame
+              frame={article.interpretiveFrame}
+              variant="default"
+              className={styles.frame}
+            />
+          ) : null}
         </div>
 
         <div className={styles.media}>

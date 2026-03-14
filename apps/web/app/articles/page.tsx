@@ -4,8 +4,8 @@ import { ArticleListItem } from "@/components/article-list-item";
 import { getPublishedArticles } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: "글",
-  description: "DIM이 해석과 편집을 거쳐 발행한 글을 모아 둔 아카이브입니다.",
+  title: "피처",
+  description: "스타트업, 서비스, 런칭, 산업 변화를 다룬 DIM 피처를 모아 둔 공간입니다.",
   alternates: {
     canonical: "/articles",
   },
@@ -22,10 +22,10 @@ export default async function ArticlesPage() {
     <div className={styles.page}>
       <section className="container">
         <div className={styles.header}>
-          <p className={styles.eyebrow}>글</p>
-          <h1 className={styles.title}>발행된 글</h1>
+          <p className={styles.eyebrow}>피처</p>
+          <h1 className={styles.title}>DIM 피처</h1>
           <p className={styles.description}>
-            DIM이 해석과 편집을 거쳐 발행한 글을 차분히 모아 둔 아카이브입니다.
+            스타트업, 서비스, 런칭, 산업 변화를 다룬 피처를 한곳에 모았습니다.
           </p>
         </div>
       </section>
@@ -33,7 +33,7 @@ export default async function ArticlesPage() {
       {leadArticle ? (
         <section className={`container ${styles.leadSection}`}>
           <div className={styles.leadHeader}>
-            <p className={styles.sectionLabel}>대표 아티클</p>
+            <p className={styles.sectionLabel}>주요 피처</p>
           </div>
           <ArticleListItem article={leadArticle} variant="lead" />
         </section>
@@ -41,8 +41,8 @@ export default async function ArticlesPage() {
 
       <section className={`container ${styles.archiveSection}`}>
         <div className={styles.archiveHeader}>
-          <p className={styles.sectionLabel}>최근 글</p>
-          <h2 className={styles.archiveTitle}>최근 발행 글</h2>
+          <p className={styles.sectionLabel}>최근 피처</p>
+          <h2 className={styles.archiveTitle}>최근 피처</h2>
         </div>
         <div className={styles.list}>
           {archiveArticles.map((article) => (

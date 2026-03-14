@@ -16,16 +16,22 @@ export function FeaturedArticle({ article }: FeaturedArticleProps) {
     <article className={styles.feature}>
       <div className={styles.grid}>
         <div className={styles.copy}>
-          <p className={styles.kicker}>대표 아티클</p>
-          <CategoryLabel category={article.category} />
+          <div className={styles.topline}>
+            <p className={styles.kicker}>주요 피처</p>
+            <CategoryLabel category={article.category} />
+            <p className={styles.date}>{formatDate(article.publishedAt)}</p>
+          </div>
           <h2 className={styles.title}>
             <Link href={`/articles/${article.slug}`}>{article.title}</Link>
           </h2>
+          <EditorialFrame
+            frame={article.interpretiveFrame}
+            className={styles.frame}
+            variant="compact"
+          />
           <p className={styles.excerpt}>{article.excerpt}</p>
-          <EditorialFrame frame={article.interpretiveFrame} />
-          <p className={styles.date}>{formatDate(article.publishedAt)}</p>
           <div className={styles.actions}>
-            <CTAButton href={`/articles/${article.slug}`}>글 읽기</CTAButton>
+            <CTAButton href={`/articles/${article.slug}`}>피처 보기</CTAButton>
           </div>
         </div>
 

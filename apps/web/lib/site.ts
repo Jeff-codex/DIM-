@@ -1,10 +1,10 @@
 export const siteConfig = {
   name: "DIM",
   url: "https://depthintelligence.kr",
-  description: "스타트업과 산업 변화를 깊게 읽는 한국어 인텔리전스 매거진",
-  statement: "스타트업과 산업 변화를 깊게 읽는 매거진.",
+  description: "스타트업, 서비스, 산업 변화를 해석하는 한국어 매거진",
+  statement: "비즈니스 구조를 읽어주는 매거진",
   positioning:
-    "브랜드·서비스·제품·런칭 정보를 제출하면, DIM의 편집 시스템이 이를 읽을 만한 콘텐츠로 정리해 발행합니다.",
-  aboutTitle: "DIM은 제출된 정보를 해석해 읽을 만한 글로 발행합니다.",
-  aboutLead: "단순 노출보다, 왜 중요한지 분명하게 읽히는 콘텐츠를 만듭니다.",
+    "스타트업, 서비스, 런칭, 산업 변화에서 지금 봐야 할 맥락을 골라 다룹니다",
+  aboutTitle: "DIM은 변화의 이유를 읽습니다",
+  aboutLead: "스타트업, 서비스, 런칭을 다룰 때도 먼저 보는 것은 앞뒤 맥락과 구조입니다",
 } as const;
