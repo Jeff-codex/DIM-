@@ -26,7 +26,7 @@ Run from `apps/web`.
    - `/submit`
 5. Share only the verified external URL.
 6. If resuming from the current checkpoint, the latest known-good review preview is:
-   - `https://home-copy-one-line-pass-2026.dim-preview.pages.dev`
+   - `https://refresh-preview-20260318.dim-preview.pages.dev`
 
 ## Production deployment checklist
 

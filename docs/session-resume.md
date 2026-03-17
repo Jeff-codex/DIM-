@@ -2,9 +2,9 @@
 
 ## Current checkpoint
 
-- Date: `2026-03-14`
+- Date: `2026-03-18`
 - Branch: `main`
-- Commit: `7e2788b` (`feat: refine DIM editorial presentation`)
+- Commit: `ec0bcc3` (`feat: redesign DIM magazine experience`)
 - Remote: `origin -> https://github.com/Jeff-codex/DIM-.git`
 - Public app: `apps/web`
 - Runtime target: `Cloudflare Workers`
@@ -12,30 +12,32 @@
 
 ## What is already implemented
 
-- DIM public site is built as a Korean-first editorial intelligence magazine.
-- Core routes are in place:
+- DIM public site has been reworked into a more uniform magazine system inspired by the 9works reference grammar.
+- Core routes remain:
   - `/`
   - `/articles`
   - `/articles/[slug]`
   - `/about`
   - `/submit`
-- Every published article has one representative image.
-- Product framing is aligned to:
-  - `프로젝트 제출`
-  - `편집 및 해석`
-  - `콘텐츠 발행`
-- Home/feature card rhythm has been refined so the lead feature reads with stronger editorial priority.
-- Public-facing Korean copy has been tightened and de-platformed away from newsroom/CMS wording.
-- Home hero statement is currently:
-  - `비즈니스 구조를 읽어주는 매거진`
-- Review preview workflow and Workers production workflow are separated.
-- Preview URL sharing rule is already established: verify first, then share.
-- Current repository state is clean and pushed to `origin/main`.
+- Home and `/articles` now share the same top-level reading structure:
+  - dark magazine intro
+  - centered category channel bar
+  - uniform archive-style card grid
+- Home and `/articles` currently hide `시장 신호` in the channel bar and center the remaining three categories.
+- Article list cards are flattened to image + title + short excerpt with minimal/no list metadata.
+- `/about` and `/submit` were reworked into the same black/white magazine tone instead of stacked document cards.
+- `피처 제안` page rhythm was simplified so the explanatory side reads in fewer chapters and the form stands as one clear intake block.
+- Internal page transitions now use a mirrored fade-out / fade-in approach that is closer to the 9works reference than the earlier overlay/blur attempts.
+- SEO groundwork remains in place:
+  - `Organization` JSON-LD at the app level
+  - `Article` JSON-LD on article detail pages
+  - article intros strengthened with clearer brand/service references
+- Review preview workflow and Workers production workflow remain intentionally separated.
 
 ## Latest verified preview
 
-- Alias: `https://home-copy-one-line-pass-2026.dim-preview.pages.dev`
-- Snapshot: `https://b9cdb06c.dim-preview.pages.dev`
+- Alias: `https://refresh-preview-20260318.dim-preview.pages.dev`
+- Snapshot: `https://22c4ac07.dim-preview.pages.dev`
 
 ## Guardrails
 
@@ -49,7 +51,7 @@
 
 1. Read this file and `docs/deployment-checklist.md`.
 2. Check repository state with `git status --short`.
-3. Confirm the current checkpoint is still `main` at or ahead of `7e2788b`.
+3. Confirm the current checkpoint is still `main` at or ahead of `ec0bcc3`.
 4. If code changed, run from `apps/web`:
    - `npm run lint`
    - `npm run build`
@@ -66,8 +68,8 @@
 
 ## Most likely next product tasks
 
-- Final visual polish based on user review
-- Home/featured card refinement if the user wants stronger editorial dominance
-- Submit page refinement and eventual real submission handling
+- DIM-specific copy and category polishing on top of the new magazine grammar
+- Additional refinement of article detail pacing and transition feel after user review
+- Submit page UX tightening before any real intake workflow is connected
 - Final production QA before real-domain deployment
 - Cloudflare Workers production deployment once the user signs off
