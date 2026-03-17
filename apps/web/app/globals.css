@@ -1,25 +1,25 @@
 :root {
-  --color-background: #f7f3ed;
-  --color-background-alt: #efe9e1;
+  --color-background: #ffffff;
+  --color-background-alt: #f4f4f2;
   --color-surface: #ffffff;
-  --color-surface-muted: #fbf8f3;
-  --color-surface-quiet: #f4efe8;
+  --color-surface-muted: #faf9f6;
+  --color-surface-quiet: #f2f1ed;
   --color-text-primary: #111111;
   --color-text-secondary: #5b5b5b;
-  --color-divider: #e3ddd4;
+  --color-divider: #e5e1da;
   --color-divider-strong: rgba(17, 17, 17, 0.14);
   --color-outline-soft: rgba(17, 17, 17, 0.08);
   --color-accent: #d72013;
   --color-accent-hover: #b81b10;
   --color-selection: #f4d4d1;
-  --layout-container: 1200px;
-  --layout-reading: 704px;
-  --radius-small: 6px;
-  --shadow-soft: 0 10px 28px rgba(17, 17, 17, 0.035);
-  --shadow-paper: 0 18px 48px rgba(17, 17, 17, 0.045);
-  --section-space-xl: 88px;
-  --section-space-lg: 68px;
-  --section-space-md: 48px;
+  --layout-container: 1240px;
+  --layout-reading: 780px;
+  --radius-small: 0;
+  --shadow-soft: 0 8px 18px rgba(17, 17, 17, 0.025);
+  --shadow-paper: 0 14px 34px rgba(17, 17, 17, 0.03);
+  --section-space-xl: 96px;
+  --section-space-lg: 72px;
+  --section-space-md: 52px;
 }
 
 html,
@@ -38,6 +38,7 @@ body {
   line-height: 1.68;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #000000;
 }
 
 * {
@@ -87,22 +88,32 @@ dd {
 
 .site-frame {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0) 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 26%),
-    linear-gradient(90deg, rgba(17, 17, 17, 0.018) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(17, 17, 17, 0.012) 1px, transparent 1px),
-    var(--color-background);
-  background-size:
-    auto,
-    auto,
-    160px 160px,
-    160px 160px,
-    auto;
+  background: var(--color-background);
+  opacity: 1;
+  transition: opacity 320ms ease;
 }
 
 .site-main {
   min-height: calc(100vh - 144px);
+  background: var(--color-background);
+}
+
+html.page-leaving .site-frame {
+  opacity: 0;
+}
+
+html.page-entering .site-frame {
+  opacity: 0;
+}
+
+html.page-enter-active .site-frame {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-frame {
+    transition: none;
+  }
 }
 
 .container {

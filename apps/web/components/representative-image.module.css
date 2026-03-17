@@ -5,24 +5,11 @@
 .frame {
   position: relative;
   overflow: hidden;
-  padding: 10px;
-  border: 1px solid var(--color-outline-soft);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 241, 234, 0.92)),
-    var(--color-surface);
-  box-shadow: var(--shadow-soft);
-}
-
-.frame::after {
-  content: "";
-  position: absolute;
-  inset: 10px;
-  border: 1px solid rgba(17, 17, 17, 0.06);
-  pointer-events: none;
+  background: #e9e5de;
 }
 
 .lead {
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 4 / 3;
 }
 
 .card {
@@ -30,7 +17,7 @@
 }
 
 .detail {
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 16 / 10;
 }
 
 .image {
@@ -43,6 +30,6 @@
 }
 
 .link:hover .image {
-  transform: scale(1.025);
-  filter: contrast(1.03);
+  transform: scale(1.018);
+  filter: contrast(1.02);
 }

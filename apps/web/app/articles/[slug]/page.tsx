@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import styles from "./page.module.css";
-import { CategoryLabel } from "@/components/category-label";
 import { EditorialFrame } from "@/components/editorial-frame";
 import { RelatedArticles } from "@/components/related-articles";
 import { RepresentativeImage } from "@/components/representative-image";
@@ -75,25 +74,51 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   }
 
   const relatedArticles = await getRelatedArticles(article.slug, 3);
+  const canonical = `${siteConfig.url}/articles/${article.slug}`;
+  const image = `${siteConfig.url}${article.coverImage}`;
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.title,
+    description: article.excerpt,
+    datePublished: article.publishedAt,
+    image: [image],
+    articleSection: article.category.name,
+    mainEntityOfPage: canonical,
+    author: {
+      "@type": "Person",
+      name: article.author.name,
+    },
+    publisher: {
+      "@type": "Organization",
+      "@id": siteConfig.publisher.id,
+      name: siteConfig.publisher.name,
+      alternateName: siteConfig.publisher.alternateName,
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteConfig.url}${siteConfig.publisher.logoPath}`,
+      },
+    },
+  };
 
   return (
     <div className={styles.page}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(articleJsonLd),
+        }}
+      />
       <article>
-        <header className={`reading-width ${styles.hero}`}>
-          <div className={styles.metaTop}>
-            <CategoryLabel category={article.category} />
+        <header className={styles.hero}>
+          <div className={`container ${styles.heroInner}`}>
+            <p className={styles.kicker}>{article.category.name}</p>
+            <h1 className={styles.title}>{article.title}</h1>
+            <p className={styles.excerpt}>{article.excerpt}</p>
+            <p className={styles.meta}>
+              {formatDate(article.publishedAt)} · {article.author.name}
+            </p>
           </div>
-          <h1 className={styles.title}>{article.title}</h1>
-          <dl className={styles.meta}>
-            <div>
-              <dt>날짜</dt>
-              <dd>{formatDate(article.publishedAt)}</dd>
-            </div>
-            <div>
-              <dt>필자</dt>
-              <dd>{article.author.name}</dd>
-            </div>
-          </dl>
         </header>
 
         <div className={`reading-width ${styles.coverWrap}`}>
@@ -106,7 +131,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </div>
 
         <div className={`reading-width ${styles.frameWrap}`}>
-          <EditorialFrame frame={article.interpretiveFrame} className={styles.frame} />
+          <EditorialFrame
+            frame={article.interpretiveFrame}
+            className={styles.frame}
+            variant="compact"
+          />
         </div>
 
         <div
@@ -115,9 +144,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         />
       </article>
 
-      <div className={`container ${styles.related}`}>
-        <RelatedArticles articles={relatedArticles} />
-      </div>
+      <section className={styles.relatedSection}>
+        <div className="container">
+          <RelatedArticles articles={relatedArticles} />
+        </div>
+      </section>
     </div>
   );
 }

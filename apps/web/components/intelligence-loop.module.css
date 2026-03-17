@@ -1,53 +1,40 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  gap: 28px 32px;
 }
 
 .item {
   position: relative;
   display: grid;
-  gap: 14px;
-  padding: 26px 22px 28px;
-  border: 1px solid var(--color-outline-soft);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 244, 238, 0.9)),
-    var(--color-surface);
-  box-shadow: var(--shadow-soft);
-}
-
-.item::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 22px;
-  width: 44px;
-  border-top: 2px solid rgba(215, 32, 19, 0.3);
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(17, 17, 17, 0.14);
 }
 
 .label {
-  color: var(--color-accent);
+  color: rgba(17, 17, 17, 0.56);
   width: fit-content;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .title {
-  max-width: 10.8em;
+  max-width: 12em;
   font-family: var(--font-display), serif;
-  font-size: 1.22rem;
+  font-size: 1.18rem;
   font-weight: 500;
-  line-height: 1.26;
+  line-height: 1.32;
   letter-spacing: -0.03em;
 }
 
 .description {
-  max-width: 18rem;
+  max-width: 18.5rem;
   color: var(--color-text-secondary);
-  line-height: 1.76;
+  line-height: 1.78;
 }
 
 @media (max-width: 900px) {

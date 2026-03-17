@@ -2,6 +2,13 @@ export const siteConfig = {
   name: "DIM",
   url: "https://depthintelligence.kr",
   description: "스타트업, 서비스, 산업 변화를 해석하는 한국어 매거진",
+  publisher: {
+    id: "https://depthintelligence.kr/#organization",
+    name: "Depth Intelligence Magazine",
+    alternateName: "DIM",
+    logoPath: "/brand/dim-logo-black.png",
+    sameAs: [] as string[],
+  },
   statement: "비즈니스 구조를 읽어주는 매거진",
   positioning:
     "스타트업, 서비스, 런칭, 산업 변화에서 지금 봐야 할 맥락을 골라 다룹니다",

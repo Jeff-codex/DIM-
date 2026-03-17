@@ -5,28 +5,15 @@
 }
 
 .default {
-  gap: 12px;
-  padding: 20px 22px 22px;
-  border: 1px solid var(--color-outline-soft);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 245, 239, 0.86)),
-    var(--color-surface);
-  box-shadow: var(--shadow-soft);
-}
-
-.default::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 22px;
-  right: 22px;
-  border-top: 2px solid rgba(215, 32, 19, 0.32);
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(17, 17, 17, 0.18);
 }
 
 .compact {
   gap: 8px;
-  padding: 14px 0 0 14px;
-  border-left: 1px solid rgba(215, 32, 19, 0.24);
+  padding-top: 12px;
+  border-top: 1px solid rgba(17, 17, 17, 0.16);
 }
 
 .label {
@@ -45,7 +32,7 @@
 
 .default .body {
   color: var(--color-text-primary);
-  font-size: 0.95rem;
+  font-size: 0.96rem;
 }
 
 .compact .body {
@@ -55,7 +42,7 @@
 }
 
 .compact .label {
-  color: rgba(215, 32, 19, 0.78);
+  color: rgba(17, 17, 17, 0.56);
   font-size: 0.62rem;
   letter-spacing: 0.16em;
   opacity: 0.92;

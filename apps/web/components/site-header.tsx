@@ -9,7 +9,7 @@ export function SiteHeader() {
       <div className={`container ${styles.inner}`}>
         <Link href="/" className={styles.brand} aria-label="DIM 홈">
           <Image
-            src="/brand/dim-logo-black.png"
+            src="/brand/dim-logo-white.png"
             alt="DIM"
             width={128}
             height={40}
@@ -18,7 +18,7 @@ export function SiteHeader() {
           />
           <div className={styles.brandText}>
             <strong>Depth Intelligence Magazine</strong>
-            <span>스타트업과 산업을 해석하는 매거진</span>
+            <span>Business Structure Magazine</span>
           </div>
         </Link>
         <SiteNav />
