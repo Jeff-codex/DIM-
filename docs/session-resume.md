@@ -4,7 +4,7 @@
 
 - Date: `2026-03-19`
 - Branch: `main`
-- Commit: `4e76ef9` (`feat: refine DIM editorial heading system`)
+- Commit: `a2cb002` (`feat: harden DIM editorial intake workflow`)
 - Remote: `origin -> https://github.com/Jeff-codex/DIM-.git`
 - Public app: `apps/web`
 - Runtime target: `Cloudflare Workers`
@@ -34,11 +34,35 @@
   - article intros strengthened with clearer brand/service references
 - Review preview workflow and Workers production workflow remain intentionally separated.
 - DIM-only operational agent kit is now synced and refined inside the repo under `docs/agent-kit`.
+- Preview editorial workflow now exists end-to-end on Workers:
+  - `/submit`
+  - `/api/proposals`
+  - `/admin/inbox`
+  - `triage -> in_review`
+  - `/admin/drafts/[proposalId]`
+  - `/admin/drafts/[proposalId]/preview`
+  - `/admin/drafts/[proposalId]/snapshot`
+- Preview editorial infrastructure is now provisioned:
+  - D1: `dim-editorial-preview`
+  - R2: `dim-intake-preview`
+  - Queue: `dim-editorial-preview`
+- Production editorial infrastructure baseline is also provisioned:
+  - D1: `dim-editorial-prod`
+  - R2: `dim-intake-prod`
+  - Queue: `dim-editorial-prod`
+- `시장 신호` category has been fully removed from the public/category data model.
+- Public `/submit` wording no longer exposes `runtime`, `preview`, `inbox ID`, `원문 보관`, or `상태 이력`.
+- Runtime smoke now covers:
+  - submit
+  - inbox
+  - triage
+  - draft preview
+  - publication snapshot
 
 ## Latest verified preview
 
 - Canonical review alias: `https://review-current.dim-preview.pages.dev`
-- Latest `main` snapshot: `https://66a09546.dim-preview.pages.dev`
+- Editorial runtime preview: `https://dim-web-editorial_preview.depthintelligence.workers.dev`
 
 ## Guardrails
 
@@ -53,28 +77,33 @@
 ## First actions for the next session
 
 1. Read this file and `docs/deployment-checklist.md`.
-2. If the task needs planning or prioritization, read `docs/agent-kit/README.md` and `docs/agent-kit/dim/WEEKLY_BRIEF.md`.
-3. Check repository state with `git status --short`.
-4. Confirm the current checkpoint is still `main` at or ahead of `4e76ef9`.
-5. Reuse the existing DIM agents first and continue from the latest integrated findings rather than starting fresh.
-6. If code changed, run from `apps/web`:
+2. Read `docs/production-hardening-rounds.md` before starting production hardening.
+3. If the task needs planning or prioritization, read `docs/agent-kit/README.md` and `docs/agent-kit/dim/WEEKLY_BRIEF.md`.
+4. Check repository state with `git status --short`.
+5. Confirm the current checkpoint is still `main` at or ahead of `a2cb002`.
+6. Reuse the existing DIM agents first and continue from the latest integrated findings rather than starting fresh.
+7. If code changed, run from `apps/web`:
    - `npm run lint`
    - `npm run build`
    - `npm run build:static`
-7. If the user wants a review URL, run:
+8. If the user wants a review URL, run:
    - `npm run preview:deploy -- <branch-name>`
-8. Verify:
+9. For editorial runtime work, verify:
+   - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-editorial_preview.depthintelligence.workers.dev`
+10. Verify public review paths:
    - `/`
    - `/articles`
    - `/articles/ai-work-tools-are-becoming-management-layers`
    - `/about`
    - `/submit`
-9. Share only the verified external preview URL. Never hand off localhost.
+11. Share only the verified external preview URL. Never hand off localhost.
 
 ## Most likely next product tasks
 
-- DIM-specific copy and category polishing on top of the new magazine grammar
-- Additional refinement of article detail pacing and transition feel after user review
-- Submit page UX tightening before any real intake workflow is connected
-- Final production QA before real-domain deployment
-- Cloudflare Workers production deployment once the user signs off
+- Production hardening rounds:
+  - Cloudflare Access for `/admin`
+  - Turnstile keys and production submit protection
+  - production smoke for `submit -> inbox -> triage -> draft -> snapshot`
+  - queue consumer hardening and job visibility
+  - monitoring / alerting / failure visibility
+- Real-domain deployment only after those rounds are signed off

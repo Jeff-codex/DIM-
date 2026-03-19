@@ -74,6 +74,17 @@ const triageJson = await readJson(triageResponse);
 
 await expectStatus(`${baseUrl}/admin/drafts/${proposalId}/preview`, 200);
 
+const snapshotCreateResponse = await expectStatus(
+  `${baseUrl}/api/admin/drafts/${proposalId}/snapshot`,
+  200,
+  {
+    method: "POST",
+  },
+);
+const snapshotJson = await readJson(snapshotCreateResponse);
+
+await expectStatus(`${baseUrl}/admin/drafts/${proposalId}/snapshot`, 200);
+
 console.log(
   JSON.stringify(
     {
@@ -82,6 +93,7 @@ console.log(
       publicConfig,
       proposalId,
       triage: triageJson,
+      snapshot: snapshotJson,
     },
     null,
     2,
