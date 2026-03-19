@@ -34,6 +34,13 @@
   transform: translateY(-1px);
 }
 
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+}
+
 .primary {
   background: #111111;
   border-color: #111111;

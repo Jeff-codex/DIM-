@@ -16,6 +16,9 @@ If the user sends exactly `DIM` or asks to resume DIM work, do this before anyth
 - Do not deploy to the real domain unless the user explicitly requests it.
 - Before sharing any preview URL, verify that `/`, `/articles`, `/about`, `/submit`, and one article detail route return successful responses.
 - Do not hand off `localhost` or other local-only URLs as review links.
+- Use the existing DIM subagents first and keep work recursive.
+- Do not create new agents unless the user explicitly asks for additional delegation or the existing DIM agent set is clearly insufficient.
+- Treat agent collaboration as a standing loop: assign, review, integrate, and feed the result back into the next improvement pass.
 
 ## Build And Preview Defaults
 
@@ -31,3 +34,4 @@ The current public product framing is:
 - `프로젝트 제출 -> 편집 및 해석 -> 콘텐츠 발행`
 - DIM is an editorial intelligence magazine, not a newsroom and not a tip line.
 - Public-facing Korean wording should stay direct, editorial, and easy to scan.
+- DIM work should continue as a recursive improvement loop with the existing agent set whenever possible.

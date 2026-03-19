@@ -26,7 +26,8 @@ Run from `apps/web`.
    - `/submit`
 5. Share only the verified external URL.
 6. If resuming from the current checkpoint, the latest known-good review preview is:
-   - `https://refresh-preview-20260318.dim-preview.pages.dev`
+   - canonical review alias: `https://review-current.dim-preview.pages.dev`
+   - latest `main` snapshot: `https://66a09546.dim-preview.pages.dev`
 
 ## Production deployment checklist
 
@@ -54,6 +55,7 @@ Run from `apps/web`.
 ## Notes
 
 - Review previews use the `dim-preview` Pages project.
+- Keep Pages review links clean. Old experimental preview aliases should be deleted once a new canonical review alias is confirmed.
 - Production runtime is Cloudflare Workers, not Pages.
 - Use verified external URLs only; do not share `localhost`.
 - Current product rule: do not deploy to the real domain until final sign-off; preview first, then production.

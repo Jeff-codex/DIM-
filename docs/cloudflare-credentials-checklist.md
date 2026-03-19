@@ -1,6 +1,6 @@
 # Cloudflare Credentials Checklist
 
-Date: 2026-03-13
+Date: 2026-03-19
 
 This document separates what DIM needs now from what is optional later.
 
@@ -30,16 +30,65 @@ Recommended scope:
 Recommended permissions:
 
 - Account: `Account Settings` read
+- Account: `Cloudflare Pages` edit/write
 - Account: `Workers Scripts` edit/write
 - Account: `Workers R2 Storage` edit/write
 - Account: `D1` write/edit
+- Account: `Queues` edit/write
 
 Add these only if the deployment path requires them:
 
-- Account: `Cloudflare Pages` edit/write
 - Zone: `Workers Routes` edit/write
+- Zone: `DNS` edit/write
 
-## 2. Optional, issue only if needed
+This single bootstrap token is the fastest option if one person is actively building both the public site and the editorial backend.
+
+## 2. Recommended split tokens
+
+If we want lower blast radius, use separate DIM-only tokens instead of one broad bootstrap token.
+
+### A. Pages preview token
+
+- token name: `DIM_PAGES`
+- scope:
+  - account: only the DIM Cloudflare account
+- permissions:
+  - Account: `Cloudflare Pages` edit/write
+  - Account: `Account Settings` read
+
+### B. Workers runtime token
+
+- token name: `DIM_WORKERS`
+- scope:
+  - account: only the DIM Cloudflare account
+  - zone: only `depthintelligence.kr`
+- permissions:
+  - Account: `Workers Scripts` edit/write
+  - Zone: `Workers Routes` edit/write
+  - Account: `Account Settings` read
+
+### C. Storage and database token
+
+- token name: `DIM_DATA`
+- scope:
+  - account: only the DIM Cloudflare account
+- permissions:
+  - Account: `Workers R2 Storage` edit/write
+  - Account: `D1` write/edit
+  - Account: `Queues` edit/write
+  - Account: `Account Settings` read
+
+### D. DNS token
+
+- token name: `DIM_DNS_AUTOMATION`
+- scope:
+  - zone: only `depthintelligence.kr`
+- permissions:
+  - Zone: `DNS` edit/write
+
+Use this only if DNS changes should be separated from runtime/deploy permissions.
+
+## 3. Optional, issue only if needed
 
 ### A. R2 S3-compatible credentials
 
@@ -84,7 +133,32 @@ Recommended permission examples:
 - Account: `D1` read
 - Account: `Cloudflare Pages` read
 
-## 3. Do not issue
+## 4. Internal editorial system additions
+
+When DIM moves from public preview work into real proposal intake and the internal editorial system, these Cloudflare resources will need matching permissions:
+
+- `Cloudflare Pages` write
+  - review preview deployment and cleanup
+- `Workers Scripts` write
+  - runtime and `/admin` deployment
+- `Workers Routes` write
+  - production routing on `depthintelligence.kr`
+- `Workers R2 Storage` write
+  - public assets bucket
+  - separate intake bucket for raw proposal files
+- `D1` write
+  - proposals
+  - workflow events
+  - drafts
+  - publications
+- `Queues` write
+  - normalization
+  - AI enrichment
+  - draft generation
+- `DNS` write
+  - only if route/domain changes are automated
+
+## 5. Do not issue
 
 Avoid these unless there is a specific later reason:
 
@@ -93,9 +167,10 @@ Avoid these unless there is a specific later reason:
 - R2 credentials with access to all buckets
 - shared token reused across unrelated projects
 
-## 4. Notes
+## 6. Notes
 
 - If DIM is deployed on `Pages`, include `Cloudflare Pages` write/edit.
 - If DIM is deployed on `Workers` with a route on `depthintelligence.kr`, include `Workers Routes` write/edit.
 - If DIM uses R2 only through Worker bindings and Wrangler, separate S3 credentials are not required.
 - D1 write-level permission must be explicitly granted for database writes. Do not use read-only D1 permission for setup work.
+- Keep DIM tokens DIM-only. Do not reuse tokens that can touch unrelated projects.

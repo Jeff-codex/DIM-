@@ -1,0 +1,102 @@
+.panel {
+  display: grid;
+  gap: 16px;
+  padding: 22px 24px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: #ffffff;
+}
+
+.header {
+  display: grid;
+  gap: 8px;
+}
+
+.eyebrow {
+  color: rgba(17, 17, 17, 0.56);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: #111111;
+  font-size: 1.3rem;
+  line-height: 1.28;
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+}
+
+.current,
+.status {
+  color: rgba(17, 17, 17, 0.7);
+  line-height: 1.68;
+}
+
+.noteField {
+  display: grid;
+  gap: 8px;
+}
+
+.noteField span {
+  color: #111111;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.noteField textarea {
+  width: 100%;
+  min-height: 112px;
+  padding: 14px 16px;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  background: #ffffff;
+  color: #111111;
+  line-height: 1.68;
+  resize: vertical;
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.primary {
+  background: #111111;
+  border-color: #111111;
+  color: #ffffff;
+}
+
+.secondary {
+  border-color: rgba(17, 17, 17, 0.16);
+  color: #111111;
+}
+
+.primary:hover,
+.secondary:hover {
+  transform: translateY(-1px);
+}
+
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

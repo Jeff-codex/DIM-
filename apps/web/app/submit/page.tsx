@@ -142,8 +142,8 @@ export default function SubmitPage() {
                 </CTAButton>
               </div>
               <p className={styles.entryStatus}>
-                공개 접수는 다음 단계에서 연결됩니다. 지금은 아래 양식으로
-                초안을 저장하거나 복사해 둘 수 있습니다
+                runtime이 열려 있으면 바로 접수되고, 리뷰 프리뷰에서는 초안 저장과
+                복사를 중심으로 점검할 수 있습니다
               </p>
             </div>
           </section>
@@ -244,7 +244,12 @@ export default function SubmitPage() {
                   <div className={styles.groupFields}>
                     <label className={styles.inputGroup}>
                       <span>프로젝트명 / 브랜드명</span>
-                      <input type="text" name="projectName" placeholder="예: DIM" />
+                      <input
+                        type="text"
+                        name="projectName"
+                        placeholder="예: DIM"
+                        required
+                      />
                     </label>
                     <label className={styles.inputGroup}>
                       <span>담당자명</span>
@@ -285,6 +290,7 @@ export default function SubmitPage() {
                         type="text"
                         name="summary"
                         placeholder="무엇을 하는 프로젝트인지 한 문장으로 적어 주세요"
+                        required
                       />
                     </label>
                     <label className={`${styles.inputGroup} ${styles.full}`}>
@@ -301,6 +307,7 @@ export default function SubmitPage() {
                         name="whyNow"
                         rows={3}
                         placeholder="지금 이 프로젝트가 주목할 만한 이유를 적어 주세요"
+                        required
                       />
                     </label>
                     <label className={styles.inputGroup}>
@@ -340,12 +347,22 @@ export default function SubmitPage() {
                         placeholder="소개 자료, 출시 이미지, 공식 링크를 함께 적어 주세요"
                       />
                     </label>
+                    <label className={`${styles.inputGroup} ${styles.full}`}>
+                      <span>파일 첨부</span>
+                      <input
+                        type="file"
+                        name="attachments"
+                        accept="image/*,.pdf,.doc,.docx,.csv,.xlsx,.zip"
+                        multiple
+                      />
+                    </label>
                   </div>
                 </fieldset>
 
                 <div className={styles.formFooter}>
                   <p className={styles.formStatus}>
-                    공개 접수는 다음 단계에서 연결됩니다
+                    제출된 원문은 그대로 보관되고, 편집 판단과 상태 이력은 별도로
+                    남습니다
                   </p>
                   <ProposalPrepActions formId="proposal-prep-form" />
                 </div>

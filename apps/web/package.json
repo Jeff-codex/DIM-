@@ -8,15 +8,17 @@
     "prebuild": "npm run prepare-content",
     "prelint": "npm run prepare-content",
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "build:static": "node ./scripts/build-static.mjs",
     "start": "next start",
     "lint": "eslint",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "preview:serve-static": "node ./scripts/serve-static-preview.mjs",
     "preview:deploy": "node ./scripts/deploy-pages-preview.mjs",
+    "preview:editorial-runtime": "opennextjs-cloudflare build && wrangler deploy --env editorial_preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "cf-typegen:editorial-preview": "wrangler types --env editorial_preview --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",

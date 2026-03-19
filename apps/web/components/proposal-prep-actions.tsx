@@ -8,6 +8,9 @@ type ProposalPrepActionsProps = {
 };
 
 const STORAGE_KEY = "dim-feature-proposal-draft";
+const SERVER_DRAFT_KEY = "dim-feature-proposal-draft-id";
+const SUBMIT_RUNTIME_HINT =
+  "리뷰 프리뷰에서는 제출이 비활성화될 수 있습니다. 실제 runtime preview나 production runtime에서 다시 확인해 주세요";
 
 const fieldLabels: Record<string, string> = {
   projectName: "프로젝트명 / 브랜드명",
@@ -77,12 +80,31 @@ function toDraftText(draft: Record<string, string>) {
   return lines.join("\n");
 }
 
+function extractReferenceUrls(rawText?: string) {
+  if (!rawText) {
+    return [];
+  }
+
+  const matches = rawText.match(/https?:\/\/[^\s,]+/g) ?? [];
+  const seen = new Set<string>();
+
+  return matches.filter((url) => {
+    if (seen.has(url)) {
+      return false;
+    }
+
+    seen.add(url);
+    return true;
+  });
+}
+
 export function ProposalPrepActions({
   formId,
 }: ProposalPrepActionsProps) {
   const [status, setStatus] = useState(
-    "초안을 이 브라우저에 저장하거나 바로 복사해 둘 수 있습니다",
+    "초안을 저장하거나, runtime이 열려 있으면 바로 제출할 수 있습니다",
   );
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const form = getForm(formId);
@@ -108,7 +130,7 @@ export function ProposalPrepActions({
     } catch {}
   }, [formId]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const form = getForm(formId);
 
     if (!form) {
@@ -124,10 +146,37 @@ export function ProposalPrepActions({
     }
 
     try {
+      const existingDraftId = window.localStorage.getItem(SERVER_DRAFT_KEY);
+      const response = await fetch("/api/proposals/drafts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          draftId: existingDraftId ?? undefined,
+          payload: draft,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("server-draft-save-failed");
+      }
+
+      const data = (await response.json()) as { draftId?: string };
+
+      if (data.draftId) {
+        window.localStorage.setItem(SERVER_DRAFT_KEY, data.draftId);
+      }
+
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-      setStatus("초안을 이 브라우저에 저장했습니다");
+      setStatus("초안을 저장했습니다");
     } catch {
-      setStatus("초안을 저장하지 못했습니다");
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+        setStatus("서버 저장은 아직 연결되지 않아 브라우저에만 저장했습니다");
+      } catch {
+        setStatus("초안을 저장하지 못했습니다");
+      }
     }
   };
 
@@ -154,10 +203,87 @@ export function ProposalPrepActions({
     }
   };
 
+  const handleSubmit = async () => {
+    const form = getForm(formId);
+
+    if (!form) {
+      setStatus("양식을 찾지 못했습니다");
+      return;
+    }
+
+    const draft = getDraft(form);
+
+    if (!draft.projectName || !draft.summary || !draft.whyNow) {
+      setStatus("프로젝트명, 한 줄 소개, 왜 지금 중요한가는 먼저 입력해 주세요");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const payload = {
+        schemaVersion: 1,
+        projectName: draft.projectName,
+        contactName: draft.contactName,
+        email: draft.email,
+        website: draft.website,
+        summary: draft.summary,
+        productDescription: draft.productDescription,
+        whyNow: draft.whyNow,
+        stage: draft.stage,
+        market: draft.market,
+        referencesText: draft.references,
+        references: extractReferenceUrls(draft.references),
+        locale: document.documentElement.lang || navigator.language || "ko-KR",
+      };
+
+      const body = new FormData();
+      body.append("payload", JSON.stringify(payload));
+
+      const attachmentField = form.elements.namedItem("attachments");
+      if (attachmentField instanceof HTMLInputElement && attachmentField.files) {
+        Array.from(attachmentField.files).forEach((file) => {
+          body.append("attachments", file);
+        });
+      }
+
+      const response = await fetch("/api/proposals", {
+        method: "POST",
+        body,
+      });
+
+      if (!response.ok) {
+        throw new Error("proposal-submit-failed");
+      }
+
+      const data = (await response.json()) as { proposalId?: string };
+      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(SERVER_DRAFT_KEY);
+      form.reset();
+      setStatus(
+        data.proposalId
+          ? `제안을 접수했습니다. 편집 inbox ID는 ${data.proposalId} 입니다`
+          : "제안을 접수했습니다",
+      );
+    } catch {
+      setStatus(SUBMIT_RUNTIME_HINT);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className={styles.wrap}>
       <div className={styles.actions}>
-        <button type="button" className={styles.primary} onClick={handleSave}>
+        <button
+          type="button"
+          className={styles.primary}
+          onClick={handleSubmit}
+          disabled={submitting}
+        >
+          {submitting ? "접수 중..." : "제안 제출"}
+        </button>
+        <button type="button" className={styles.secondary} onClick={handleSave}>
           초안 저장
         </button>
         <button
@@ -170,8 +296,8 @@ export function ProposalPrepActions({
       </div>
       <p className={styles.status}>{status}</p>
       <p className={styles.note}>
-        공개 접수 전까지는 이 브라우저에 임시 저장하거나 메모, 이메일 초안으로
-        복사해 둘 수 있습니다
+        runtime이 연결된 환경에서는 바로 제출되고, 정적 리뷰 프리뷰에서는
+        초안 저장과 복사 중심으로 동작합니다
       </p>
     </div>
   );

@@ -8,6 +8,36 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "env": {
+    "editorial_preview": {
+      "vars": {
+        "DIM_WORKFLOW_ENV": "editorial_preview",
+        "EDITORIAL_PREVIEW_BYPASS": "enabled",
+        "EDITORIAL_PREVIEW_ADMIN_EMAIL": "preview-editor@depthintelligence.kr"
+      },
+      "d1_databases": [
+        {
+          "binding": "EDITORIAL_DB",
+          "database_name": "dim-editorial-preview",
+          "database_id": "3ff20a8d-4e74-4d94-a5c7-a306f8c2b773"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "INTAKE_BUCKET",
+          "bucket_name": "dim-intake-preview"
+        }
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "EDITORIAL_QUEUE",
+            "queue": "dim-editorial-preview"
+          }
+        ]
+      }
+    }
+  },
   "observability": {
     "enabled": true
   }

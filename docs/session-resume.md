@@ -4,7 +4,7 @@
 
 - Date: `2026-03-19`
 - Branch: `main`
-- Commit: `345b3da` (`docs: refine DIM operating kit`)
+- Commit: `4e76ef9` (`feat: refine DIM editorial heading system`)
 - Remote: `origin -> https://github.com/Jeff-codex/DIM-.git`
 - Public app: `apps/web`
 - Runtime target: `Cloudflare Workers`
@@ -37,8 +37,8 @@
 
 ## Latest verified preview
 
-- Alias: `https://refresh-preview-20260318.dim-preview.pages.dev`
-- Snapshot: `https://22c4ac07.dim-preview.pages.dev`
+- Canonical review alias: `https://review-current.dim-preview.pages.dev`
+- Latest `main` snapshot: `https://66a09546.dim-preview.pages.dev`
 
 ## Guardrails
 
@@ -47,26 +47,29 @@
 - Keep secrets out of Git.
 - Do not deploy to the real domain without explicit user approval in that turn.
 - Real-domain deployment is intentionally deferred until the user declares the build complete.
+- Continue DIM work with the existing subagent set whenever possible.
+- Treat agent collaboration as recursive improvement: assign, review, integrate, and feed the result into the next pass.
 
 ## First actions for the next session
 
 1. Read this file and `docs/deployment-checklist.md`.
 2. If the task needs planning or prioritization, read `docs/agent-kit/README.md` and `docs/agent-kit/dim/WEEKLY_BRIEF.md`.
 3. Check repository state with `git status --short`.
-4. Confirm the current checkpoint is still `main` at or ahead of `345b3da`.
-5. If code changed, run from `apps/web`:
+4. Confirm the current checkpoint is still `main` at or ahead of `4e76ef9`.
+5. Reuse the existing DIM agents first and continue from the latest integrated findings rather than starting fresh.
+6. If code changed, run from `apps/web`:
    - `npm run lint`
    - `npm run build`
    - `npm run build:static`
-6. If the user wants a review URL, run:
+7. If the user wants a review URL, run:
    - `npm run preview:deploy -- <branch-name>`
-7. Verify:
+8. Verify:
    - `/`
    - `/articles`
    - `/articles/ai-work-tools-are-becoming-management-layers`
    - `/about`
    - `/submit`
-8. Share only the verified external preview URL. Never hand off localhost.
+9. Share only the verified external preview URL. Never hand off localhost.
 
 ## Most likely next product tasks
 
