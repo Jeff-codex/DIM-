@@ -7,7 +7,8 @@ import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "소개",
-  description: "DIM이 무엇을 보고, 어떤 기준으로 다루는지 소개합니다.",
+  description:
+    "DIM이 어떤 기준으로 변화를 읽고, 무엇을 확인해 피처로 정리하는지 소개합니다.",
   alternates: {
     canonical: "/about",
   },
@@ -33,6 +34,24 @@ const principles = [
     title: "정보보다 판단",
     description:
       "자료를 모아 두는 데서 멈추지 않고 DIM의 시선으로 다시 묶습니다",
+  },
+] as const;
+
+const trustSignals = [
+  {
+    title: "공식 자료를 먼저 봅니다",
+    description:
+      "공식 사이트, 제품 페이지, 공개된 출시 자료와 서비스 화면을 먼저 확인합니다",
+  },
+  {
+    title: "사실과 해석을 구분합니다",
+    description:
+      "브랜드가 공개한 사실과 DIM의 판단을 섞지 않고 문장 단위로 나눠 정리합니다",
+  },
+  {
+    title: "링크와 설명을 다시 점검합니다",
+    description:
+      "공개 뒤에도 핵심 링크와 설명, 제품 상태가 달라졌는지 다시 확인합니다",
   },
 ] as const;
 
@@ -81,6 +100,23 @@ export default function AboutPage() {
                 그래서 하나의 피처는 단순한 소개문보다 길고, 보도문보다 차갑고,
                 발표 자료보다 오래 남는 읽을거리에 가까워집니다
               </p>
+            </div>
+          </section>
+
+          <section className={styles.chapter}>
+            <div className={styles.chapterHeader}>
+              <p className={styles.chapterLabel}>검토와 업데이트</p>
+              <h2 className={styles.chapterTitle}>
+                DIM은 근거와 링크, 해석의 기준을 함께 관리합니다
+              </h2>
+            </div>
+            <div className={styles.trustGrid}>
+              {trustSignals.map((signal) => (
+                <article key={signal.title} className={styles.trustItem}>
+                  <strong>{signal.title}</strong>
+                  <p>{signal.description}</p>
+                </article>
+              ))}
             </div>
           </section>
 

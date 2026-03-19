@@ -1,9 +1,23 @@
+import type { Metadata } from "next";
 import styles from "./page.module.css";
 import { ArticleListItem } from "@/components/article-list-item";
 import { MagazineCategoryNav } from "@/components/magazine-category-nav";
 import { MagazineIntro } from "@/components/magazine-intro";
 import { getPublishedArticles } from "@/lib/content";
 import { siteConfig } from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: siteConfig.statement,
+  description: siteConfig.description,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: `${siteConfig.statement} | ${siteConfig.name}`,
+    description: siteConfig.description,
+    url: siteConfig.url,
+  },
+};
 
 export default async function HomePage() {
   const articles = await getPublishedArticles();
@@ -23,8 +37,7 @@ export default async function HomePage() {
         title={siteConfig.statement}
         body={[
           siteConfig.positioning,
-          "브랜드와 제품 소개보다 어떤 판단과 구조가 움직이고 있는지에 더 가까이 갑니다",
-          "빠르게 지나가는 소식보다 다시 펼쳐 볼 수 있는 피처를 남깁니다",
+          "각 피처는 브랜드 소개보다 구조 변화의 이유와 근거를 먼저 정리합니다",
         ]}
       />
       <MagazineCategoryNav

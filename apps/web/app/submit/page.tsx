@@ -12,11 +12,28 @@ import {
 
 export const metadata: Metadata = {
   title: "피처 제안",
-  description: "DIM에서 다룰 수 있는 브랜드, 서비스, 런칭 제안을 안내합니다.",
+  description:
+    "브랜드, 서비스, 런칭 제안을 DIM이 어떤 기준으로 검토하고 피처로 정리하는지 안내합니다.",
   alternates: {
     canonical: "/submit",
   },
 };
+
+const reviewSignals = [
+  {
+    title: "공식 링크를 먼저 봅니다",
+    description: "브랜드 사이트, 제품 페이지, 공개된 출시 자료를 우선 확인합니다",
+  },
+  {
+    title: "보낸 자료를 그대로 싣지 않습니다",
+    description:
+      "필요한 맥락과 비교 지점을 더해 DIM의 피처 형식으로 다시 정리합니다",
+  },
+  {
+    title: "공개 뒤에도 다시 점검합니다",
+    description: "핵심 링크와 설명, 공개 시점 정보가 달라졌는지 다시 확인합니다",
+  },
+] as const;
 
 export default function SubmitPage() {
   return (
@@ -25,8 +42,8 @@ export default function SubmitPage() {
         eyebrow="Feature Proposal"
         title="피처 제안"
         body={[
-          "브랜드와 서비스, 제품과 런칭에 관한 배경을 보내주시면 DIM이 검토 후 피처 형식으로 다시 정리합니다",
-          "소개문을 옮기는 대신 필요한 맥락과 비교 지점을 더해 하나의 읽을거리로 바꾸는 방식입니다",
+          "브랜드와 서비스, 제품과 런칭에 관한 배경을 보내주시면 DIM이 검토 후 피처로 다시 정리합니다",
+          "보낸 자료를 그대로 싣기보다 필요한 맥락과 비교 지점을 더해 하나의 읽을거리로 바꾸는 방식입니다",
         ]}
       />
 
@@ -124,6 +141,14 @@ export default function SubmitPage() {
               <p className={styles.formLead}>
                 내용이 구체적일수록 DIM이 다룰 수 있는 방향도 더 선명해집니다
               </p>
+              <div className={styles.reviewList}>
+                {reviewSignals.map((signal) => (
+                  <article key={signal.title} className={styles.reviewItem}>
+                    <h3>{signal.title}</h3>
+                    <p>{signal.description}</p>
+                  </article>
+                ))}
+              </div>
             </div>
 
             <form className={styles.form} action="#">

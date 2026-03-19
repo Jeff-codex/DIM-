@@ -16,6 +16,8 @@
 - [ ] 기사 상세 상단 리듬과 관련 피처 구간 정교화
 - [ ] 피처 제안 페이지 최종 마감
 - [ ] 전환 애니메이션 최종 검수
+- [ ] 피처 템플릿에 direct answer / evidence sentence 규칙 반영
+- [ ] title / H1 / excerpt / JSON-LD / visible text 정합성 점검
 - [ ] 실도메인 배포 직전 QA 항목 확정
 
 ## P1 — 다음 단계
@@ -23,12 +25,15 @@
 - [ ] 카테고리/시리즈/브랜드 허브 구조 설계
 - [ ] 제출 기반 편집 운영 규칙 상세화
 - [ ] 실제 제출 처리 방식 결정
-- [ ] Search Console / sitemap 운영 루프 정리
+- [ ] Search Console / Bing Webmaster / sitemap 운영 루프 정리
+- [ ] answer block inventory와 article template 규칙 정리
 - [ ] seed article 이후 다음 피처 라인업 정리
 
 ## P2 — 확장 단계
 
 - [ ] 허브 페이지 실제 구현
+- [ ] 브랜드/서비스 entity page 설계
+- [ ] comparison / glossary / companion page 설계
 - [ ] 제출 저장 구조 또는 phase 2 데이터 레이어 설계
 - [ ] 뉴스레터/구독 구조 검토
 - [ ] 교육/포럼 확장 동선 설계

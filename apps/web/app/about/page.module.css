@@ -53,7 +53,8 @@
 }
 
 .principle strong,
-.categoryName {
+.categoryName,
+.trustItem strong {
   color: var(--color-text-primary);
   font-size: 0.9rem;
   font-weight: 700;
@@ -63,7 +64,8 @@
 .principle p,
 .copyGrid p,
 .categoryPerspective,
-.closing p {
+.closing p,
+.trustItem p {
   max-width: 34rem;
   color: var(--color-text-secondary);
   line-height: 1.82;
@@ -73,6 +75,19 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 28px 34px;
+}
+
+.trustGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 24px;
+}
+
+.trustItem {
+  display: grid;
+  gap: 8px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
 }
 
 .categoryGrid {
@@ -117,7 +132,8 @@
   }
 
   .copyGrid,
-  .categoryGrid {
+  .categoryGrid,
+  .trustGrid {
     grid-template-columns: 1fr;
     gap: 20px;
   }

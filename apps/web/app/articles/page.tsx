@@ -7,9 +7,16 @@ import { getPublishedArticles } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "피처",
-  description: "비즈니스 구조와 시장 변화를 다룬 DIM 피처 아카이브입니다.",
+  description:
+    "스타트업, 서비스, 런칭, 산업 변화가 비즈니스 구조를 어떻게 바꾸는지 다룬 DIM 피처 아카이브입니다.",
   alternates: {
     canonical: "/articles",
+  },
+  openGraph: {
+    title: "DIM 피처 | DIM",
+    description:
+      "스타트업, 서비스, 런칭, 산업 변화가 비즈니스 구조를 어떻게 바꾸는지 다룬 DIM 피처 아카이브입니다.",
+    url: "/articles",
   },
 };
 
@@ -22,8 +29,8 @@ export default async function ArticlesPage() {
         eyebrow="Magazine Archive"
         title="DIM 피처"
         body={[
-          "비즈니스 구조를 바꾸는 서비스와 런칭, 산업 변화를 DIM의 시선으로 다시 정리합니다",
-          "빠른 뉴스보다 오래 남을 피처를 조용히 쌓아 두는 아카이브입니다",
+          "스타트업, 서비스, 런칭, 산업 변화가 비즈니스 구조를 어떻게 바꾸는지 다룹니다",
+          "각 피처는 브랜드 소개보다 구조 변화와 판단의 근거를 함께 남깁니다",
         ]}
       />
       <MagazineCategoryNav

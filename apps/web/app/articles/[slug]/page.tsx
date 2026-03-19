@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import styles from "./page.module.css";
-import { EditorialFrame } from "@/components/editorial-frame";
 import { RelatedArticles } from "@/components/related-articles";
 import { RepresentativeImage } from "@/components/representative-image";
 import {
@@ -82,6 +81,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     headline: article.title,
     description: article.excerpt,
     datePublished: article.publishedAt,
+    dateModified: article.publishedAt,
+    inLanguage: "ko-KR",
+    isAccessibleForFree: true,
     image: [image],
     articleSection: article.category.name,
     mainEntityOfPage: canonical,
@@ -114,7 +116,16 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           <div className={`container ${styles.heroInner}`}>
             <p className={styles.kicker}>{article.category.name}</p>
             <h1 className={styles.title}>{article.title}</h1>
-            <p className={styles.excerpt}>{article.excerpt}</p>
+            <div className={styles.answerGrid}>
+              <div className={styles.answerBlock}>
+                <p className={styles.answerLabel}>핵심 답변</p>
+                <p className={styles.answerBody}>{article.excerpt}</p>
+              </div>
+              <div className={styles.answerBlock}>
+                <p className={styles.answerLabel}>핵심 판단</p>
+                <p className={styles.answerBody}>{article.interpretiveFrame}</p>
+              </div>
+            </div>
             <p className={styles.meta}>
               {formatDate(article.publishedAt)} · {article.author.name}
             </p>
@@ -130,12 +141,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           />
         </div>
 
-        <div className={`reading-width ${styles.frameWrap}`}>
-          <EditorialFrame
-            frame={article.interpretiveFrame}
-            className={styles.frame}
-            variant="compact"
-          />
+        <div className={`reading-width ${styles.trustWrap}`}>
+          <div className={styles.trustBlock}>
+            <p className={styles.answerLabel}>검토 기준</p>
+            <p className={styles.trustText}>
+              이 피처는 공개된 제품 정보와 공식 링크를 우선 확인해 작성했고,
+              설명과 링크는 공개 시점 기준으로 다시 점검합니다
+            </p>
+          </div>
         </div>
 
         <div
