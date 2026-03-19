@@ -35,6 +35,8 @@ Recommended permissions:
 - Account: `Workers R2 Storage` edit/write
 - Account: `D1` write/edit
 - Account: `Queues` edit/write
+- Account: `Turnstile` edit/write
+- Account: `Zero Trust` edit/write
 
 Add these only if the deployment path requires them:
 
@@ -87,6 +89,21 @@ If we want lower blast radius, use separate DIM-only tokens instead of one broad
   - Zone: `DNS` edit/write
 
 Use this only if DNS changes should be separated from runtime/deploy permissions.
+
+### E. Access and Turnstile token
+
+- token name: `DIM_SECURITY`
+- scope:
+  - account: only the DIM Cloudflare account
+  - zone: only `depthintelligence.kr` if zone-scoped Access resources are used
+- permissions:
+  - Account: `Turnstile` edit/write
+  - Account: `Zero Trust` edit/write
+  - Zone: `Access: Apps and Policies` write
+  - Zone: `Access: Service Tokens` write
+  - Account: `Account Settings` read
+
+Use this if Turnstile widgets, Cloudflare Access applications, or service tokens will be provisioned by API instead of manually in the dashboard.
 
 ## 3. Optional, issue only if needed
 
@@ -174,3 +191,4 @@ Avoid these unless there is a specific later reason:
 - If DIM uses R2 only through Worker bindings and Wrangler, separate S3 credentials are not required.
 - D1 write-level permission must be explicitly granted for database writes. Do not use read-only D1 permission for setup work.
 - Keep DIM tokens DIM-only. Do not reuse tokens that can touch unrelated projects.
+- The currently configured DIM deployment tokens do not authenticate against Turnstile or Access API surfaces. A dedicated security token with the permissions above is required before Turnstile and Access provisioning can be automated.

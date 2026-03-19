@@ -16,13 +16,6 @@ export const categories: Category[] = [
       "DIM은 제품, 가격, 유통 방식이 함께 바뀌는 지점을 봅니다.",
   },
   {
-    id: "market-signals",
-    name: "시장 신호",
-    description: "중요한 변화는 반복되는 움직임에서 먼저 드러납니다.",
-    perspective:
-      "비슷한 움직임이 이어질 때 시장의 방향도 함께 드러납니다.",
-  },
-  {
     id: "industry-analysis",
     name: "산업 해석",
     description: "산업의 방향은 기술만이 아니라 수익과 유통 구조에서 선명해집니다.",

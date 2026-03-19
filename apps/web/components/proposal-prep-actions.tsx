@@ -10,7 +10,7 @@ type ProposalPrepActionsProps = {
 const STORAGE_KEY = "dim-feature-proposal-draft";
 const SERVER_DRAFT_KEY = "dim-feature-proposal-draft-id";
 const SUBMIT_RUNTIME_HINT =
-  "리뷰 프리뷰에서는 제출이 비활성화될 수 있습니다. 실제 runtime preview나 production runtime에서 다시 확인해 주세요";
+  "지금은 접수가 잠시 열려 있지 않습니다. 내용을 저장하거나 복사해 두고 다시 시도해 주세요";
 
 const fieldLabels: Record<string, string> = {
   projectName: "프로젝트명 / 브랜드명",
@@ -102,7 +102,7 @@ export function ProposalPrepActions({
   formId,
 }: ProposalPrepActionsProps) {
   const [status, setStatus] = useState(
-    "초안을 저장하거나, runtime이 열려 있으면 바로 제출할 수 있습니다",
+    "내용을 임시로 저장하거나 바로 제출할 수 있습니다",
   );
   const [submitting, setSubmitting] = useState(false);
 
@@ -169,13 +169,13 @@ export function ProposalPrepActions({
       }
 
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-      setStatus("초안을 저장했습니다");
+      setStatus("입력한 내용을 저장했습니다");
     } catch {
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-        setStatus("서버 저장은 아직 연결되지 않아 브라우저에만 저장했습니다");
+        setStatus("입력한 내용을 이 기기 브라우저에 저장했습니다");
       } catch {
-        setStatus("초안을 저장하지 못했습니다");
+        setStatus("내용을 저장하지 못했습니다");
       }
     }
   };
@@ -197,7 +197,7 @@ export function ProposalPrepActions({
 
     try {
       await navigator.clipboard.writeText(toDraftText(draft));
-      setStatus("제안 초안을 클립보드에 복사했습니다");
+      setStatus("입력한 내용을 클립보드에 복사했습니다");
     } catch {
       setStatus("복사에 실패했습니다");
     }
@@ -237,15 +237,8 @@ export function ProposalPrepActions({
         locale: document.documentElement.lang || navigator.language || "ko-KR",
       };
 
-      const body = new FormData();
-      body.append("payload", JSON.stringify(payload));
-
-      const attachmentField = form.elements.namedItem("attachments");
-      if (attachmentField instanceof HTMLInputElement && attachmentField.files) {
-        Array.from(attachmentField.files).forEach((file) => {
-          body.append("attachments", file);
-        });
-      }
+      const body = new FormData(form);
+      body.set("payload", JSON.stringify(payload));
 
       const response = await fetch("/api/proposals", {
         method: "POST",
@@ -253,19 +246,51 @@ export function ProposalPrepActions({
       });
 
       if (!response.ok) {
-        throw new Error("proposal-submit-failed");
+        const errorData = (await response.json().catch(() => null)) as
+          | {
+              error?: string;
+            }
+          | null;
+
+        switch (errorData?.error) {
+          case "proposal_rate_limited":
+            throw new Error("proposal-rate-limited");
+          case "turnstile_required":
+          case "turnstile_failed":
+          case "turnstile_verify_failed":
+            throw new Error("turnstile-failed");
+          case "proposal_attachment_count_exceeded":
+          case "proposal_attachment_too_large":
+          case "proposal_attachment_type_invalid":
+            throw new Error("attachment-policy-failed");
+          default:
+            throw new Error("proposal-submit-failed");
+        }
       }
 
       const data = (await response.json()) as { proposalId?: string };
       window.localStorage.removeItem(STORAGE_KEY);
       window.localStorage.removeItem(SERVER_DRAFT_KEY);
       form.reset();
-      setStatus(
-        data.proposalId
-          ? `제안을 접수했습니다. 편집 inbox ID는 ${data.proposalId} 입니다`
-          : "제안을 접수했습니다",
-      );
-    } catch {
+      setStatus(data.proposalId ? "제안을 접수했습니다" : "제안을 접수했습니다");
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "proposal-rate-limited") {
+          setStatus("짧은 시간에 너무 많이 제출되었습니다. 잠시 후 다시 시도해 주세요");
+          return;
+        }
+
+        if (error.message === "turnstile-failed") {
+          setStatus("제출 전 확인이 끝나지 않았습니다. 다시 확인해 주세요");
+          return;
+        }
+
+        if (error.message === "attachment-policy-failed") {
+          setStatus("첨부 정책에 맞지 않는 파일이 있어 접수되지 않았습니다");
+          return;
+        }
+      }
+
       setStatus(SUBMIT_RUNTIME_HINT);
     } finally {
       setSubmitting(false);
@@ -284,7 +309,7 @@ export function ProposalPrepActions({
           {submitting ? "접수 중..." : "제안 제출"}
         </button>
         <button type="button" className={styles.secondary} onClick={handleSave}>
-          초안 저장
+          임시 저장
         </button>
         <button
           type="button"
@@ -296,8 +321,8 @@ export function ProposalPrepActions({
       </div>
       <p className={styles.status}>{status}</p>
       <p className={styles.note}>
-        runtime이 연결된 환경에서는 바로 제출되고, 정적 리뷰 프리뷰에서는
-        초안 저장과 복사 중심으로 동작합니다
+        제출 전에 내용을 정리해 두거나, 필요하면 임시 저장과 복사로 다시
+        확인할 수 있습니다
       </p>
     </div>
   );

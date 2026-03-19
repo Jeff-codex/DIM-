@@ -127,6 +127,12 @@
   padding-top: 8px;
 }
 
+.footerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .saveButton {
   display: inline-flex;
   align-items: center;

@@ -1,0 +1,51 @@
+{
+  "$schema": "../web/node_modules/wrangler/config-schema.json",
+  "name": "dim-editorial-consumer",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-03-19",
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "EDITORIAL_DB",
+      "database_name": "dim-editorial-prod",
+      "database_id": "525a6139-746c-40b2-be57-c4e12574f6d8"
+    }
+  ],
+  "queues": {
+    "consumers": [
+      {
+        "queue": "dim-editorial-prod",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5
+      }
+    ]
+  },
+  "vars": {
+    "DIM_WORKFLOW_ENV": "editorial_production"
+  },
+  "env": {
+    "editorial_preview": {
+      "d1_databases": [
+        {
+          "binding": "EDITORIAL_DB",
+          "database_name": "dim-editorial-preview",
+          "database_id": "3ff20a8d-4e74-4d94-a5c7-a306f8c2b773"
+        }
+      ],
+      "queues": {
+        "consumers": [
+          {
+            "queue": "dim-editorial-preview",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5
+          }
+        ]
+      },
+      "vars": {
+        "DIM_WORKFLOW_ENV": "editorial_preview"
+      }
+    }
+  }
+}

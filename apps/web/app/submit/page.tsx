@@ -4,6 +4,7 @@ import { CTAButton } from "@/components/cta-button";
 import { EditorialHeading } from "@/components/editorial-heading";
 import { MagazineIntro } from "@/components/magazine-intro";
 import { ProposalPrepActions } from "@/components/proposal-prep-actions";
+import { SubmitSecurityGate } from "@/components/submit-security-gate";
 import { submissionFields } from "@/content/intelligence-loop";
 
 export const metadata: Metadata = {
@@ -142,8 +143,8 @@ export default function SubmitPage() {
                 </CTAButton>
               </div>
               <p className={styles.entryStatus}>
-                runtime이 열려 있으면 바로 접수되고, 리뷰 프리뷰에서는 초안 저장과
-                복사를 중심으로 점검할 수 있습니다
+                지금은 내용을 정리해 바로 보내거나, 필요하면 임시로 저장해 둘 수
+                있습니다
               </p>
             </div>
           </section>
@@ -336,7 +337,7 @@ export default function SubmitPage() {
                 <fieldset className={styles.formGroup}>
                   <legend className={styles.groupTitle}>참고 자료</legend>
                   <p className={styles.groupHint}>
-                    시장과 자료가 정리돼 있으면 판단과 편집이 더 빨라집니다
+                    시장과 자료가 함께 보이면 제안의 방향이 더 또렷해집니다
                   </p>
                   <div className={styles.groupFields}>
                     <label className={`${styles.inputGroup} ${styles.full}`}>
@@ -360,16 +361,16 @@ export default function SubmitPage() {
                 </fieldset>
 
                 <div className={styles.formFooter}>
+                  <SubmitSecurityGate />
                   <p className={styles.formStatus}>
-                    제출된 원문은 그대로 보관되고, 편집 판단과 상태 이력은 별도로
-                    남습니다
+                    보낸 자료는 필요한 맥락과 함께 하나의 피처로 정리합니다
                   </p>
                   <ProposalPrepActions formId="proposal-prep-form" />
                 </div>
               </form>
 
               <div className={styles.policyRail}>
-                <p className={styles.miniLabel}>검토 원칙</p>
+                <p className={styles.miniLabel}>함께 보면 좋은 기준</p>
                 <div className={styles.policyList}>
                   {reviewSignals.map((signal) => (
                     <article key={signal.title} className={styles.policyItem}>
@@ -379,7 +380,7 @@ export default function SubmitPage() {
                   ))}
                 </div>
                 <p className={styles.policyStatus}>
-                  공식 자료와 배경이 분명할수록 검토와 편집이 더 빨라집니다
+                  공식 자료와 배경이 분명할수록 다루는 방향이 더 선명해집니다
                 </p>
               </div>
             </div>

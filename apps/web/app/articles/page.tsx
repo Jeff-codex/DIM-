@@ -33,10 +33,7 @@ export default async function ArticlesPage() {
           "각 피처는 브랜드 소개보다 구조 변화와 판단의 근거를 함께 남깁니다",
         ]}
       />
-      <MagazineCategoryNav
-        excludedCategoryIds={["market-signals"]}
-        centered
-      />
+      <MagazineCategoryNav centered />
 
       <section className={styles.archiveSection}>
         <div className={`container ${styles.inner}`}>

@@ -4,6 +4,32 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-03-13",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "DIM_WORKFLOW_ENV": "editorial_production",
+    "SUBMIT_RATE_LIMIT_WINDOW_SECONDS": "900",
+    "SUBMIT_RATE_LIMIT_MAX_ATTEMPTS": "5"
+  },
+  "d1_databases": [
+    {
+      "binding": "EDITORIAL_DB",
+      "database_name": "dim-editorial-prod",
+      "database_id": "525a6139-746c-40b2-be57-c4e12574f6d8"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "INTAKE_BUCKET",
+      "bucket_name": "dim-intake-prod"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "EDITORIAL_QUEUE",
+        "queue": "dim-editorial-prod"
+      }
+    ]
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -13,7 +39,9 @@
       "vars": {
         "DIM_WORKFLOW_ENV": "editorial_preview",
         "EDITORIAL_PREVIEW_BYPASS": "enabled",
-        "EDITORIAL_PREVIEW_ADMIN_EMAIL": "preview-editor@depthintelligence.kr"
+        "EDITORIAL_PREVIEW_ADMIN_EMAIL": "preview-editor@depthintelligence.kr",
+        "SUBMIT_RATE_LIMIT_WINDOW_SECONDS": "300",
+        "SUBMIT_RATE_LIMIT_MAX_ATTEMPTS": "20"
       },
       "d1_databases": [
         {

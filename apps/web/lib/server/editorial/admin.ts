@@ -128,6 +128,34 @@ export async function getAdminIdentity(): Promise<AdminIdentity | null> {
     return null;
   }
 
+  const env = (await getEditorialEnv({
+    requireDb: false,
+    requireBucket: false,
+    requireQueue: false,
+  })) as Awaited<ReturnType<typeof getEditorialEnv>> & {
+    EDITORIAL_ADMIN_ALLOWED_EMAILS?: string;
+    EDITORIAL_ADMIN_ALLOWED_DOMAIN?: string;
+  };
+
+  const allowedEmails = (env.EDITORIAL_ADMIN_ALLOWED_EMAILS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  const allowedDomain = env.EDITORIAL_ADMIN_ALLOWED_DOMAIN?.trim().toLowerCase();
+  const normalizedEmail = email.toLowerCase();
+
+  if (allowedEmails.length > 0 && !allowedEmails.includes(normalizedEmail)) {
+    return null;
+  }
+
+  if (allowedDomain) {
+    const domain = normalizedEmail.split("@")[1] ?? "";
+
+    if (domain !== allowedDomain) {
+      return null;
+    }
+  }
+
   return { email };
 }
 

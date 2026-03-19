@@ -24,6 +24,8 @@ Run from `apps/web`.
    - `/articles/ai-work-tools-are-becoming-management-layers`
    - `/about`
    - `/submit`
+   - if editorial runtime is part of the task, also run:
+     - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-editorial_preview.depthintelligence.workers.dev`
 5. Share only the verified external URL.
 6. If resuming from the current checkpoint, the latest known-good review preview is:
    - canonical review alias: `https://review-current.dim-preview.pages.dev`
@@ -39,18 +41,27 @@ Run from `apps/web`.
 4. Confirm env is available:
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID`
-5. Run:
+5. Confirm production hardening prerequisites:
+   - `TURNSTILE_SITE_KEY`
+   - `TURNSTILE_SECRET_KEY`
+   - Cloudflare Access app and policy for `/admin`
+   - optional admin allowlist env:
+     - `EDITORIAL_ADMIN_ALLOWED_EMAILS`
+     - `EDITORIAL_ADMIN_ALLOWED_DOMAIN`
+6. Run:
    - `npm run lint`
    - `npm run build`
-6. Deploy:
+7. Deploy:
    - `npm run deploy`
-7. Verify the production target after deployment:
+8. Verify the production target after deployment:
    - home page
    - articles page
    - one article detail page
    - about page
    - submit page
-8. If the real domain is part of the task, verify `depthintelligence.kr` after the Cloudflare deployment completes.
+   - `/api/public-config/submit`
+   - `/admin/inbox` under Cloudflare Access
+9. If the real domain is part of the task, verify `depthintelligence.kr` after the Cloudflare deployment completes.
 
 ## Notes
 

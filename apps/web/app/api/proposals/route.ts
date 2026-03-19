@@ -11,6 +11,7 @@ import {
   type ProposalPayload,
 } from "@/lib/server/editorial/intake";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
+import { enforceProposalSubmitSecurity } from "@/lib/server/editorial/security";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,7 @@ async function parsePayload(request: Request) {
   if (contentType.includes("multipart/form-data")) {
     const formData = await request.formData();
     const rawPayload = formData.get("payload");
+    const turnstileToken = formData.get("cf-turnstile-response");
     const payload = proposalPayloadSchema.parse(
       JSON.parse(typeof rawPayload === "string" ? rawPayload : "{}"),
     );
@@ -27,12 +29,19 @@ async function parsePayload(request: Request) {
       .getAll("attachments")
       .filter((value): value is File => value instanceof File && value.size > 0);
 
-    return { payload, files };
+    return {
+      payload,
+      files,
+      turnstileToken:
+        typeof turnstileToken === "string" && turnstileToken.trim().length > 0
+          ? turnstileToken.trim()
+          : undefined,
+    };
   }
 
   const json = (await request.json()) as ProposalPayload;
   const payload = proposalPayloadSchema.parse(json);
-  return { payload, files: [] as File[] };
+  return { payload, files: [] as File[], turnstileToken: undefined };
 }
 
 function isDedupeConstraintError(error: unknown) {
@@ -66,10 +75,61 @@ async function findExistingProposalByDedupeKey(
     }>();
 }
 
+async function upsertProcessingJobs(
+  env: Awaited<ReturnType<typeof getEditorialEnv>>,
+  proposalId: string,
+  timestamp: string,
+  status: "queued" | "failed",
+  errorMessage?: string,
+) {
+  const tasks = [
+    "proposal.received",
+    "proposal.normalize.requested",
+    "proposal.entity_extract.requested",
+  ] as const;
+
+  await env.EDITORIAL_DB.batch(
+    tasks.map((taskType) =>
+      env.EDITORIAL_DB.prepare(
+        `INSERT INTO proposal_processing_job (
+           id,
+           proposal_id,
+           task_type,
+           status,
+           payload_json,
+           error_message,
+           created_at,
+           updated_at,
+           completed_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+         ON CONFLICT(proposal_id, task_type)
+         DO UPDATE SET
+           status = excluded.status,
+           payload_json = excluded.payload_json,
+           error_message = excluded.error_message,
+           updated_at = excluded.updated_at,
+           completed_at = NULL`,
+      ).bind(
+        crypto.randomUUID(),
+        proposalId,
+        taskType,
+        status,
+        JSON.stringify({ type: taskType, proposalId, submittedAt: timestamp }),
+        errorMessage ?? null,
+        timestamp,
+        timestamp,
+      ),
+    ),
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const env = await getEditorialEnv();
-    const { payload, files } = await parsePayload(request);
+    const { payload, files, turnstileToken } = await parsePayload(request);
+
+    await enforceProposalSubmitSecurity(request, turnstileToken);
+
     const validatedFiles = validateProposalAttachments(files);
     const now = new Date().toISOString();
     const proposalId = crypto.randomUUID();
@@ -262,8 +322,17 @@ export async function POST(request: Request) {
         { body: { type: "proposal.normalize.requested", proposalId } },
         { body: { type: "proposal.entity_extract.requested", proposalId } },
       ]);
+      await upsertProcessingJobs(env, proposalId, now, "queued");
     } catch (error) {
       console.error("Failed to enqueue editorial jobs", error);
+
+      await upsertProcessingJobs(
+        env,
+        proposalId,
+        now,
+        "failed",
+        error instanceof Error ? error.message : "Queue enqueue failed after submit",
+      );
 
       await env.EDITORIAL_DB.prepare(
         `INSERT INTO workflow_event (

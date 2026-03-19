@@ -46,6 +46,7 @@ export function EditorialDraftEditor({
   const [draft, setDraft] = useState(initialDraft);
   const [status, setStatus] = useState("수정한 내용은 저장 전까지 이 화면에서 바로 미리 볼 수 있습니다");
   const [saving, setSaving] = useState(false);
+  const [snapshotting, setSnapshotting] = useState(false);
 
   const selectedCategoryName =
     categories.find((category) => category.id === draft.categoryId)?.name ?? "산업 해석";
@@ -87,6 +88,46 @@ export function EditorialDraftEditor({
     }
   };
 
+  const handlePrepareSnapshot = async () => {
+    setSnapshotting(true);
+
+    try {
+      const saveResponse = await fetch(`/api/admin/drafts/${proposalId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(draft),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("draft-save-before-snapshot-failed");
+      }
+
+      const saveData = (await saveResponse.json()) as {
+        draft?: EditorialDraftRecord;
+      };
+
+      if (saveData.draft) {
+        setDraft(saveData.draft);
+      }
+
+      const snapshotResponse = await fetch(`/api/admin/drafts/${proposalId}/snapshot`, {
+        method: "POST",
+      });
+
+      if (!snapshotResponse.ok) {
+        throw new Error("publication-snapshot-failed");
+      }
+
+      setStatus("발행 준비본을 만들었습니다");
+    } catch {
+      setStatus("발행 준비본을 만들지 못했습니다. draft 저장 상태를 먼저 확인해 주세요");
+    } finally {
+      setSnapshotting(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
@@ -109,6 +150,14 @@ export function EditorialDraftEditor({
             className={styles.previewLink}
           >
             별도 미리보기 열기
+          </a>
+          <a
+            href={`/admin/drafts/${proposalId}/snapshot`}
+            target="_blank"
+            rel="noreferrer"
+            className={styles.previewLink}
+          >
+            발행 준비본 보기
           </a>
         </div>
       </header>
@@ -226,14 +275,24 @@ export function EditorialDraftEditor({
           </div>
 
           <div className={styles.footer}>
-            <button
-              type="button"
-              className={styles.saveButton}
-              disabled={saving}
-              onClick={handleSave}
-            >
-              {saving ? "저장 중..." : "초안 저장"}
-            </button>
+            <div className={styles.footerActions}>
+              <button
+                type="button"
+                className={styles.saveButton}
+                disabled={saving || snapshotting}
+                onClick={handleSave}
+              >
+                {saving ? "저장 중..." : "초안 저장"}
+              </button>
+              <button
+                type="button"
+                className={styles.saveButton}
+                disabled={saving || snapshotting}
+                onClick={handlePrepareSnapshot}
+              >
+                {snapshotting ? "준비 중..." : "발행 준비본 만들기"}
+              </button>
+            </div>
             <p className={styles.status}>{status}</p>
           </div>
         </section>
