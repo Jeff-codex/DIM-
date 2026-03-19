@@ -2,9 +2,9 @@
 
 ## Current checkpoint
 
-- Date: `2026-03-18`
+- Date: `2026-03-19`
 - Branch: `main`
-- Commit: `ec0bcc3` (`feat: redesign DIM magazine experience`)
+- Commit: `345b3da` (`docs: refine DIM operating kit`)
 - Remote: `origin -> https://github.com/Jeff-codex/DIM-.git`
 - Public app: `apps/web`
 - Runtime target: `Cloudflare Workers`
@@ -33,7 +33,7 @@
   - `Article` JSON-LD on article detail pages
   - article intros strengthened with clearer brand/service references
 - Review preview workflow and Workers production workflow remain intentionally separated.
-- DIM-only operational agent kit is now synced inside the repo under `docs/agent-kit`.
+- DIM-only operational agent kit is now synced and refined inside the repo under `docs/agent-kit`.
 
 ## Latest verified preview
 
@@ -51,9 +51,9 @@
 ## First actions for the next session
 
 1. Read this file and `docs/deployment-checklist.md`.
-2. If the task needs planning or prioritization, read `docs/agent-kit/dim/WEEKLY_BRIEF.md`.
+2. If the task needs planning or prioritization, read `docs/agent-kit/README.md` and `docs/agent-kit/dim/WEEKLY_BRIEF.md`.
 3. Check repository state with `git status --short`.
-4. Confirm the current checkpoint is still `main` at or ahead of `ec0bcc3`.
+4. Confirm the current checkpoint is still `main` at or ahead of `345b3da`.
 5. If code changed, run from `apps/web`:
    - `npm run lint`
    - `npm run build`
