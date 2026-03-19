@@ -20,6 +20,22 @@
   --section-space-xl: 96px;
   --section-space-lg: 72px;
   --section-space-md: 52px;
+  --measure-title-hero: 13.6ch;
+  --measure-title-section: 18.5ch;
+  --measure-title-card: 18.2ch;
+  --measure-title-detail: 13.2ch;
+  --measure-title-form: 16.4ch;
+  --measure-title-support: 18ch;
+  --leading-title-hero: 1.1;
+  --leading-title-section: 1.24;
+  --leading-title-card: 1.32;
+  --leading-title-detail: 1.08;
+  --leading-title-form: 1.24;
+  --tracking-title-hero: -0.042em;
+  --tracking-title-section: -0.03em;
+  --tracking-title-card: -0.03em;
+  --tracking-title-detail: -0.044em;
+  --tracking-title-form: -0.028em;
 }
 
 html,

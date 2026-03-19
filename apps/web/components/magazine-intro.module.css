@@ -20,12 +20,7 @@
 }
 
 .title {
-  max-width: 11ch;
-  font-family: var(--font-display), serif;
-  font-size: clamp(2.05rem, 3.3vw, 3.3rem);
-  font-weight: 500;
-  line-height: 1.06;
-  letter-spacing: -0.046em;
+  max-width: none;
 }
 
 .body {
@@ -40,11 +35,6 @@
 @media (max-width: 760px) {
   .section {
     padding: 60px 0 64px;
-  }
-
-  .title {
-    max-width: 100%;
-    font-size: clamp(1.92rem, 8vw, 2.74rem);
   }
 
   .body {

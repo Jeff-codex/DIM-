@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EditorialHeading } from "@/components/editorial-heading";
 import styles from "./article-list-item.module.css";
 import { RepresentativeImage } from "@/components/representative-image";
 import type { PublishedArticleSummary } from "@/content/types";
@@ -22,7 +23,13 @@ export function ArticleListItem({
           />
         </div>
         <div className={styles.body}>
-          <h3 className={styles.title}>{article.title}</h3>
+          <EditorialHeading
+            as="h3"
+            variant="card"
+            title={article.cardTitle ?? article.title}
+            lines={article.cardTitleLines}
+            className={styles.title}
+          />
           <p className={styles.excerpt}>{article.excerpt}</p>
         </div>
       </Link>

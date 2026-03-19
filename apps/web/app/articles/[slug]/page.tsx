@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import styles from "./page.module.css";
+import { EditorialHeading } from "@/components/editorial-heading";
 import { RelatedArticles } from "@/components/related-articles";
 import { RepresentativeImage } from "@/components/representative-image";
 import {
@@ -115,7 +116,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <header className={styles.hero}>
           <div className={`container ${styles.heroInner}`}>
             <p className={styles.kicker}>{article.category.name}</p>
-            <h1 className={styles.title}>{article.title}</h1>
+            <EditorialHeading
+              as="h1"
+              variant="detail"
+              title={article.displayTitle ?? article.title}
+              lines={article.displayTitleLines}
+              className={styles.title}
+            />
             <div className={styles.answerGrid}>
               <div className={styles.answerBlock}>
                 <p className={styles.answerLabel}>핵심 답변</p>

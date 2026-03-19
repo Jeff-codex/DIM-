@@ -24,12 +24,7 @@
 }
 
 .title {
-  max-width: 10ch;
-  font-family: var(--font-display), serif;
-  font-size: clamp(2.2rem, 4vw, 3.85rem);
-  font-weight: 500;
-  line-height: 1.04;
-  letter-spacing: -0.05em;
+  max-width: none;
 }
 
 .answerGrid {
@@ -182,11 +177,6 @@
 
   .heroInner {
     padding: 60px 0 64px;
-  }
-
-  .title {
-    max-width: 100%;
-    font-size: clamp(2rem, 9vw, 3rem);
   }
 
   .answerGrid {

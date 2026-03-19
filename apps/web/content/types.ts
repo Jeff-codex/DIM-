@@ -24,6 +24,10 @@ export type ArticleFrontmatter = {
   id: string;
   slug: string;
   title: string;
+  displayTitle?: string;
+  displayTitleLines?: string[];
+  cardTitle?: string;
+  cardTitleLines?: string[];
   excerpt: string;
   interpretiveFrame: string;
   coverImage: string;

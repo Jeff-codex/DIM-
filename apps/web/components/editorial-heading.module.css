@@ -1,0 +1,65 @@
+.root {
+  color: inherit;
+  font-family: var(--font-display), serif;
+  font-weight: 500;
+  word-break: keep-all;
+  text-wrap: balance;
+}
+
+.lines {
+  display: grid;
+  gap: 0;
+}
+
+.line {
+  display: block;
+}
+
+.hero {
+  max-width: var(--measure-title-hero);
+  font-size: clamp(1.98rem, 3.05vw, 3.08rem);
+  line-height: var(--leading-title-hero);
+  letter-spacing: var(--tracking-title-hero);
+}
+
+.section {
+  max-width: var(--measure-title-section);
+  font-size: clamp(1.42rem, 2vw, 1.9rem);
+  line-height: var(--leading-title-section);
+  letter-spacing: var(--tracking-title-section);
+}
+
+.card {
+  max-width: var(--measure-title-card);
+  font-size: clamp(1.14rem, 1.45vw, 1.42rem);
+  line-height: var(--leading-title-card);
+  letter-spacing: var(--tracking-title-card);
+}
+
+.detail {
+  max-width: var(--measure-title-detail);
+  font-size: clamp(2.08rem, 3.55vw, 3.5rem);
+  line-height: var(--leading-title-detail);
+  letter-spacing: var(--tracking-title-detail);
+}
+
+.form {
+  max-width: var(--measure-title-form);
+  font-size: clamp(1.28rem, 1.68vw, 1.62rem);
+  line-height: var(--leading-title-form);
+  letter-spacing: var(--tracking-title-form);
+}
+
+@media (max-width: 760px) {
+  .hero {
+    max-width: 100%;
+    font-size: clamp(1.88rem, 8vw, 2.62rem);
+    line-height: 1.12;
+  }
+
+  .detail {
+    max-width: 100%;
+    font-size: clamp(2rem, 9vw, 3rem);
+    line-height: 1.1;
+  }
+}

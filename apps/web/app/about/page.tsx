@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import styles from "./page.module.css";
 import { CTAButton } from "@/components/cta-button";
+import { EditorialHeading } from "@/components/editorial-heading";
 import { MagazineIntro } from "@/components/magazine-intro";
 import { categories } from "@/content/categories";
 import { siteConfig } from "@/lib/site";
@@ -61,6 +62,7 @@ export default function AboutPage() {
       <MagazineIntro
         eyebrow="About DIM"
         title={siteConfig.aboutTitle}
+        titleLines={siteConfig.aboutTitleLines}
         body={[
           siteConfig.aboutLead,
           "DIM은 스타트업과 서비스, 런칭을 소개하는 데서 멈추지 않고 그 변화가 비즈니스 구조에 남기는 흔적까지 함께 읽습니다",
@@ -72,7 +74,12 @@ export default function AboutPage() {
           <section className={styles.chapter}>
             <div className={styles.chapterHeader}>
               <p className={styles.chapterLabel}>DIM의 기준</p>
-              <h2 className={styles.chapterTitle}>무엇을 남기고 어떻게 읽는가</h2>
+              <EditorialHeading
+                as="h2"
+                variant="section"
+                title="무엇을 남기고 어떻게 읽는가"
+                className={styles.chapterTitle}
+              />
             </div>
             <ul className={styles.principleList}>
               {principles.map((principle) => (
@@ -87,9 +94,13 @@ export default function AboutPage() {
           <section className={styles.chapter}>
             <div className={styles.chapterHeader}>
               <p className={styles.chapterLabel}>DIM의 방식</p>
-              <h2 className={styles.chapterTitle}>
-                제안은 소개가 아니라 피처로 다시 정리됩니다
-              </h2>
+              <EditorialHeading
+                as="h2"
+                variant="section"
+                title="제안은 소개가 아니라 피처로 다시 정리됩니다"
+                lines={["제안은 소개가 아니라", "피처로 다시 정리됩니다"]}
+                className={styles.chapterTitle}
+              />
             </div>
             <div className={styles.copyGrid}>
               <p>
@@ -106,9 +117,13 @@ export default function AboutPage() {
           <section className={styles.chapter}>
             <div className={styles.chapterHeader}>
               <p className={styles.chapterLabel}>검토와 업데이트</p>
-              <h2 className={styles.chapterTitle}>
-                DIM은 근거와 링크, 해석의 기준을 함께 관리합니다
-              </h2>
+              <EditorialHeading
+                as="h2"
+                variant="section"
+                title="DIM은 근거와 링크, 해석의 기준을 함께 관리합니다"
+                lines={["DIM은 근거와 링크,", "해석의 기준을 함께 관리합니다"]}
+                className={styles.chapterTitle}
+              />
             </div>
             <div className={styles.trustGrid}>
               {trustSignals.map((signal) => (
@@ -123,9 +138,12 @@ export default function AboutPage() {
           <section className={styles.chapter}>
             <div className={styles.chapterHeader}>
               <p className={styles.chapterLabel}>먼저 보는 변화</p>
-              <h2 className={styles.chapterTitle}>
-                DIM이 자주 마주하는 네 가지 축
-              </h2>
+              <EditorialHeading
+                as="h2"
+                variant="section"
+                title="DIM이 자주 마주하는 네 가지 축"
+                className={styles.chapterTitle}
+              />
             </div>
             <div className={styles.categoryGrid}>
               {categories.map((category) => (
@@ -145,9 +163,16 @@ export default function AboutPage() {
           <section className={styles.chapter}>
             <div className={styles.chapterHeader}>
               <p className={styles.chapterLabel}>피처 제안</p>
-              <h2 className={styles.chapterTitle}>
-                소개할 만한 프로젝트와 런칭은 언제든 받을 수 있습니다
-              </h2>
+              <EditorialHeading
+                as="h2"
+                variant="section"
+                title="소개할 만한 프로젝트와 런칭은 언제든 받을 수 있습니다"
+                lines={[
+                  "소개할 만한 프로젝트와 런칭은",
+                  "언제든 받을 수 있습니다",
+                ]}
+                className={styles.chapterTitle}
+              />
             </div>
             <div className={styles.closing}>
               <p>

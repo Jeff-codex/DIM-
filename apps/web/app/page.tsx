@@ -35,6 +35,7 @@ export default async function HomePage() {
       <MagazineIntro
         eyebrow="DIM Magazine"
         title={siteConfig.statement}
+        titleLines={siteConfig.statementLines}
         body={[
           siteConfig.positioning,
           "각 피처는 브랜드 소개보다 구조 변화의 이유와 근거를 먼저 정리합니다",
