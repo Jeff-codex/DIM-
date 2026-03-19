@@ -33,6 +33,7 @@
   - `Article` JSON-LD on article detail pages
   - article intros strengthened with clearer brand/service references
 - Review preview workflow and Workers production workflow remain intentionally separated.
+- DIM-only operational agent kit is now synced inside the repo under `docs/agent-kit`.
 
 ## Latest verified preview
 
@@ -50,21 +51,22 @@
 ## First actions for the next session
 
 1. Read this file and `docs/deployment-checklist.md`.
-2. Check repository state with `git status --short`.
-3. Confirm the current checkpoint is still `main` at or ahead of `ec0bcc3`.
-4. If code changed, run from `apps/web`:
+2. If the task needs planning or prioritization, read `docs/agent-kit/dim/WEEKLY_BRIEF.md`.
+3. Check repository state with `git status --short`.
+4. Confirm the current checkpoint is still `main` at or ahead of `ec0bcc3`.
+5. If code changed, run from `apps/web`:
    - `npm run lint`
    - `npm run build`
    - `npm run build:static`
-5. If the user wants a review URL, run:
+6. If the user wants a review URL, run:
    - `npm run preview:deploy -- <branch-name>`
-6. Verify:
+7. Verify:
    - `/`
    - `/articles`
    - `/articles/ai-work-tools-are-becoming-management-layers`
    - `/about`
    - `/submit`
-7. Share only the verified external preview URL. Never hand off localhost.
+8. Share only the verified external preview URL. Never hand off localhost.
 
 ## Most likely next product tasks
 
