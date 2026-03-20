@@ -5,6 +5,7 @@ import {
   requireAdminIdentity,
   getProposalDetail,
 } from "@/lib/server/editorial/admin";
+import { AdminAccessRequired } from "../../access-required";
 import styles from "../../admin.module.css";
 
 export const runtime = "nodejs";
@@ -25,7 +26,11 @@ export default async function ProposalDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdminIdentity();
+  const identity = await requireAdminIdentity();
+
+  if (!identity) {
+    return <AdminAccessRequired />;
+  }
 
   const { id } = await params;
   const proposal = await getProposalDetail(id);

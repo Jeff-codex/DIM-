@@ -67,6 +67,37 @@
           }
         ]
       }
+    },
+    "production_candidate": {
+      "vars": {
+        "DIM_WORKFLOW_ENV": "editorial_production",
+        "EDITORIAL_ADMIN_ALLOWED_EMAILS": "magazine@depthintelligence.kr",
+        "EDITORIAL_ADMIN_ALLOWED_DOMAIN": "depthintelligence.kr",
+        "TURNSTILE_SITE_KEY": "0x4AAAAAACtgzkb_9fT54WDA",
+        "SUBMIT_RATE_LIMIT_WINDOW_SECONDS": "900",
+        "SUBMIT_RATE_LIMIT_MAX_ATTEMPTS": "5"
+      },
+      "d1_databases": [
+        {
+          "binding": "EDITORIAL_DB",
+          "database_name": "dim-editorial-candidate",
+          "database_id": "cb1047f3-d686-49d6-a257-0da8a92f1399"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "INTAKE_BUCKET",
+          "bucket_name": "dim-intake-candidate"
+        }
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "EDITORIAL_QUEUE",
+            "queue": "dim-editorial-candidate"
+          }
+        ]
+      }
     }
   },
   "observability": {

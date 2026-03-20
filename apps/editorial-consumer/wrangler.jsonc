@@ -46,6 +46,27 @@
       "vars": {
         "DIM_WORKFLOW_ENV": "editorial_preview"
       }
+    },
+    "production_candidate": {
+      "d1_databases": [
+        {
+          "binding": "EDITORIAL_DB",
+          "database_name": "dim-editorial-candidate",
+          "database_id": "cb1047f3-d686-49d6-a257-0da8a92f1399"
+        }
+      ],
+      "queues": {
+        "consumers": [
+          {
+            "queue": "dim-editorial-candidate",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5
+          }
+        ]
+      },
+      "vars": {
+        "DIM_WORKFLOW_ENV": "editorial_production"
+      }
     }
   }
 }

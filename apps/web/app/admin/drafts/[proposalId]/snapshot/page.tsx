@@ -5,6 +5,7 @@ import {
   createOrUpdatePublicationSnapshot,
   getPublicationSnapshot,
 } from "@/lib/server/editorial/publication";
+import { AdminAccessRequired } from "../../../access-required";
 import styles from "../../../admin.module.css";
 
 export const runtime = "nodejs";
@@ -16,6 +17,10 @@ export default async function PublicationSnapshotPage({
   params: Promise<{ proposalId: string }>;
 }) {
   const identity = await requireAdminIdentity();
+
+  if (!identity) {
+    return <AdminAccessRequired />;
+  }
 
   const { proposalId } = await params;
   let snapshot = await getPublicationSnapshot(proposalId);

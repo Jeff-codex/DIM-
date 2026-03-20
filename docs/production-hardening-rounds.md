@@ -2,6 +2,14 @@
 
 This checklist is the next-phase work after preview editorial workflow is already working.
 
+Hardening target classification:
+
+- Public review: `https://review-current.dim-preview.pages.dev`
+- Editorial preview runtime: `https://dim-web-editorial_preview.depthintelligence.workers.dev`
+- Production-candidate runtime: `https://dim-web-production_candidate.depthintelligence.workers.dev`
+- Deprecated legacy worker: `https://dim-web.depthintelligence.workers.dev`
+  - do not use this legacy worker as the canonical hardening target
+
 Current preview flow already verified:
 
 - `/submit`
@@ -36,8 +44,8 @@ Current status:
   - email: `magazine@depthintelligence.kr`
   - email domain: `depthintelligence.kr`
 - Remaining verification:
-  - confirm the final production hostname is serving `/admin/*`
-  - confirm unauthenticated production requests are blocked by Access
+  - confirm the production-candidate hostname is serving `/admin/*`
+  - confirm unauthenticated production-candidate requests are blocked by Access
 
 ## Round 2: Submit Protection In Production
 
@@ -57,10 +65,10 @@ Current status:
   - name: `DIM production submit`
   - site key is provisioned in `apps/web/wrangler.jsonc`
 - Remaining work:
-  - store `TURNSTILE_SECRET_KEY` in production runtime secret storage
-  - redeploy production runtime
-  - confirm `/api/public-config/submit` returns the production site key
-  - confirm `/api/proposals` enforces Turnstile on production
+  - store `TURNSTILE_SECRET_KEY` in production-candidate runtime secret storage
+  - redeploy production-candidate runtime
+  - confirm `/api/public-config/submit` returns the candidate site key
+  - confirm `/api/proposals` enforces Turnstile on production-candidate
 
 ## Round 3: Proposal Write Hardening
 
@@ -107,13 +115,14 @@ Current status:
 
 ## Round 7: Production Smoke
 
-- Add or run full smoke against production runtime:
+- Add or run full smoke against the production-candidate runtime first:
   - submit
   - inbox
   - triage
   - draft
   - preview
   - snapshot
+- Only after candidate smoke is clean should the same checks be repeated against the real production runtime
 - Verify duplicate submit handling
 - Verify unauthorized `/admin` is blocked
 - Verify public pages still render normally

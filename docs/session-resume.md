@@ -2,9 +2,9 @@
 
 ## Current checkpoint
 
-- Date: `2026-03-19`
+- Date: `2026-03-20`
 - Branch: `main`
-- Commit: `a2cb002` (`feat: harden DIM editorial intake workflow`)
+- Commit: `d8f2791` (`docs: prepare DIM production hardening rounds`)
 - Remote: `origin -> https://github.com/Jeff-codex/DIM-.git`
 - Public app: `apps/web`
 - Runtime target: `Cloudflare Workers`
@@ -63,6 +63,8 @@
 
 - Canonical review alias: `https://review-current.dim-preview.pages.dev`
 - Editorial runtime preview: `https://dim-web-editorial_preview.depthintelligence.workers.dev`
+- Production-candidate runtime: `https://dim-web-production_candidate.depthintelligence.workers.dev`
+- Deprecated legacy worker: `https://dim-web.depthintelligence.workers.dev` (do not use as a canonical review or hardening target)
 
 ## Guardrails
 
@@ -80,7 +82,7 @@
 2. Read `docs/production-hardening-rounds.md` before starting production hardening.
 3. If the task needs planning or prioritization, read `docs/agent-kit/README.md` and `docs/agent-kit/dim/WEEKLY_BRIEF.md`.
 4. Check repository state with `git status --short`.
-5. Confirm the current checkpoint is still `main` at or ahead of `a2cb002`.
+5. Confirm the current checkpoint is still `main` at or ahead of `d8f2791`.
 6. Reuse the existing DIM agents first and continue from the latest integrated findings rather than starting fresh.
 7. If code changed, run from `apps/web`:
    - `npm run lint`
@@ -90,20 +92,23 @@
    - `npm run preview:deploy -- <branch-name>`
 9. For editorial runtime work, verify:
    - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-editorial_preview.depthintelligence.workers.dev`
-10. Verify public review paths:
+10. For production hardening without the real domain, use:
+   - `npm run preview:production-candidate`
+   - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-production_candidate.depthintelligence.workers.dev`
+11. Verify public review paths:
    - `/`
    - `/articles`
    - `/articles/ai-work-tools-are-becoming-management-layers`
    - `/about`
    - `/submit`
-11. Share only the verified external preview URL. Never hand off localhost.
+12. Share only the verified external preview URL. Never hand off localhost.
 
 ## Most likely next product tasks
 
 - Production hardening rounds:
   - Cloudflare Access for `/admin`
   - Turnstile keys and production submit protection
-  - production smoke for `submit -> inbox -> triage -> draft -> snapshot`
+  - production-candidate smoke for `submit -> inbox -> triage -> draft -> snapshot`
   - queue consumer hardening and job visibility
   - monitoring / alerting / failure visibility
 - Real-domain deployment only after those rounds are signed off

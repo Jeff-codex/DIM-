@@ -16,6 +16,7 @@
     "preview:serve-static": "node ./scripts/serve-static-preview.mjs",
     "preview:deploy": "node ./scripts/deploy-pages-preview.mjs",
     "preview:editorial-runtime": "opennextjs-cloudflare build && wrangler deploy --env editorial_preview",
+    "preview:production-candidate": "opennextjs-cloudflare build && wrangler deploy --env production_candidate",
     "smoke:editorial-runtime": "node ./scripts/smoke-editorial-runtime.mjs",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",

@@ -4,6 +4,7 @@ import { EditorialDraftPreview } from "@/components/editorial-draft-preview";
 import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import { ensureEditorialDraftForProposal } from "@/lib/server/editorial/draft";
 import { categories } from "@/content/categories";
+import { AdminAccessRequired } from "../../../access-required";
 import styles from "../../../admin.module.css";
 
 export const runtime = "nodejs";
@@ -29,6 +30,10 @@ export default async function EditorialDraftPreviewPage({
   params: Promise<{ proposalId: string }>;
 }) {
   const identity = await requireAdminIdentity();
+
+  if (!identity) {
+    return <AdminAccessRequired />;
+  }
 
   const { proposalId } = await params;
   const draft = await ensureEditorialDraftForProposal(proposalId, identity.email);

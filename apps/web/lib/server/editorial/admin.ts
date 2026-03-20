@@ -1,6 +1,5 @@
 import "server-only";
 import { headers } from "next/headers";
-import { unauthorized } from "next/navigation";
 import { z } from "zod";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
 import { ensureEditorialDraftForProposal } from "@/lib/server/editorial/draft";
@@ -181,14 +180,8 @@ export async function getAdminIdentity(): Promise<AdminIdentity | null> {
   return { email };
 }
 
-export async function requireAdminIdentity(): Promise<AdminIdentity> {
-  const identity = await getAdminIdentity();
-
-  if (!identity) {
-    unauthorized();
-  }
-
-  return identity;
+export async function requireAdminIdentity(): Promise<AdminIdentity | null> {
+  return getAdminIdentity();
 }
 
 export async function listInboxProposals(limit = 24): Promise<ProposalInboxItem[]> {

@@ -26,10 +26,15 @@ Run from `apps/web`.
    - `/submit`
    - if editorial runtime is part of the task, also run:
      - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-editorial_preview.depthintelligence.workers.dev`
+   - if production hardening is part of the task, use the candidate runtime instead of the stale legacy worker:
+     - `npm run preview:production-candidate`
+     - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-production_candidate.depthintelligence.workers.dev`
 5. Share only the verified external URL.
 6. If resuming from the current checkpoint, the latest known-good review preview is:
    - canonical review alias: `https://review-current.dim-preview.pages.dev`
    - editorial runtime preview: `https://dim-web-editorial_preview.depthintelligence.workers.dev`
+   - production-candidate runtime: `https://dim-web-production_candidate.depthintelligence.workers.dev`
+   - do not use `https://dim-web.depthintelligence.workers.dev`; treat it as a deprecated legacy worker only
 
 ## Production deployment checklist
 
@@ -72,6 +77,8 @@ Run from `apps/web`.
 - Review previews use the `dim-preview` Pages project.
 - Keep Pages review links clean. Old experimental preview aliases should be deleted once a new canonical review alias is confirmed.
 - Production runtime is Cloudflare Workers, not Pages.
+- `dim-web.depthintelligence.workers.dev` is a deprecated legacy worker and must not be used as the hardening baseline.
+- Use `dim-web-production_candidate.depthintelligence.workers.dev` for pre-production hardening until the user explicitly approves the real-domain deployment.
 - Use verified external URLs only; do not share `localhost`.
 - Current product rule: do not deploy to the real domain until final sign-off; preview first, then production.
 - The remaining post-preview work is production hardening, not additional public IA change, unless the user explicitly reopens design work.

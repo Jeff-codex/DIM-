@@ -4,6 +4,7 @@ import {
   listInboxProposals,
   type ProposalInboxItem,
 } from "@/lib/server/editorial/admin";
+import { AdminAccessRequired } from "../access-required";
 import styles from "../admin.module.css";
 
 export const runtime = "nodejs";
@@ -26,6 +27,10 @@ function buildStatusCounts(items: ProposalInboxItem[]) {
 
 export default async function AdminInboxPage() {
   const identity = await requireAdminIdentity();
+
+  if (!identity) {
+    return <AdminAccessRequired />;
+  }
 
   const proposals = await listInboxProposals();
   const counts = buildStatusCounts(proposals);
