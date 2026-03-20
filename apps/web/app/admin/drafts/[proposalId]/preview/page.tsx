@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { EditorialDraftPreview } from "@/components/editorial-draft-preview";
 import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import { ensureEditorialDraftForProposal } from "@/lib/server/editorial/draft";
@@ -81,6 +82,8 @@ export default async function EditorialDraftPreviewPage({
         </div>
       </header>
 
+      <AdminWorkflowNav proposalId={proposalId} active="preview" />
+
       <div className={styles.detailLayout}>
         <section className={styles.detailMain}>
           <EditorialDraftPreview
@@ -98,6 +101,26 @@ export default async function EditorialDraftPreviewPage({
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <p className={styles.sectionLabel}>handoff 기준</p>
+            </div>
+            <div className={styles.signalRow}>
+              <span
+                className={
+                  draft.draft.sourceSnapshot?.whyNow
+                    ? styles.signalChipPositive
+                    : styles.signalChipWarning
+                }
+              >
+                {draft.draft.sourceSnapshot?.whyNow ? "why now 있음" : "why now 부족"}
+              </span>
+              <span
+                className={
+                  draft.draft.sourceSnapshot?.market
+                    ? styles.signalChipPositive
+                    : styles.signalChip
+                }
+              >
+                {draft.draft.sourceSnapshot?.market ? "시장 정보 있음" : "시장 정보 없음"}
+              </span>
             </div>
             <dl className={styles.summaryGrid}>
               <div>

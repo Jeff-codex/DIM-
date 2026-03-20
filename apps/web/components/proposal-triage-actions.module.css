@@ -2,8 +2,13 @@
   display: grid;
   gap: 16px;
   padding: 22px 24px;
-  border: 1px solid rgba(17, 17, 17, 0.1);
-  background: #ffffff;
+  border: 1px solid rgba(149, 166, 208, 0.14);
+  background:
+    linear-gradient(180deg, rgba(16, 20, 31, 0.96), rgba(10, 13, 22, 0.92)),
+    linear-gradient(135deg, rgba(84, 102, 255, 0.05), transparent 52%);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
 .header {
@@ -12,25 +17,26 @@
 }
 
 .eyebrow {
-  color: rgba(17, 17, 17, 0.56);
-  font-size: 0.78rem;
+  color: rgba(153, 238, 255, 0.72);
+  font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .title {
   margin: 0;
-  color: #111111;
-  font-size: 1.3rem;
+  color: #f5f8ff;
+  font-size: 1.28rem;
   line-height: 1.28;
   letter-spacing: -0.02em;
   word-break: keep-all;
+  text-wrap: balance;
 }
 
 .current,
 .status {
-  color: rgba(17, 17, 17, 0.7);
+  color: rgba(200, 209, 229, 0.7);
   line-height: 1.68;
 }
 
@@ -40,20 +46,25 @@
 }
 
 .noteField span {
-  color: #111111;
-  font-size: 0.84rem;
+  color: rgba(232, 238, 249, 0.92);
+  font-size: 0.82rem;
   font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .noteField textarea {
   width: 100%;
   min-height: 112px;
   padding: 14px 16px;
-  border: 1px solid rgba(17, 17, 17, 0.14);
-  background: #ffffff;
-  color: #111111;
+  border: 1px solid rgba(131, 150, 205, 0.14);
+  background: rgba(7, 10, 17, 0.88);
+  color: #f4f7ff;
   line-height: 1.68;
   resize: vertical;
+}
+
+.noteField textarea::placeholder {
+  color: rgba(179, 189, 214, 0.42);
 }
 
 .actions {
@@ -76,18 +87,20 @@
   transition:
     transform 160ms ease,
     background-color 160ms ease,
-    border-color 160ms ease;
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .primary {
-  background: #111111;
-  border-color: #111111;
-  color: #ffffff;
+  background: linear-gradient(135deg, #5668ff 0%, #14dfff 58%, #9d6fff 100%);
+  color: #fbfdff;
+  box-shadow: 0 12px 28px rgba(86, 104, 255, 0.22);
 }
 
 .secondary {
-  border-color: rgba(17, 17, 17, 0.16);
-  color: #111111;
+  border-color: rgba(135, 153, 204, 0.18);
+  background: rgba(17, 22, 34, 0.72);
+  color: rgba(236, 241, 250, 0.9);
 }
 
 .primary:hover,

@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "dim-web",
-  "main": ".open-next/worker.js",
+  "main": "worker.js",
   "compatibility_date": "2026-03-13",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
@@ -33,6 +33,16 @@
       }
     ]
   },
+  "routes": [
+    {
+      "pattern": "depthintelligence.kr/*",
+      "zone_name": "depthintelligence.kr"
+    },
+    {
+      "pattern": "www.depthintelligence.kr/*",
+      "zone_name": "depthintelligence.kr"
+    }
+  ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -43,6 +53,9 @@
         "DIM_WORKFLOW_ENV": "editorial_preview",
         "EDITORIAL_PREVIEW_BYPASS": "enabled",
         "EDITORIAL_PREVIEW_ADMIN_EMAIL": "preview-editor@depthintelligence.kr",
+        "EDITORIAL_ADMIN_ALLOWED_EMAILS": "preview-editor@depthintelligence.kr,magazine@depthintelligence.kr",
+        "EDITORIAL_ADMIN_ALLOWED_DOMAIN": "depthintelligence.kr",
+        "TURNSTILE_SITE_KEY": "",
         "SUBMIT_RATE_LIMIT_WINDOW_SECONDS": "300",
         "SUBMIT_RATE_LIMIT_MAX_ATTEMPTS": "20"
       },

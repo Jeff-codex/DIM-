@@ -8,6 +8,7 @@ type ProposalTriageActionsProps = {
   proposalId: string;
   currentStatus: string;
   currentNote?: string;
+  redirectToDraftOnReview?: boolean;
 };
 
 type ActionType = "assign" | "needs_info" | "in_review" | "reject";
@@ -19,15 +20,29 @@ const actionLabels: Record<ActionType, string> = {
   reject: "보류 / 반려",
 };
 
+const actionOrderByStatus: Record<string, ActionType[]> = {
+  received: ["assign", "in_review", "needs_info", "reject"],
+  assigned: ["in_review", "needs_info", "reject", "assign"],
+  needs_info: ["assign", "in_review", "reject", "needs_info"],
+  in_review: ["in_review", "needs_info", "reject", "assign"],
+};
+
 export function ProposalTriageActions({
   proposalId,
   currentStatus,
   currentNote = "",
+  redirectToDraftOnReview = true,
 }: ProposalTriageActionsProps) {
   const router = useRouter();
   const [note, setNote] = useState(currentNote);
   const [status, setStatus] = useState("이 제안을 어떤 단계로 넘길지 먼저 정합니다");
   const [submitting, setSubmitting] = useState<ActionType | null>(null);
+  const actionOrder = actionOrderByStatus[currentStatus] ?? [
+    "assign",
+    "in_review",
+    "needs_info",
+    "reject",
+  ];
 
   const handleAction = async (action: ActionType) => {
     setSubmitting(action);
@@ -49,6 +64,14 @@ export function ProposalTriageActions({
       }
 
       const data = (await response.json()) as { toStatus?: string };
+
+      if (redirectToDraftOnReview && data.toStatus === "in_review") {
+        setStatus("편집 검토로 넘겼습니다. 초안 화면으로 이동합니다");
+        router.push(`/admin/drafts/${proposalId}`);
+        router.refresh();
+        return;
+      }
+
       setStatus(
         data.toStatus
           ? `상태를 ${data.toStatus}로 바꿨습니다`
@@ -56,7 +79,7 @@ export function ProposalTriageActions({
       );
       router.refresh();
     } catch {
-      setStatus("상태를 바꾸지 못했습니다. Access와 runtime 연결을 다시 확인해 주세요");
+      setStatus("상태를 바꾸지 못했습니다. 접근 권한과 연결 상태를 다시 확인해 주세요");
     } finally {
       setSubmitting(null);
     }
@@ -81,11 +104,13 @@ export function ProposalTriageActions({
       </label>
 
       <div className={styles.actions}>
-        {(Object.keys(actionLabels) as ActionType[]).map((action) => (
+        {actionOrder.map((action) => (
           <button
             key={action}
             type="button"
-            className={action === "reject" ? styles.secondary : styles.primary}
+            className={
+              action === "reject" || action === "assign" ? styles.secondary : styles.primary
+            }
             disabled={submitting !== null}
             onClick={() => handleAction(action)}
           >

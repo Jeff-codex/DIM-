@@ -9,6 +9,9 @@
 - Public app: `apps/web`
 - Runtime target: `Cloudflare Workers`
 - Review preview target: `Cloudflare Pages` project `dim-preview`
+- Real production deploy now uses split tokens:
+  - `CLOUDFLARE_WORKERS_TOKEN` for service deploy
+  - `CLOUDFLARE_SECURITY_TOKEN` for route reconcile
 
 ## What is already implemented
 
@@ -58,6 +61,7 @@
   - triage
   - draft preview
   - publication snapshot
+- Real domain `depthintelligence.kr` is now serving the current production runtime and passes production smoke.
 
 ## Latest verified preview
 
@@ -95,13 +99,17 @@
 10. For production hardening without the real domain, use:
    - `npm run preview:production-candidate`
    - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-production_candidate.depthintelligence.workers.dev`
-11. Verify public review paths:
+11. For real production deploy, confirm both split tokens are present:
+   - `CLOUDFLARE_WORKERS_TOKEN`
+   - `CLOUDFLARE_SECURITY_TOKEN`
+   - optional `CLOUDFLARE_ZONE_ID`
+12. Verify public review paths:
    - `/`
    - `/articles`
    - `/articles/ai-work-tools-are-becoming-management-layers`
    - `/about`
    - `/submit`
-12. Share only the verified external preview URL. Never hand off localhost.
+13. Share only the verified external preview URL. Never hand off localhost.
 
 ## Most likely next product tasks
 

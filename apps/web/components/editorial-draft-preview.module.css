@@ -3,40 +3,47 @@
   top: 24px;
   display: grid;
   gap: 0;
-  border: 1px solid rgba(17, 17, 17, 0.1);
-  background: #ffffff;
+  border: 1px solid rgba(145, 163, 217, 0.14);
+  background:
+    linear-gradient(180deg, rgba(13, 17, 28, 0.96), rgba(9, 12, 20, 0.94)),
+    linear-gradient(135deg, rgba(84, 102, 255, 0.04), transparent 52%);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .chrome {
   display: flex;
   gap: 8px;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.08);
-  background: #faf8f2;
+  border-bottom: 1px solid rgba(145, 163, 217, 0.12);
+  background: rgba(8, 11, 19, 0.92);
 }
 
 .chrome span {
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: rgba(17, 17, 17, 0.18);
+  background: linear-gradient(135deg, #5668ff, #19d7ff);
+  box-shadow: 0 0 16px rgba(25, 215, 255, 0.3);
 }
 
 .page {
-  background: #ffffff;
+  background: #f6f8fc;
 }
 
 .hero {
   display: grid;
   gap: 18px;
   padding: 40px 36px 44px;
-  background: #050505;
+  background:
+    linear-gradient(135deg, #080a12, #101522 58%, #120d20 100%);
   color: #ffffff;
 }
 
 .kicker,
 .answerLabel {
-  color: rgba(255, 255, 255, 0.58);
+  color: rgba(153, 238, 255, 0.72);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -60,7 +67,7 @@
 }
 
 .answerBody {
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(232, 238, 248, 0.84);
   line-height: 1.72;
 }
 
@@ -70,8 +77,8 @@
 
 .coverFrame {
   overflow: hidden;
-  border: 1px solid rgba(17, 17, 17, 0.08);
-  background: #faf8f2;
+  border: 1px solid rgba(145, 163, 217, 0.12);
+  background: #f0f3f9;
   aspect-ratio: 3 / 2;
 }
 
@@ -97,7 +104,7 @@
 }
 
 .trustText {
-  color: rgba(17, 17, 17, 0.68);
+  color: rgba(17, 17, 17, 0.64);
   line-height: 1.72;
 }
 

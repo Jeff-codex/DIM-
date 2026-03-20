@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
+import { ProposalProcessingActions } from "@/components/proposal-processing-actions";
 import { ProposalTriageActions } from "@/components/proposal-triage-actions";
 import {
   requireAdminIdentity,
@@ -19,6 +21,99 @@ function toDateLabel(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function hasOfficialLink(proposal: Awaited<ReturnType<typeof getProposalDetail>>) {
+  return proposal?.links.some((link) => link.linkType === "official") ?? false;
+}
+
+type ProposalRecord = NonNullable<Awaited<ReturnType<typeof getProposalDetail>>>;
+
+function nextActionHint(status: string) {
+  switch (status) {
+    case "received":
+      return "공식 링크와 why now를 확인한 뒤 담당을 먼저 잡는 게 맞습니다";
+    case "assigned":
+      return "검토 메모를 남기고 in_review로 넘길지 결정할 단계입니다";
+    case "needs_info":
+      return "부족한 정보가 무엇인지 메모로 남기고 재검토 시점을 정리합니다";
+    case "in_review":
+      return "draft를 열어 제목과 핵심 판단부터 정리하면 됩니다";
+    case "rejected":
+      return "보류 사유를 이력으로 남긴 상태입니다";
+    default:
+      return "현재 상태를 확인한 뒤 다음 액션을 정합니다";
+  }
+}
+
+function completenessLabel(score: number) {
+  if (score >= 80) {
+    return "높음";
+  }
+
+  if (score >= 55) {
+    return "보통";
+  }
+
+  return "낮음";
+}
+
+function getQueueSummary(proposal: ProposalRecord) {
+  const jobs = proposal?.processingJobs ?? [];
+
+  if (jobs.some((job) => job.status === "failed")) {
+    return "자동 처리에서 실패가 있어 queue를 먼저 다시 확인해야 합니다";
+  }
+
+  if (jobs.some((job) => job.status === "queued" || job.status === "processing")) {
+    return "자동 처리 작업이 아직 진행 중입니다";
+  }
+
+  if (jobs.some((job) => job.status === "completed")) {
+    return "자동 처리 기본 단계는 지나갔습니다";
+  }
+
+  return "자동 처리 기록이 아직 없습니다";
+}
+
+function getCurrentBottleneck(proposal: ProposalRecord) {
+  if (proposal.processingJobs.some((job) => job.status === "failed")) {
+    return "queue 실패를 먼저 정리해야 다음 편집 단계로 안정적으로 넘어갈 수 있습니다";
+  }
+
+  if (!hasOfficialLink(proposal)) {
+    return "공식 링크가 없어 사실 확인의 기준점이 부족합니다";
+  }
+
+  if (!proposal.whyNow?.trim()) {
+    return "왜 지금 중요한지 설명이 부족해 편집 판단이 느려집니다";
+  }
+
+  if (proposal.status === "needs_info") {
+    return "부족한 정보를 먼저 다시 받아야 검토를 이어갈 수 있습니다";
+  }
+
+  if (proposal.status === "received") {
+    return "담당을 정하고 검토 메모를 남길 차례입니다";
+  }
+
+  if (proposal.status === "assigned") {
+    return "편집 검토로 넘길지 여부를 지금 결정해야 합니다";
+  }
+
+  if (!proposal.hasDraft && proposal.status === "in_review") {
+    return "편집 초안을 아직 열지 않았습니다";
+  }
+
+  if (proposal.hasDraft && !proposal.hasSnapshot) {
+    return "편집 초안은 있지만 발행 준비본이 아직 없습니다";
+  }
+
+  if (proposal.hasSnapshot) {
+    return "발행 준비본이 있어 마지막 점검 단계로 넘어갈 수 있습니다";
+  }
+
+  return "현재 상태와 자료는 다음 단계로 넘길 준비가 되어 있습니다";
 }
 
 export default async function ProposalDetailPage({
@@ -67,6 +162,63 @@ export default async function ProposalDetailPage({
           )}
         </div>
       </header>
+
+      <AdminWorkflowNav
+        proposalId={proposal.id}
+        active="proposal"
+        availability={{
+          draft: proposal.status === "in_review",
+          preview: proposal.status === "in_review",
+          snapshot: proposal.status === "in_review",
+        }}
+      />
+
+      <section className={styles.actionBar}>
+        <div className={styles.actionLead}>
+          <p className={styles.sectionLabel}>다음 액션</p>
+          <h2 className={styles.actionTitle}>{nextActionHint(proposal.status)}</h2>
+          <p className={styles.actionCopy}>{getCurrentBottleneck(proposal)}</p>
+        </div>
+        <dl className={styles.actionMeta}>
+          <div>
+            <dt>현재 상태</dt>
+            <dd>{proposal.status}</dd>
+          </div>
+          <div>
+            <dt>완성도</dt>
+            <dd>
+              {proposal.completenessScore}
+              <span className={styles.metaBadge}>
+                {completenessLabel(proposal.completenessScore)}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>공식 링크</dt>
+            <dd>{hasOfficialLink(proposal) ? "있음" : "없음"}</dd>
+          </div>
+          <div>
+            <dt>첨부</dt>
+            <dd>{proposal.assets.length > 0 ? `${proposal.assets.length}개` : "없음"}</dd>
+          </div>
+          <div>
+            <dt>담당</dt>
+            <dd>{proposal.assigneeEmail ?? "-"}</dd>
+          </div>
+          <div>
+            <dt>draft</dt>
+            <dd>
+              {proposal.hasSnapshot
+                ? "snapshot 있음"
+                : proposal.hasDraft
+                  ? "draft 있음"
+                  : proposal.status === "in_review"
+                    ? "열기 가능"
+                    : "대기"}
+            </dd>
+          </div>
+        </dl>
+      </section>
 
       <div className={styles.detailLayout}>
         <section className={styles.detailMain}>
@@ -170,12 +322,6 @@ export default async function ProposalDetailPage({
             </div>
           </div>
 
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>원본 payload</p>
-            </div>
-            <pre className={styles.payload}>{proposal.rawPayloadJson}</pre>
-          </div>
         </section>
 
         <aside className={styles.detailRail}>
@@ -185,27 +331,89 @@ export default async function ProposalDetailPage({
             currentNote={proposal.reviewNote ?? ""}
           />
 
+          <ProposalProcessingActions
+            proposalId={proposal.id}
+            failedJobCount={proposal.processingJobs.filter((job) => job.status === "failed").length}
+          />
+
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>검토 이력</p>
+              <p className={styles.sectionLabel}>현재 병목</p>
             </div>
-            <ul className={styles.timeline}>
-              {proposal.workflowEvents.map((event) => (
-                <li key={event.id} className={styles.timelineItem}>
-                  <div className={styles.timelineTop}>
-                    <span>{event.toState ?? "event"}</span>
-                    <span>{toDateLabel(event.createdAt)}</span>
-                  </div>
-                  <p className={styles.timelineMeta}>
-                    {event.actorType}
-                    {event.note ? ` · ${event.note}` : ""}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            <p className={styles.longText}>{getCurrentBottleneck(proposal)}</p>
+            <p className={styles.railHint}>{getQueueSummary(proposal)}</p>
           </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <p className={styles.sectionLabel}>pipeline health</p>
+            </div>
+            <dl className={styles.summaryGrid}>
+              <div>
+                <dt>공식 링크</dt>
+                <dd>{hasOfficialLink(proposal) ? "있음" : "없음"}</dd>
+              </div>
+              <div>
+                <dt>첨부</dt>
+                <dd>{proposal.assets.length > 0 ? `${proposal.assets.length}개` : "없음"}</dd>
+              </div>
+              <div>
+                <dt>workflow event</dt>
+                <dd>{proposal.workflowEvents.length}건</dd>
+              </div>
+              <div>
+                <dt>processing job</dt>
+                <dd>{proposal.processingJobs.length}건</dd>
+              </div>
+            </dl>
+            {proposal.processingJobs.length > 0 ? (
+              <ul className={styles.timeline}>
+                {proposal.processingJobs.map((job) => (
+                  <li key={job.id} className={styles.timelineItem}>
+                    <div className={styles.timelineTop}>
+                      <span>{job.taskType}</span>
+                      <span>{job.status}</span>
+                    </div>
+                    <p className={styles.timelineMeta}>
+                      {job.errorMessage ? `${job.errorMessage} · ` : ""}
+                      {toDateLabel(job.completedAt ?? job.updatedAt)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className={styles.emptyCopy}>queue 상태가 아직 기록되지 않았습니다</p>
+            )}
+          </div>
+
+          <details className={styles.foldCard}>
+            <summary className={styles.foldSummary}>검토 이력 보기</summary>
+            <div className={styles.foldBody}>
+              <ul className={styles.timeline}>
+                {proposal.workflowEvents.map((event) => (
+                  <li key={event.id} className={styles.timelineItem}>
+                    <div className={styles.timelineTop}>
+                      <span>{event.toState ?? "event"}</span>
+                      <span>{toDateLabel(event.createdAt)}</span>
+                    </div>
+                    <p className={styles.timelineMeta}>
+                      {event.actorType}
+                      {event.note ? ` · ${event.note}` : ""}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
         </aside>
       </div>
+
+      <details className={styles.foldCard}>
+        <summary className={styles.foldSummary}>원본 payload 보기</summary>
+        <div className={styles.foldBody}>
+          <pre className={styles.payload}>{proposal.rawPayloadJson}</pre>
+        </div>
+      </details>
     </div>
   );
 }

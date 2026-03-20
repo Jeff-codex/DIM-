@@ -11,6 +11,7 @@ import {
   type ProposalPayload,
 } from "@/lib/server/editorial/intake";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
+import { enqueueProposalProcessingJobs } from "@/lib/server/editorial/queue";
 import { enforceProposalSubmitSecurity } from "@/lib/server/editorial/security";
 
 export const runtime = "nodejs";
@@ -73,54 +74,6 @@ async function findExistingProposalByDedupeKey(
       completenessScore: number;
       submittedAt: string;
     }>();
-}
-
-async function upsertProcessingJobs(
-  env: Awaited<ReturnType<typeof getEditorialEnv>>,
-  proposalId: string,
-  timestamp: string,
-  status: "queued" | "failed",
-  errorMessage?: string,
-) {
-  const tasks = [
-    "proposal.received",
-    "proposal.normalize.requested",
-    "proposal.entity_extract.requested",
-  ] as const;
-
-  await env.EDITORIAL_DB.batch(
-    tasks.map((taskType) =>
-      env.EDITORIAL_DB.prepare(
-        `INSERT INTO proposal_processing_job (
-           id,
-           proposal_id,
-           task_type,
-           status,
-           payload_json,
-           error_message,
-           created_at,
-           updated_at,
-           completed_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
-         ON CONFLICT(proposal_id, task_type)
-         DO UPDATE SET
-           status = excluded.status,
-           payload_json = excluded.payload_json,
-           error_message = excluded.error_message,
-           updated_at = excluded.updated_at,
-           completed_at = NULL`,
-      ).bind(
-        crypto.randomUUID(),
-        proposalId,
-        taskType,
-        status,
-        JSON.stringify({ type: taskType, proposalId, submittedAt: timestamp }),
-        errorMessage ?? null,
-        timestamp,
-        timestamp,
-      ),
-    ),
-  );
 }
 
 export async function POST(request: Request) {
@@ -317,42 +270,11 @@ export async function POST(request: Request) {
     }
 
     try {
-      await env.EDITORIAL_QUEUE.sendBatch([
-        { body: { type: "proposal.received", proposalId, submittedAt: now } },
-        { body: { type: "proposal.normalize.requested", proposalId } },
-        { body: { type: "proposal.entity_extract.requested", proposalId } },
-      ]);
-      await upsertProcessingJobs(env, proposalId, now, "queued");
+      await enqueueProposalProcessingJobs(env, proposalId, {
+        timestamp: now,
+      });
     } catch (error) {
       console.error("Failed to enqueue editorial jobs", error);
-
-      await upsertProcessingJobs(
-        env,
-        proposalId,
-        now,
-        "failed",
-        error instanceof Error ? error.message : "Queue enqueue failed after submit",
-      );
-
-      await env.EDITORIAL_DB.prepare(
-        `INSERT INTO workflow_event (
-           id,
-           subject_type,
-           subject_id,
-           from_state,
-           to_state,
-           actor_type,
-           note,
-           created_at
-         ) VALUES (?, 'proposal', ?, 'received', 'received', 'system', ?, ?)`,
-      )
-        .bind(
-          crypto.randomUUID(),
-          proposalId,
-          "Queue enqueue failed after submit",
-          now,
-        )
-        .run();
     }
 
     return NextResponse.json(

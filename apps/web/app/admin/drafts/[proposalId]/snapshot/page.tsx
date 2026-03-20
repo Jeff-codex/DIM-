@@ -1,4 +1,5 @@
 import { categories } from "@/content/categories";
+import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { EditorialDraftPreview } from "@/components/editorial-draft-preview";
 import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import {
@@ -10,6 +11,20 @@ import styles from "../../../admin.module.css";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function toDateLabel(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
 
 export default async function PublicationSnapshotPage({
   params,
@@ -49,38 +64,69 @@ export default async function PublicationSnapshotPage({
 
   return (
     <div className={styles.page}>
-      <section className={styles.blocked}>
-        <p className={styles.eyebrow}>Publication Snapshot</p>
-        <h1 className={styles.title}>업로드 전 발행 준비본입니다</h1>
-        <p className={styles.description}>
-          제목, 메타, canonical 후보, 본문 구성을 고정한 뒤 실제 발행 파이프라인으로
-          넘길 수 있는 내부 스냅샷입니다.
-        </p>
-        <div style={{ marginTop: 20, display: "grid", gap: 8 }}>
-          <p>
-            <strong>slug</strong>: {snapshot.articleSlug}
-          </p>
-          <p>
-            <strong>canonical</strong>: {snapshot.canonicalUrl ?? "-"}
-          </p>
-          <p>
-            <strong>prepared by</strong>: {snapshot.preparedBy ?? "-"}
-          </p>
-          <p>
-            <strong>updated</strong>: {snapshot.updatedAt}
+      <header className={styles.hero}>
+        <div>
+          <p className={styles.eyebrow}>Publication Snapshot</p>
+          <h1 className={styles.title}>업로드 직전 발행 준비본을 확인합니다</h1>
+          <p className={styles.description}>
+            제목, 해석 문장, slug, canonical 후보를 고정한 뒤 실제 발행 파이프라인으로 넘기는 단계입니다
           </p>
         </div>
-      </section>
+        <div className={styles.metaPanel}>
+          <p className={styles.metaLabel}>현재 상태</p>
+          <p className={styles.metaValue}>snapshot ready</p>
+          <p className={styles.metaSubtle}>slug {snapshot.articleSlug}</p>
+          <p className={styles.metaSubtle}>업데이트 {toDateLabel(snapshot.updatedAt)}</p>
+        </div>
+      </header>
 
-      <EditorialDraftPreview
-        title={snapshot.title}
-        displayTitleLines={snapshot.displayTitleLines}
-        excerpt={snapshot.excerpt}
-        interpretiveFrame={snapshot.interpretiveFrame}
-        categoryName={categoryName}
-        coverImageUrl={snapshot.coverImageUrl ?? undefined}
-        bodyMarkdown={snapshot.bodyMarkdown}
-      />
+      <AdminWorkflowNav proposalId={proposalId} active="snapshot" />
+
+      <div className={styles.detailLayout}>
+        <section className={styles.detailMain}>
+          <EditorialDraftPreview
+            title={snapshot.title}
+            displayTitleLines={snapshot.displayTitleLines}
+            excerpt={snapshot.excerpt}
+            interpretiveFrame={snapshot.interpretiveFrame}
+            categoryName={categoryName}
+            coverImageUrl={snapshot.coverImageUrl ?? undefined}
+            bodyMarkdown={snapshot.bodyMarkdown}
+          />
+        </section>
+
+        <aside className={styles.detailRail}>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <p className={styles.sectionLabel}>발행 준비 체크</p>
+            </div>
+            <div className={styles.signalRow}>
+              <span className={styles.signalChipPositive}>title 고정</span>
+              <span className={styles.signalChipPositive}>excerpt 고정</span>
+              <span className={styles.signalChipPositive}>판단문 고정</span>
+              <span className={styles.signalChipPositive}>body 고정</span>
+            </div>
+            <dl className={styles.summaryGrid}>
+              <div>
+                <dt>slug</dt>
+                <dd>{snapshot.articleSlug}</dd>
+              </div>
+              <div>
+                <dt>canonical</dt>
+                <dd>{snapshot.canonicalUrl ?? "-"}</dd>
+              </div>
+              <div>
+                <dt>prepared by</dt>
+                <dd>{snapshot.preparedBy ?? "-"}</dd>
+              </div>
+              <div>
+                <dt>updated</dt>
+                <dd>{toDateLabel(snapshot.updatedAt)}</dd>
+              </div>
+            </dl>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

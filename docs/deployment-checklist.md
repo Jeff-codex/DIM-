@@ -44,8 +44,10 @@ Run from `apps/web`.
 2. Confirm the user considers the current design/content pass complete enough for the real domain.
 3. Confirm no uncommitted work is being skipped by mistake.
 4. Confirm env is available:
-   - `CLOUDFLARE_API_TOKEN`
+   - `CLOUDFLARE_WORKERS_TOKEN`
+   - `CLOUDFLARE_SECURITY_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID`
+   - optional `CLOUDFLARE_ZONE_ID`
 5. Confirm production hardening prerequisites:
    - `TURNSTILE_SITE_KEY`
    - `TURNSTILE_SECRET_KEY`
@@ -77,6 +79,9 @@ Run from `apps/web`.
 - Review previews use the `dim-preview` Pages project.
 - Keep Pages review links clean. Old experimental preview aliases should be deleted once a new canonical review alias is confirmed.
 - Production runtime is Cloudflare Workers, not Pages.
+- Real production deploy is split-token:
+  - worker service deploy uses `CLOUDFLARE_WORKERS_TOKEN`
+  - route reconcile uses `CLOUDFLARE_SECURITY_TOKEN`
 - `dim-web.depthintelligence.workers.dev` is a deprecated legacy worker and must not be used as the hardening baseline.
 - Use `dim-web-production_candidate.depthintelligence.workers.dev` for pre-production hardening until the user explicitly approves the real-domain deployment.
 - Use verified external URLs only; do not share `localhost`.

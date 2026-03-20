@@ -44,6 +44,13 @@ export const metadata: Metadata = {
     title: siteConfig.name,
     description: siteConfig.description,
   },
+  verification: {
+    google: "viTebMQcg3UIXlwCFpe7VyVLFqqXmCp92LiUe-9PvDk",
+    other: {
+      "msvalidate.01": "83816417854613178C26BF6EF5E3E714",
+      "naver-site-verification": "7f5d1b972351449a89ca175303a61b8ef170c20a",
+    },
+  },
 };
 
 export default function RootLayout({

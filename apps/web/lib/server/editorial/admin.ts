@@ -67,6 +67,14 @@ export type ProposalInboxItem = {
   submittedAt: string;
   websiteUrl: string | null;
   primaryLinkUrl: string | null;
+  hasOfficialLink: boolean;
+  hasSummary: boolean;
+  hasWhyNow: boolean;
+  hasDraft: boolean;
+  hasSnapshot: boolean;
+  queuedJobCount: number;
+  failedJobCount: number;
+  completedJobCount: number;
   linkCount: number;
   assetCount: number;
   assigneeEmail: string | null;
@@ -92,6 +100,8 @@ export type ProposalDetail = {
   updatedAt: string;
   reviewedAt: string | null;
   rawPayloadJson: string;
+  hasDraft: boolean;
+  hasSnapshot: boolean;
   links: Array<{
     id: string;
     url: string;
@@ -115,6 +125,14 @@ export type ProposalDetail = {
     actorType: string;
     note: string | null;
     createdAt: string;
+  }>;
+  processingJobs: Array<{
+    id: string;
+    taskType: string;
+    status: string;
+    errorMessage: string | null;
+    updatedAt: string;
+    completedAt: string | null;
   }>;
 };
 
@@ -200,6 +218,14 @@ export async function listInboxProposals(limit = 24): Promise<ProposalInboxItem[
       p.assignee_email AS assigneeEmail,
       p.submitted_at AS submittedAt,
       p.website_url AS websiteUrl,
+      CASE
+        WHEN COALESCE(TRIM(p.summary), '') <> '' THEN 1
+        ELSE 0
+      END AS hasSummary,
+      CASE
+        WHEN COALESCE(TRIM(p.why_now), '') <> '' THEN 1
+        ELSE 0
+      END AS hasWhyNow,
       (
         SELECT url
         FROM proposal_link pl
@@ -207,6 +233,12 @@ export async function listInboxProposals(limit = 24): Promise<ProposalInboxItem[
         ORDER BY CASE WHEN pl.link_type = 'official' THEN 0 ELSE 1 END, pl.created_at ASC
         LIMIT 1
       ) AS primaryLinkUrl,
+      EXISTS(
+        SELECT 1
+        FROM proposal_link pl
+        WHERE pl.proposal_id = p.id
+          AND pl.link_type = 'official'
+      ) AS hasOfficialLink,
       (
         SELECT COUNT(*)
         FROM proposal_link pl
@@ -217,6 +249,35 @@ export async function listInboxProposals(limit = 24): Promise<ProposalInboxItem[
         FROM proposal_asset pa
         WHERE pa.proposal_id = p.id
       ) AS assetCount
+      ,
+      EXISTS(
+        SELECT 1
+        FROM editorial_draft ed
+        WHERE ed.proposal_id = p.id
+      ) AS hasDraft,
+      EXISTS(
+        SELECT 1
+        FROM publication_snapshot ps
+        WHERE ps.proposal_id = p.id
+      ) AS hasSnapshot,
+      (
+        SELECT COUNT(*)
+        FROM proposal_processing_job ppj
+        WHERE ppj.proposal_id = p.id
+          AND ppj.status = 'queued'
+      ) AS queuedJobCount,
+      (
+        SELECT COUNT(*)
+        FROM proposal_processing_job ppj
+        WHERE ppj.proposal_id = p.id
+          AND ppj.status = 'failed'
+      ) AS failedJobCount,
+      (
+        SELECT COUNT(*)
+        FROM proposal_processing_job ppj
+        WHERE ppj.proposal_id = p.id
+          AND ppj.status = 'completed'
+      ) AS completedJobCount
     FROM proposal p
     ORDER BY p.submitted_at DESC
     LIMIT ?`,
@@ -253,19 +314,29 @@ export async function getProposalDetail(id: string): Promise<ProposalDetail | nu
       submitted_at AS submittedAt,
       updated_at AS updatedAt,
       reviewed_at AS reviewedAt,
-      raw_payload_json AS rawPayloadJson
+      raw_payload_json AS rawPayloadJson,
+      EXISTS(
+        SELECT 1
+        FROM editorial_draft ed
+        WHERE ed.proposal_id = proposal.id
+      ) AS hasDraft,
+      EXISTS(
+        SELECT 1
+        FROM publication_snapshot ps
+        WHERE ps.proposal_id = proposal.id
+      ) AS hasSnapshot
     FROM proposal
     WHERE id = ?
     LIMIT 1`,
   )
     .bind(id)
-    .first<Omit<ProposalDetail, "links" | "assets" | "workflowEvents">>();
+    .first<Omit<ProposalDetail, "links" | "assets" | "workflowEvents" | "processingJobs">>();
 
   if (!proposal) {
     return null;
   }
 
-  const [linksResult, assetsResult, workflowResult] = await Promise.all([
+  const [linksResult, assetsResult, workflowResult, processingJobsResult] = await Promise.all([
     env.EDITORIAL_DB.prepare(
       `SELECT id, url, label, link_type AS linkType, created_at AS createdAt
        FROM proposal_link
@@ -298,11 +369,25 @@ export async function getProposalDetail(id: string): Promise<ProposalDetail | nu
          note,
          created_at AS createdAt
        FROM workflow_event
-       WHERE subject_type = 'proposal' AND subject_id = ?
-       ORDER BY created_at DESC`,
+      WHERE subject_type = 'proposal' AND subject_id = ?
+      ORDER BY created_at DESC`,
     )
       .bind(id)
       .all<ProposalDetail["workflowEvents"][number]>(),
+    env.EDITORIAL_DB.prepare(
+      `SELECT
+         id,
+         task_type AS taskType,
+         status,
+         error_message AS errorMessage,
+         updated_at AS updatedAt,
+         completed_at AS completedAt
+       FROM proposal_processing_job
+       WHERE proposal_id = ?
+       ORDER BY updated_at DESC`,
+    )
+      .bind(id)
+      .all<ProposalDetail["processingJobs"][number]>(),
   ]);
 
   return {
@@ -310,6 +395,7 @@ export async function getProposalDetail(id: string): Promise<ProposalDetail | nu
     links: linksResult.results ?? [],
     assets: assetsResult.results ?? [],
     workflowEvents: workflowResult.results ?? [],
+    processingJobs: processingJobsResult.results ?? [],
   };
 }
 

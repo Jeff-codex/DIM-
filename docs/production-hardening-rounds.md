@@ -44,8 +44,9 @@ Current status:
   - email: `magazine@depthintelligence.kr`
   - email domain: `depthintelligence.kr`
 - Remaining verification:
-  - confirm the production-candidate hostname is serving `/admin/*`
-  - confirm unauthenticated production-candidate requests are blocked by Access
+  - candidate currently returns an app-level blocked panel on `/admin/*`
+  - real domain currently redirects `/admin/*` to Cloudflare Access login
+  - final production sign-off should confirm the intended protection behavior after the real production runtime is healthy
 
 ## Round 2: Submit Protection In Production
 
@@ -63,12 +64,13 @@ Current status:
 
 - Production Turnstile widget created
   - name: `DIM production submit`
-  - site key is provisioned in `apps/web/wrangler.jsonc`
+- site key is provisioned in `apps/web/wrangler.jsonc`
+- production-candidate runtime now rejects:
+  - no token -> `400 turnstile_required`
+  - fake token -> `400 turnstile_failed`
 - Remaining work:
-  - store `TURNSTILE_SECRET_KEY` in production-candidate runtime secret storage
-  - redeploy production-candidate runtime
-  - confirm `/api/public-config/submit` returns the candidate site key
-  - confirm `/api/proposals` enforces Turnstile on production-candidate
+  - keep production secret storage in sync with the real production runtime
+  - confirm the real production runtime exposes the correct public submit config after the next real deploy
 
 ## Round 3: Proposal Write Hardening
 
@@ -126,6 +128,19 @@ Current status:
 - Verify duplicate submit handling
 - Verify unauthorized `/admin` is blocked
 - Verify public pages still render normally
+
+Recommended commands:
+
+- `npm run smoke:production-candidate`
+- `npm run smoke:production-runtime`
+
+Current note:
+
+- `production-candidate` is the active hardening baseline
+- `depthintelligence.kr` is now healthy after route reconcile and passes production smoke
+- repeatable real production deploy should use the split-token workflow:
+  - `CLOUDFLARE_WORKERS_TOKEN` for service deploy
+  - `CLOUDFLARE_SECURITY_TOKEN` for route reconcile
 
 ## Round 8: Monitoring And Failure Visibility
 
