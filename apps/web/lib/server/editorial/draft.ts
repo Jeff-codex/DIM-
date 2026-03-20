@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
 import { requestEditorialStructuredJson, getEditorialAiConfig } from "@/lib/server/editorial/ai";
+import { buildBonchallyeokSystemPrompt } from "@/lib/server/editorial/bonchallyeok";
 import { categories } from "@/content/categories";
 import { generatedArticleSources } from "@/content/generated/articles.generated";
 
@@ -215,6 +216,347 @@ const aiDraftSchema = {
   },
 } satisfies Record<string, unknown>;
 
+type ProposalSeedInput = {
+  projectName: string;
+  summary?: string | null;
+  productDescription?: string | null;
+  whyNow?: string | null;
+  market?: string | null;
+  stage?: string | null;
+  updatedAt?: string | null;
+};
+
+function cleanText(value?: string | null) {
+  return value?.trim() ?? "";
+}
+
+function firstImageAssetUrl(
+  proposalId: string,
+  assets: ProposalAssetRecord[],
+) {
+  const firstImage = assets.find((asset) => asset.kind === "image");
+
+  if (!firstImage) {
+    return undefined;
+  }
+
+  return `/api/admin/proposals/${proposalId}/assets/${firstImage.id}`;
+}
+
+function buildSeedDraft(
+  proposalId: string,
+  proposal: ProposalSeedInput,
+  editorEmail: string,
+  coverImageUrl?: string,
+): EditorialDraftRecord {
+  const now = new Date().toISOString();
+  const sourceSnapshot = buildSourceSnapshot(proposal);
+
+  return {
+    id: crypto.randomUUID(),
+    proposalId,
+    title: proposal.projectName,
+    displayTitleLines: [],
+    excerpt: proposal.summary ?? `${proposal.projectName}를 어떤 맥락으로 봐야 하는지 정리합니다.`,
+    interpretiveFrame:
+      proposal.whyNow ?? `${proposal.projectName}가 지금 어떤 구조 변화를 만드는지 먼저 판단합니다.`,
+    categoryId: inferCategoryId(proposal.summary, proposal.whyNow, proposal.stage),
+    coverImageUrl,
+    bodyMarkdown: seedDraftBody(proposal),
+    status: "draft",
+    editorEmail,
+    draftGeneratedAt: now,
+    sourceProposalUpdatedAt: proposal.updatedAt ?? null,
+    sourceSnapshot,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function buildRuleSignals(proposal: ProposalSeedInput, links: ProposalLinkRecord[]) {
+  const corpus = [
+    proposal.projectName,
+    proposal.summary,
+    proposal.productDescription,
+    proposal.whyNow,
+    proposal.market,
+    proposal.stage,
+    ...links.map((link) => `${link.linkType} ${link.label ?? ""} ${link.url}`),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const hasPricing = /(가격|요금|번들|플랜|구독|pricing|bundle|tier)/.test(corpus);
+  const hasOperations = /(운영|승인|정산|흐름|워크플로|workflow|approval|ops|관리)/.test(corpus);
+  const hasDistribution = /(유통|배포|송출|채널|마켓플레이스|distribution|channel|셀프서비스|self-serve|홍보)/.test(corpus);
+  const hasInfrastructure = /(infra|인프라|platform|레이어|layer|api|stack|시스템)/.test(corpus);
+  const hasLaunch = /(launch|런칭|출시|release|beta|공개)/.test(corpus);
+
+  if (hasPricing) {
+    return {
+      frameLabel: "pricing-architecture" as const,
+      changedLayer: "pricing" as const,
+      categoryId: "industry-analysis",
+    };
+  }
+
+  if (hasDistribution) {
+    return {
+      frameLabel: "distribution-structure" as const,
+      changedLayer: "distribution" as const,
+      categoryId: "industry-analysis",
+    };
+  }
+
+  if (hasInfrastructure) {
+    return {
+      frameLabel: "infrastructure-shift" as const,
+      changedLayer: "infrastructure" as const,
+      categoryId: "startups",
+    };
+  }
+
+  if (hasOperations) {
+    return {
+      frameLabel: "operating-layer" as const,
+      changedLayer: "operations" as const,
+      categoryId: "startups",
+    };
+  }
+
+  if (hasLaunch) {
+    return {
+      frameLabel: "launch-structure" as const,
+      changedLayer: "product" as const,
+      categoryId: "product-launches",
+    };
+  }
+
+  return {
+    frameLabel: "market-repositioning" as const,
+    changedLayer: "organization" as const,
+    categoryId: inferCategoryId(proposal.summary, proposal.whyNow, proposal.stage),
+  };
+}
+
+function buildSignalUserPrompt(input: {
+  proposal: ProposalSeedInput;
+  links: ProposalLinkRecord[];
+  assets: ProposalAssetRecord[];
+}) {
+  return [
+    "아래는 DIM에 들어온 피처 제안 원문이다.",
+    "이 제안을 본찰력 기준으로 재분류하기 위한 구조 신호만 뽑아라.",
+    "",
+    `프로젝트명: ${input.proposal.projectName}`,
+    `한 줄 소개: ${cleanText(input.proposal.summary) || "(없음)"}`,
+    `무엇을 하는가: ${cleanText(input.proposal.productDescription) || "(없음)"}`,
+    `왜 지금 중요한가: ${cleanText(input.proposal.whyNow) || "(없음)"}`,
+    `현재 단계: ${cleanText(input.proposal.stage) || "(없음)"}`,
+    `주요 사용자 또는 시장: ${cleanText(input.proposal.market) || "(없음)"}`,
+    "",
+    "링크:",
+    ...(input.links.length > 0
+      ? input.links.map((link) => `- [${link.linkType}] ${link.label ?? "(라벨 없음)"} :: ${link.url}`)
+      : ["- (없음)"]),
+    "",
+    "첨부 자산:",
+    ...(input.assets.length > 0
+      ? input.assets.map(
+          (asset) =>
+            `- ${asset.kind} / ${asset.mimeType} / ${asset.originalFilename ?? "(이름 없음)"}`,
+        )
+      : ["- (없음)"]),
+  ].join("\n");
+}
+
+function chooseStyleExamples(categoryId: string, titleDirection: string) {
+  const byCategory = publishedStyleExamples.filter((example) => example.categoryId === categoryId);
+  const pool = byCategory.length > 0 ? byCategory : publishedStyleExamples;
+  const directionTokens = titleDirection
+    .toLowerCase()
+    .split(/[\s,./]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 1);
+
+  const scored = pool
+    .map((example) => {
+      const haystack = `${example.title} ${example.excerpt} ${example.interpretiveFrame}`.toLowerCase();
+      const score = directionTokens.reduce(
+        (acc, token) => (haystack.includes(token) ? acc + 1 : acc),
+        0,
+      );
+
+      return { example, score };
+    })
+    .sort((left, right) => right.score - left.score);
+
+  return scored.slice(0, 3).map((entry) => entry.example);
+}
+
+function buildDraftUserPrompt(input: {
+  proposal: ProposalSeedInput;
+  links: ProposalLinkRecord[];
+  assets: ProposalAssetRecord[];
+  signals: AiSignalOutput;
+  styleExamples: StyleExample[];
+}) {
+  return [
+    "아래 proposal을 DIM의 본찰력 기준으로 재해석한 초안을 작성한다.",
+    "목표는 즉시 발행이 아니라, 거의 바로 편집 가능한 고품질 초안이다.",
+    "제안 원문을 반복하지 말고, 무엇이 아니라 무엇으로 읽어야 하는지 판단문으로 남겨라.",
+    "",
+    `프로젝트명: ${input.proposal.projectName}`,
+    `한 줄 소개: ${cleanText(input.proposal.summary) || "(없음)"}`,
+    `무엇을 하는가: ${cleanText(input.proposal.productDescription) || "(없음)"}`,
+    `왜 지금 중요한가: ${cleanText(input.proposal.whyNow) || "(없음)"}`,
+    `현재 단계: ${cleanText(input.proposal.stage) || "(없음)"}`,
+    `주요 사용자 또는 시장: ${cleanText(input.proposal.market) || "(없음)"}`,
+    "",
+    `신호 프레임: ${input.signals.frameLabel}`,
+    `변화 층위: ${input.signals.changedLayer}`,
+    `핵심 구조 변화: ${input.signals.coreShift}`,
+    `왜 지금의 압력: ${input.signals.whyNowPressure}`,
+    `근거 포인트: ${input.signals.evidencePoints.join(" | ") || "(없음)"}`,
+    `부족한 정보: ${input.signals.missingInfo.join(" | ") || "(없음)"}`,
+    "",
+    "공식/참고 링크:",
+    ...(input.links.length > 0
+      ? input.links.map((link) => `- [${link.linkType}] ${link.label ?? "(라벨 없음)"} :: ${link.url}`)
+      : ["- (없음)"]),
+    "",
+    "스타일 예시:",
+    ...input.styleExamples.map(
+      (example, index) =>
+        `${index + 1}. 제목: ${example.title}\n   핵심 답변: ${example.excerpt}\n   핵심 판단: ${example.interpretiveFrame}`,
+    ),
+    "",
+    "본문은 다음 섹션 순서를 유지한다.",
+    "## 무엇이 바뀌었나",
+    "## 어떤 구조를 봐야 하나",
+    "## 왜 지금 중요한가",
+    "## DIM의 해석",
+    "시장 정보가 충분하면 '## 누구에게 먼저 보이는가'를 넣어도 된다.",
+    "과장하지 말고, 뉴스 기사처럼 나열하지 말며, DIM다운 편집 결론으로 수렴한다.",
+  ].join("\n");
+}
+
+async function generateAiSignals(input: {
+  proposal: ProposalSeedInput;
+  links: ProposalLinkRecord[];
+  assets: ProposalAssetRecord[];
+}) {
+  const config = await getEditorialAiConfig();
+  const fallback = buildRuleSignals(input.proposal, input.links);
+
+  if (!config.enabled) {
+    return aiSignalOutputSchema.parse({
+      ...fallback,
+      coreShift: input.proposal.summary ?? `${input.proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
+      whyNowPressure:
+        input.proposal.whyNow ?? "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
+      evidencePoints: [input.proposal.productDescription ?? "공개 설명과 공식 링크를 먼저 확인합니다."],
+      missingInfo: [],
+      titleDirection: input.proposal.projectName,
+    });
+  }
+
+  try {
+    const response = await requestEditorialStructuredJson<AiSignalOutput>({
+      model: config.signalModel,
+      schemaName: "dim_signal_extraction",
+      schema: aiSignalSchema,
+      systemPrompt: [
+        buildBonchallyeokSystemPrompt(),
+        "지금 단계에서는 긴 본문을 쓰지 말고, 초안 생성을 위한 구조 신호만 뽑는다.",
+        "브랜드 소개가 아니라 구조 변화, 운영 맥락, 가격/유통/인프라 이동 여부를 먼저 판정한다.",
+      ].join("\n\n"),
+      userPrompt: buildSignalUserPrompt(input),
+      maxOutputTokens: 1800,
+    });
+
+    return aiSignalOutputSchema.parse(response);
+  } catch (error) {
+    console.error("DIM signal extraction failed, falling back to rule signals", error);
+
+    return aiSignalOutputSchema.parse({
+      ...fallback,
+      coreShift: input.proposal.summary ?? `${input.proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
+      whyNowPressure:
+        input.proposal.whyNow ?? "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
+      evidencePoints: [input.proposal.productDescription ?? "공개 설명과 공식 링크를 먼저 확인합니다."],
+      missingInfo: [],
+      titleDirection: input.proposal.projectName,
+    });
+  }
+}
+
+async function generateAiDraft(input: {
+  proposalId: string;
+  proposal: ProposalSeedInput;
+  links: ProposalLinkRecord[];
+  assets: ProposalAssetRecord[];
+  editorEmail: string;
+}) {
+  const config = await getEditorialAiConfig();
+  const coverImageUrl = firstImageAssetUrl(input.proposalId, input.assets);
+  const fallbackDraft = buildSeedDraft(
+    input.proposalId,
+    input.proposal,
+    input.editorEmail,
+    coverImageUrl,
+  );
+
+  if (!config.enabled) {
+    return fallbackDraft;
+  }
+
+  try {
+    const signals = await generateAiSignals({
+      proposal: input.proposal,
+      links: input.links,
+      assets: input.assets,
+    });
+    const styleExamples = chooseStyleExamples(signals.categoryId, signals.titleDirection);
+    const response = await requestEditorialStructuredJson<AiDraftOutput>({
+      model: config.draftModel,
+      schemaName: "dim_editorial_draft",
+      schema: aiDraftSchema,
+      systemPrompt: [
+        buildBonchallyeokSystemPrompt(),
+        "당신의 출력은 DIM 편집자가 거의 바로 손볼 수 있는 고품질 초안이어야 한다.",
+        "한 줄 소개는 첫 답변, 핵심 판단은 편집 결론, 본문은 구조 변화의 이유를 설명해야 한다.",
+        "카테고리는 주어진 enum 중 하나만 사용한다.",
+      ].join("\n\n"),
+      userPrompt: buildDraftUserPrompt({
+        proposal: input.proposal,
+        links: input.links,
+        assets: input.assets,
+        signals,
+        styleExamples,
+      }),
+      maxOutputTokens: 4200,
+    });
+
+    const parsed = aiDraftOutputSchema.parse(response);
+
+    return {
+      ...fallbackDraft,
+      title: parsed.title,
+      displayTitleLines: parsed.displayTitleLines,
+      excerpt: parsed.excerpt,
+      interpretiveFrame: parsed.interpretiveFrame,
+      categoryId: parsed.categoryId,
+      coverImageUrl: parsed.coverImageUrl || coverImageUrl,
+      bodyMarkdown: parsed.bodyMarkdown,
+    } satisfies EditorialDraftRecord;
+  } catch (error) {
+    console.error("DIM editorial draft generation failed, falling back to seeded draft", error);
+    return fallbackDraft;
+  }
+}
+
 function inferCategoryId(summary?: string | null, whyNow?: string | null, stage?: string | null) {
   const corpus = [summary, whyNow, stage].filter(Boolean).join(" ").toLowerCase();
 
@@ -414,29 +756,37 @@ export async function ensureEditorialDraftForProposal(
       status: proposal.status,
     };
   }
+  const [linksResult, assetsResult] = await Promise.all([
+    env.EDITORIAL_DB.prepare(
+      `SELECT url, label, link_type AS linkType
+       FROM proposal_link
+       WHERE proposal_id = ?
+       ORDER BY CASE WHEN link_type = 'official' THEN 0 ELSE 1 END, created_at ASC`,
+    )
+      .bind(proposalId)
+      .all<ProposalLinkRecord>(),
+    env.EDITORIAL_DB.prepare(
+      `SELECT
+         id,
+         original_filename AS originalFilename,
+         mime_type AS mimeType,
+         kind,
+         size_bytes AS sizeBytes
+       FROM proposal_asset
+       WHERE proposal_id = ?
+       ORDER BY uploaded_at ASC`,
+    )
+      .bind(proposalId)
+      .all<ProposalAssetRecord>(),
+  ]);
 
-  const draftId = crypto.randomUUID();
-  const now = new Date().toISOString();
-  const sourceSnapshot = buildSourceSnapshot(proposal);
-  const seeded: EditorialDraftRecord = {
-    id: draftId,
+  const seeded = await generateAiDraft({
     proposalId,
-    title: proposal.projectName,
-    displayTitleLines: [],
-    excerpt: proposal.summary ?? `${proposal.projectName}를 어떤 맥락으로 봐야 하는지 정리합니다.`,
-    interpretiveFrame:
-      proposal.whyNow ?? `${proposal.projectName}가 지금 어떤 구조 변화를 만드는지 먼저 판단합니다.`,
-    categoryId: inferCategoryId(proposal.summary, proposal.whyNow, proposal.stage),
-    coverImageUrl: undefined,
-    bodyMarkdown: seedDraftBody(proposal),
-    status: "draft",
+    proposal,
+    links: linksResult.results ?? [],
+    assets: assetsResult.results ?? [],
     editorEmail,
-    draftGeneratedAt: now,
-    sourceProposalUpdatedAt: proposal.updatedAt,
-    sourceSnapshot,
-    createdAt: now,
-    updatedAt: now,
-  };
+  });
 
   await env.EDITORIAL_DB.prepare(
     `INSERT INTO editorial_draft (
@@ -469,11 +819,11 @@ export async function ensureEditorialDraftForProposal(
       seeded.coverImageUrl ?? null,
       seeded.bodyMarkdown,
       editorEmail,
-      now,
-      proposal.updatedAt,
-      JSON.stringify(sourceSnapshot),
-      now,
-      now,
+      seeded.draftGeneratedAt,
+      seeded.sourceProposalUpdatedAt,
+      JSON.stringify(seeded.sourceSnapshot),
+      seeded.createdAt,
+      seeded.updatedAt,
     )
     .run();
 
