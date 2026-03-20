@@ -429,6 +429,12 @@ export async function updateProposalTriage(
       ? identity.email
       : current.assigneeEmail;
 
+  if (nextStatus === "in_review") {
+    await ensureEditorialDraftForProposal(proposalId, identity.email, {
+      skipStatusCheck: true,
+    });
+  }
+
   await env.EDITORIAL_DB.batch([
     env.EDITORIAL_DB.prepare(
       `UPDATE proposal
@@ -461,10 +467,6 @@ export async function updateProposalTriage(
       timestamp,
     ),
   ]);
-
-  if (nextStatus === "in_review") {
-    await ensureEditorialDraftForProposal(proposalId, identity.email);
-  }
 
   return {
     proposalId,

@@ -43,3 +43,5 @@ Public-facing DIM application built with `Next.js 16`, `TypeScript`, and the Clo
   - real-domain route reconcile
   so the current token split does not block release.
 - Treat `dim-web.depthintelligence.workers.dev` as a deprecated legacy worker. Do not use it as a review or hardening target.
+- If `EDITORIAL_DRAFT_GENERATOR_URL` and `EDITORIAL_GENERATOR_SHARED_SECRET` are configured, editorial draft generation prefers the external DIM Draft Generator service over direct OpenAI calls from Workers.
+- External generator source lives in `apps/editorial-generator`.

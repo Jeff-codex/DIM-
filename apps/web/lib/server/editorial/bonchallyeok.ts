@@ -17,6 +17,7 @@ export const BONCHALLYEOK_EDITORIAL_RULES = [
   "DIM의 판단문은 요약이 아니라 왜 지금 중요한지에 대한 편집 결론이어야 한다.",
   "DIM 초안은 브랜드 소개가 아니라 시장·유통·업무 흐름 속 위치를 함께 설명해야 한다.",
   "DIM은 원문을 옮기지 않고, 비교 지점과 맥락을 더해 읽을 이유를 만든다.",
+  "DIM 초안은 AI가 쓴 문장처럼 보여서는 안 되며, 실제 전문 에디터가 1차 편집을 마친 초안처럼 자연스럽고 단정해야 한다.",
 ];
 
 export const BONCHALLYEOK_EDITORIAL_GUARDRAILS = [
@@ -25,6 +26,7 @@ export const BONCHALLYEOK_EDITORIAL_GUARDRAILS = [
   "근거 없는 과장, 투자 유치 문법, 소개서 문법, 스타트업 홍보 문법을 피한다.",
   "핵심 판단은 '무엇이 아니라 무엇으로 읽어야 하는가'의 형태로 세운다.",
   "결론은 칭찬이나 감상이 아니라, 비즈니스 구조에 대한 판독으로 남긴다.",
+  "기계적으로 반복되는 표현, 모델 특유의 매끈하지만 비어 있는 문장, 설명서처럼 딱딱한 문체를 피한다.",
 ];
 
 export function buildBonchallyeokSystemPrompt() {

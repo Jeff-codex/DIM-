@@ -6,6 +6,8 @@ type EditorialAiEnv = CloudflareEnv & {
   OPENAI_PROJECT_ID?: string;
   OPENAI_SIGNAL_MODEL?: string;
   OPENAI_DRAFT_MODEL?: string;
+  EDITORIAL_DRAFT_GENERATOR_URL?: string;
+  EDITORIAL_GENERATOR_SHARED_SECRET?: string;
 };
 
 export type EditorialAiConfig = {
@@ -14,6 +16,8 @@ export type EditorialAiConfig = {
   projectId?: string;
   signalModel: string;
   draftModel: string;
+  generatorUrl?: string;
+  generatorSecretPresent: boolean;
 };
 
 export async function getEditorialAiConfig(): Promise<EditorialAiConfig> {
@@ -26,6 +30,8 @@ export async function getEditorialAiConfig(): Promise<EditorialAiConfig> {
     projectId: aiEnv.OPENAI_PROJECT_ID,
     signalModel: aiEnv.OPENAI_SIGNAL_MODEL || "gpt-5.4-mini",
     draftModel: aiEnv.OPENAI_DRAFT_MODEL || "gpt-5.4",
+    generatorUrl: aiEnv.EDITORIAL_DRAFT_GENERATOR_URL?.trim() || undefined,
+    generatorSecretPresent: Boolean(aiEnv.EDITORIAL_GENERATOR_SHARED_SECRET?.trim()),
   };
 }
 
@@ -44,7 +50,16 @@ export async function requireEditorialAiConfig(): Promise<EditorialAiConfig & { 
     projectId: aiEnv.OPENAI_PROJECT_ID,
     signalModel: aiEnv.OPENAI_SIGNAL_MODEL || "gpt-5.4-mini",
     draftModel: aiEnv.OPENAI_DRAFT_MODEL || "gpt-5.4",
+    generatorUrl: aiEnv.EDITORIAL_DRAFT_GENERATOR_URL?.trim() || undefined,
+    generatorSecretPresent: Boolean(aiEnv.EDITORIAL_GENERATOR_SHARED_SECRET?.trim()),
   };
+}
+
+export async function getEditorialGeneratorSecret(): Promise<string | undefined> {
+  const { env } = await getCloudflareContext({ async: true });
+  const aiEnv = env as EditorialAiEnv;
+
+  return aiEnv.EDITORIAL_GENERATOR_SHARED_SECRET?.trim() || undefined;
 }
 
 type StructuredJsonRequest = {

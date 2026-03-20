@@ -1,7 +1,12 @@
 import "server-only";
 import { z } from "zod";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
-import { requestEditorialStructuredJson, getEditorialAiConfig } from "@/lib/server/editorial/ai";
+import {
+  requestEditorialStructuredJson,
+  getEditorialAiConfig,
+  type EditorialAiConfig,
+  getEditorialGeneratorSecret,
+} from "@/lib/server/editorial/ai";
 import { buildBonchallyeokSystemPrompt } from "@/lib/server/editorial/bonchallyeok";
 import { categories } from "@/content/categories";
 import { generatedArticleSources } from "@/content/generated/articles.generated";
@@ -132,6 +137,13 @@ type StyleExample = {
   interpretiveFrame: string;
   categoryId: string;
   tagIds: string[];
+};
+
+type ExternalDraftGeneratorResponse = {
+  ok: true;
+  generationStatus: "ai" | "fallback";
+  signals: AiSignalOutput;
+  draft: AiDraftOutput;
 };
 
 const publishedStyleExamples: StyleExample[] = generatedArticleSources.map((source) => ({
@@ -447,7 +459,7 @@ async function generateAiSignals(input: {
   links: ProposalLinkRecord[];
   assets: ProposalAssetRecord[];
 }) {
-  const config = await getEditorialAiConfig();
+  const config = await getEditorialAiConfigSafe();
   const fallback = buildRuleSignals(input.proposal, input.links);
 
   if (!config.enabled) {
@@ -492,6 +504,64 @@ async function generateAiSignals(input: {
   }
 }
 
+async function requestExternalDraftGeneration(input: {
+  proposalId: string;
+  editorEmail: string;
+  proposal: ProposalSeedInput;
+  links: ProposalLinkRecord[];
+  assets: ProposalAssetRecord[];
+  coverImageUrl?: string;
+  fallbackSignals: AiSignalOutput;
+  styleExamplesPool: StyleExample[];
+  bonchallyeokSystemPrompt: string;
+  config: EditorialAiConfig;
+}) {
+  const generatorUrl = input.config.generatorUrl?.replace(/\/$/, "");
+  const generatorSecret = await getEditorialGeneratorSecret();
+
+  if (!generatorUrl || !generatorSecret) {
+    return null;
+  }
+
+  const response = await fetch(`${generatorUrl}/generate-draft`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${generatorSecret}`,
+    },
+    body: JSON.stringify({
+      proposalId: input.proposalId,
+      editorEmail: input.editorEmail,
+      proposal: input.proposal,
+      links: input.links,
+      assets: input.assets,
+      coverImageUrl: input.coverImageUrl ?? null,
+      fallbackSignals: input.fallbackSignals,
+      styleExamplesPool: input.styleExamplesPool,
+      bonchallyeokSystemPrompt: input.bonchallyeokSystemPrompt,
+      signalModel: input.config.signalModel,
+      draftModel: input.config.draftModel,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`External DIM draft generator failed (${response.status}): ${errorBody}`);
+  }
+
+  const payload = (await response.json()) as unknown;
+  const parsed = z
+    .object({
+      ok: z.literal(true),
+      generationStatus: z.enum(["ai", "fallback"]),
+      signals: aiSignalOutputSchema,
+      draft: aiDraftOutputSchema,
+    })
+    .parse(payload) satisfies ExternalDraftGeneratorResponse;
+
+  return parsed;
+}
+
 async function generateAiDraft(input: {
   proposalId: string;
   proposal: ProposalSeedInput;
@@ -499,7 +569,7 @@ async function generateAiDraft(input: {
   assets: ProposalAssetRecord[];
   editorEmail: string;
 }) {
-  const config = await getEditorialAiConfig();
+  const config = await getEditorialAiConfigSafe();
   const coverImageUrl = firstImageAssetUrl(input.proposalId, input.assets);
   const fallbackDraft = buildSeedDraft(
     input.proposalId,
@@ -513,18 +583,51 @@ async function generateAiDraft(input: {
   }
 
   try {
-    const signals = await generateAiSignals({
+    const bonchallyeokSystemPrompt = buildBonchallyeokSystemPrompt();
+    const fallbackSignals = await generateAiSignals({
       proposal: input.proposal,
       links: input.links,
       assets: input.assets,
     });
-    const styleExamples = chooseStyleExamples(signals.categoryId, signals.titleDirection);
+    const styleExamples = chooseStyleExamples(
+      fallbackSignals.categoryId,
+      fallbackSignals.titleDirection,
+    );
+
+    const external = await requestExternalDraftGeneration({
+      proposalId: input.proposalId,
+      editorEmail: input.editorEmail,
+      proposal: input.proposal,
+      links: input.links,
+      assets: input.assets,
+      coverImageUrl,
+      fallbackSignals,
+      styleExamplesPool: publishedStyleExamples,
+      bonchallyeokSystemPrompt,
+      config,
+    });
+
+    if (external) {
+      const parsed = aiDraftOutputSchema.parse(external.draft);
+
+      return {
+        ...fallbackDraft,
+        title: parsed.title,
+        displayTitleLines: parsed.displayTitleLines,
+        excerpt: parsed.excerpt,
+        interpretiveFrame: parsed.interpretiveFrame,
+        categoryId: parsed.categoryId,
+        coverImageUrl: parsed.coverImageUrl || coverImageUrl,
+        bodyMarkdown: parsed.bodyMarkdown,
+      } satisfies EditorialDraftRecord;
+    }
+
     const response = await requestEditorialStructuredJson<AiDraftOutput>({
       model: config.draftModel,
       schemaName: "dim_editorial_draft",
       schema: aiDraftSchema,
       systemPrompt: [
-        buildBonchallyeokSystemPrompt(),
+        bonchallyeokSystemPrompt,
         "당신의 출력은 DIM 편집자가 거의 바로 손볼 수 있는 고품질 초안이어야 한다.",
         "한 줄 소개는 첫 답변, 핵심 판단은 편집 결론, 본문은 구조 변화의 이유를 설명해야 한다.",
         "카테고리는 주어진 enum 중 하나만 사용한다.",
@@ -533,7 +636,7 @@ async function generateAiDraft(input: {
         proposal: input.proposal,
         links: input.links,
         assets: input.assets,
-        signals,
+        signals: fallbackSignals,
         styleExamples,
       }),
       maxOutputTokens: 4200,
@@ -554,6 +657,23 @@ async function generateAiDraft(input: {
   } catch (error) {
     console.error("DIM editorial draft generation failed, falling back to seeded draft", error);
     return fallbackDraft;
+  }
+}
+
+async function getEditorialAiConfigSafe(): Promise<EditorialAiConfig> {
+  try {
+    return await getEditorialAiConfig();
+  } catch (error) {
+    console.error("DIM editorial AI config unavailable, falling back to seeded draft", error);
+
+    return {
+      enabled: false,
+      apiKeyPresent: false,
+      signalModel: "gpt-5.4-mini",
+      draftModel: "gpt-5.4",
+      generatorUrl: undefined,
+      generatorSecretPresent: false,
+    };
   }
 }
 
@@ -706,6 +826,9 @@ async function getExistingEditorialDraft(
 export async function ensureEditorialDraftForProposal(
   proposalId: string,
   editorEmail: string,
+  options?: {
+    skipStatusCheck?: boolean;
+  },
 ): Promise<EditorialDraftAccessResult> {
   const env = await getEditorialEnv({
     requireBucket: false,
@@ -750,7 +873,7 @@ export async function ensureEditorialDraftForProposal(
     return { kind: "not_found" };
   }
 
-  if (!editorialDraftReadyStatuses.has(proposal.status)) {
+  if (!options?.skipStatusCheck && !editorialDraftReadyStatuses.has(proposal.status)) {
     return {
       kind: "not_ready",
       status: proposal.status,

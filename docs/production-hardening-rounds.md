@@ -141,6 +141,24 @@ Current note:
 - repeatable real production deploy should use the split-token workflow:
   - `CLOUDFLARE_WORKERS_TOKEN` for service deploy
   - `CLOUDFLARE_SECURITY_TOKEN` for route reconcile
+- OpenAI-backed 본찰력 초안 생성은 Cloudflare Worker 직접 호출이 아니라 외부 `DIM Draft Generator` 서비스 경유를 기준으로 운영한다
+
+## Round 7-1: External Draft Generator
+
+- Deploy `apps/editorial-generator` to an OpenAI-supported Node hosting platform
+- Set external service env:
+  - `OPENAI_API_KEY`
+  - `OPENAI_PROJECT_ID`
+  - `DIM_GENERATOR_SHARED_SECRET`
+  - `OPENAI_SIGNAL_MODEL`
+  - `OPENAI_DRAFT_MODEL`
+- Set DIM Cloudflare runtime:
+  - `EDITORIAL_DRAFT_GENERATOR_URL`
+  - `EDITORIAL_GENERATOR_SHARED_SECRET`
+- Verify:
+  - `POST /generate-draft` returns `generationStatus: "ai"`
+  - `/api/admin/proposals/[id]/triage` seeds draft through the external service
+  - generated draft is not falling back to the rule-based seed
 
 ## Round 8: Monitoring And Failure Visibility
 
