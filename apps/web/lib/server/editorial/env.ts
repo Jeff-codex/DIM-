@@ -17,15 +17,15 @@ export async function getEditorialEnv(options: EditorialEnvOptions = {}) {
   } = options;
 
   if (requireDb && !typedEnv.EDITORIAL_DB) {
-    throw new Error("DIM editorial preview D1 binding is not configured in this runtime");
+    throw new Error("DIM editorial D1 binding is not configured in this runtime");
   }
 
   if (requireBucket && !typedEnv.INTAKE_BUCKET) {
-    throw new Error("DIM editorial preview R2 binding is not configured in this runtime");
+    throw new Error("DIM editorial intake bucket is not configured in this runtime");
   }
 
   if (requireQueue && !typedEnv.EDITORIAL_QUEUE) {
-    throw new Error("DIM editorial preview bindings are not configured in this runtime");
+    throw new Error("DIM editorial queue is not configured in this runtime");
   }
 
   return typedEnv;

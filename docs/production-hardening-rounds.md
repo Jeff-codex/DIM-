@@ -26,6 +26,19 @@ The remaining work before real-domain deployment is to harden the production run
   - preview `/admin` still opens in editorial preview
   - prod `/admin` blocks without Access
 
+Current status:
+
+- Code gate is implemented in `apps/web/lib/server/editorial/admin.ts` and `apps/web/app/admin/layout.tsx`
+- Cloudflare Access organization is enabled
+- Access app created for `depthintelligence.kr/admin/*`
+  - app id: `7e4befa3-020c-4142-967a-73fa3d543127`
+- Allow policy created:
+  - email: `magazine@depthintelligence.kr`
+  - email domain: `depthintelligence.kr`
+- Remaining verification:
+  - confirm the final production hostname is serving `/admin/*`
+  - confirm unauthenticated production requests are blocked by Access
+
 ## Round 2: Submit Protection In Production
 
 - Set production:
@@ -37,6 +50,17 @@ The remaining work before real-domain deployment is to harden the production run
   - rate limit
   - attachment count / size / type policy
 - Keep public-facing errors short and non-technical
+
+Current status:
+
+- Production Turnstile widget created
+  - name: `DIM production submit`
+  - site key is provisioned in `apps/web/wrangler.jsonc`
+- Remaining work:
+  - store `TURNSTILE_SECRET_KEY` in production runtime secret storage
+  - redeploy production runtime
+  - confirm `/api/public-config/submit` returns the production site key
+  - confirm `/api/proposals` enforces Turnstile on production
 
 ## Round 3: Proposal Write Hardening
 

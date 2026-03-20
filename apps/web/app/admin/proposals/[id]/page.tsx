@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProposalTriageActions } from "@/components/proposal-triage-actions";
 import {
-  getAdminIdentity,
+  requireAdminIdentity,
   getProposalDetail,
 } from "@/lib/server/editorial/admin";
 import styles from "../../admin.module.css";
@@ -25,19 +25,7 @@ export default async function ProposalDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const identity = await getAdminIdentity();
-
-  if (!identity) {
-    return (
-      <section className={styles.blocked}>
-        <p className={styles.eyebrow}>DIM Editorial Admin</p>
-        <h1 className={styles.title}>접근 권한이 필요한 편집 화면입니다</h1>
-        <p className={styles.description}>
-          Cloudflare Access를 통과한 편집자 계정으로만 proposal detail을 볼 수 있습니다
-        </p>
-      </section>
-    );
-  }
+  await requireAdminIdentity();
 
   const { id } = await params;
   const proposal = await getProposalDetail(id);

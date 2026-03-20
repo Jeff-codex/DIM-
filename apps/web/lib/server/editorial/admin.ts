@@ -1,5 +1,6 @@
 import "server-only";
 import { headers } from "next/headers";
+import { unauthorized } from "next/navigation";
 import { z } from "zod";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
 import { ensureEditorialDraftForProposal } from "@/lib/server/editorial/draft";
@@ -7,6 +8,22 @@ import { ensureEditorialDraftForProposal } from "@/lib/server/editorial/draft";
 export type AdminIdentity = {
   email: string;
 };
+
+type AdminEnv = Awaited<ReturnType<typeof getEditorialEnv>> & {
+  DIM_WORKFLOW_ENV: "editorial_preview" | "editorial_production";
+  EDITORIAL_ADMIN_ALLOWED_EMAILS?: string;
+  EDITORIAL_ADMIN_ALLOWED_DOMAIN?: string;
+};
+
+function hasConfiguredAllowlist(env: {
+  EDITORIAL_ADMIN_ALLOWED_EMAILS?: string;
+  EDITORIAL_ADMIN_ALLOWED_DOMAIN?: string;
+}) {
+  const hasEmails = Boolean(env.EDITORIAL_ADMIN_ALLOWED_EMAILS?.trim());
+  const hasDomain = Boolean(env.EDITORIAL_ADMIN_ALLOWED_DOMAIN?.trim());
+
+  return hasEmails || hasDomain;
+}
 
 export const proposalStatusValues = [
   "received",
@@ -132,17 +149,22 @@ export async function getAdminIdentity(): Promise<AdminIdentity | null> {
     requireDb: false,
     requireBucket: false,
     requireQueue: false,
-  })) as Awaited<ReturnType<typeof getEditorialEnv>> & {
-    EDITORIAL_ADMIN_ALLOWED_EMAILS?: string;
-    EDITORIAL_ADMIN_ALLOWED_DOMAIN?: string;
-  };
+  })) as AdminEnv;
 
+  const workflowEnv = String(env.DIM_WORKFLOW_ENV ?? "");
   const allowedEmails = (env.EDITORIAL_ADMIN_ALLOWED_EMAILS ?? "")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
   const allowedDomain = env.EDITORIAL_ADMIN_ALLOWED_DOMAIN?.trim().toLowerCase();
   const normalizedEmail = email.toLowerCase();
+
+  if (
+    workflowEnv === "editorial_production" &&
+    !hasConfiguredAllowlist(env)
+  ) {
+    return null;
+  }
 
   if (allowedEmails.length > 0 && !allowedEmails.includes(normalizedEmail)) {
     return null;
@@ -157,6 +179,16 @@ export async function getAdminIdentity(): Promise<AdminIdentity | null> {
   }
 
   return { email };
+}
+
+export async function requireAdminIdentity(): Promise<AdminIdentity> {
+  const identity = await getAdminIdentity();
+
+  if (!identity) {
+    unauthorized();
+  }
+
+  return identity;
 }
 
 export async function listInboxProposals(limit = 24): Promise<ProposalInboxItem[]> {

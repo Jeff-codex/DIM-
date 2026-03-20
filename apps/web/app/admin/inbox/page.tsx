@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  getAdminIdentity,
+  requireAdminIdentity,
   listInboxProposals,
   type ProposalInboxItem,
 } from "@/lib/server/editorial/admin";
@@ -25,19 +25,7 @@ function buildStatusCounts(items: ProposalInboxItem[]) {
 }
 
 export default async function AdminInboxPage() {
-  const identity = await getAdminIdentity();
-
-  if (!identity) {
-    return (
-      <section className={styles.blocked}>
-        <p className={styles.eyebrow}>DIM Editorial Admin</p>
-        <h1 className={styles.title}>접근 권한이 필요한 편집 화면입니다</h1>
-        <p className={styles.description}>
-          Cloudflare Access를 통과한 편집자 계정으로만 제안 inbox를 열 수 있습니다
-        </p>
-      </section>
-    );
-  }
+  const identity = await requireAdminIdentity();
 
   const proposals = await listInboxProposals();
   const counts = buildStatusCounts(proposals);

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EditorialDraftPreview } from "@/components/editorial-draft-preview";
-import { getAdminIdentity } from "@/lib/server/editorial/admin";
+import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import { ensureEditorialDraftForProposal } from "@/lib/server/editorial/draft";
 import { categories } from "@/content/categories";
 import styles from "../../../admin.module.css";
@@ -28,19 +28,7 @@ export default async function EditorialDraftPreviewPage({
 }: {
   params: Promise<{ proposalId: string }>;
 }) {
-  const identity = await getAdminIdentity();
-
-  if (!identity) {
-    return (
-      <section className={styles.blocked}>
-        <p className={styles.eyebrow}>DIM Editorial Admin</p>
-        <h1 className={styles.title}>접근 권한이 필요한 미리보기 화면입니다</h1>
-        <p className={styles.description}>
-          Cloudflare Access를 통과한 편집자 계정으로만 draft preview를 볼 수 있습니다
-        </p>
-      </section>
-    );
-  }
+  const identity = await requireAdminIdentity();
 
   const { proposalId } = await params;
   const draft = await ensureEditorialDraftForProposal(proposalId, identity.email);

@@ -6,6 +6,9 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "DIM_WORKFLOW_ENV": "editorial_production",
+    "EDITORIAL_ADMIN_ALLOWED_EMAILS": "magazine@depthintelligence.kr",
+    "EDITORIAL_ADMIN_ALLOWED_DOMAIN": "depthintelligence.kr",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAACtgY9d0EdquDH-9",
     "SUBMIT_RATE_LIMIT_WINDOW_SECONDS": "900",
     "SUBMIT_RATE_LIMIT_MAX_ATTEMPTS": "5"
   },

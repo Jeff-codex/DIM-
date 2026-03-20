@@ -49,6 +49,8 @@ Run from `apps/web`.
      - `EDITORIAL_ADMIN_ALLOWED_EMAILS`
      - `EDITORIAL_ADMIN_ALLOWED_DOMAIN`
    - production hardening rounds in `docs/production-hardening-rounds.md` are complete
+   - current Access app for `/admin/*`:
+     - `7e4befa3-020c-4142-967a-73fa3d543127`
 6. Run:
    - `npm run lint`
    - `npm run build`
