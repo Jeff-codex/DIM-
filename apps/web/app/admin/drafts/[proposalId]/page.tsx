@@ -1,6 +1,6 @@
 import { categories } from "@/content/categories";
 import { EditorialDraftEditor } from "@/components/editorial-draft-editor";
-import { requireAdminIdentity } from "@/lib/server/editorial/admin";
+import { getProposalDetail, requireAdminIdentity } from "@/lib/server/editorial/admin";
 import { ensureEditorialDraftForProposal } from "@/lib/server/editorial/draft";
 import { AdminAccessRequired } from "../../access-required";
 import styles from "../../admin.module.css";
@@ -47,6 +47,16 @@ export default async function EditorialDraftPage({
     );
   }
 
+  const proposal = await getProposalDetail(proposalId);
+  const sourceAssets =
+    proposal?.assets.map((asset) => ({
+      id: asset.id,
+      label: asset.originalFilename ?? asset.r2Key,
+      kind: asset.kind,
+      mimeType: asset.mimeType,
+      previewUrl: `/api/admin/proposals/${proposalId}/assets/${asset.id}`,
+    })) ?? [];
+
   return (
     <EditorialDraftEditor
       proposalId={proposalId}
@@ -55,6 +65,7 @@ export default async function EditorialDraftPage({
         name: category.name,
       }))}
       initialDraft={draft.draft}
+      sourceAssets={sourceAssets}
     />
   );
 }

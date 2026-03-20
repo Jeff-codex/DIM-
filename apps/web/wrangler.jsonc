@@ -9,6 +9,8 @@
     "EDITORIAL_ADMIN_ALLOWED_EMAILS": "magazine@depthintelligence.kr",
     "EDITORIAL_ADMIN_ALLOWED_DOMAIN": "depthintelligence.kr",
     "TURNSTILE_SITE_KEY": "0x4AAAAAACtgY9d0EdquDH-9",
+    "OPENAI_SIGNAL_MODEL": "gpt-5.4-mini",
+    "OPENAI_DRAFT_MODEL": "gpt-5.4",
     "SUBMIT_RATE_LIMIT_WINDOW_SECONDS": "900",
     "SUBMIT_RATE_LIMIT_MAX_ATTEMPTS": "5"
   },
@@ -56,6 +58,8 @@
         "EDITORIAL_ADMIN_ALLOWED_EMAILS": "preview-editor@depthintelligence.kr,magazine@depthintelligence.kr",
         "EDITORIAL_ADMIN_ALLOWED_DOMAIN": "depthintelligence.kr",
         "TURNSTILE_SITE_KEY": "",
+        "OPENAI_SIGNAL_MODEL": "gpt-5.4-mini",
+        "OPENAI_DRAFT_MODEL": "gpt-5.4",
         "SUBMIT_RATE_LIMIT_WINDOW_SECONDS": "300",
         "SUBMIT_RATE_LIMIT_MAX_ATTEMPTS": "20"
       },
@@ -87,6 +91,8 @@
         "EDITORIAL_ADMIN_ALLOWED_EMAILS": "magazine@depthintelligence.kr",
         "EDITORIAL_ADMIN_ALLOWED_DOMAIN": "depthintelligence.kr",
         "TURNSTILE_SITE_KEY": "0x4AAAAAACtgzkb_9fT54WDA",
+        "OPENAI_SIGNAL_MODEL": "gpt-5.4-mini",
+        "OPENAI_DRAFT_MODEL": "gpt-5.4",
         "SUBMIT_RATE_LIMIT_WINDOW_SECONDS": "900",
         "SUBMIT_RATE_LIMIT_MAX_ATTEMPTS": "5"
       },

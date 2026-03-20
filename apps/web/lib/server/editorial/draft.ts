@@ -1,7 +1,9 @@
 import "server-only";
 import { z } from "zod";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
+import { requestEditorialStructuredJson, getEditorialAiConfig } from "@/lib/server/editorial/ai";
 import { categories } from "@/content/categories";
+import { generatedArticleSources } from "@/content/generated/articles.generated";
 
 const optionalLineArray = z
   .array(z.string().trim().min(1).max(120))
@@ -66,6 +68,152 @@ export type EditorialDraftAccessResult =
     };
 
 const editorialDraftReadyStatuses = new Set(["in_review", "approved", "scheduled", "published"]);
+
+const dimFrameLabels = [
+  "launch-structure",
+  "operating-layer",
+  "distribution-structure",
+  "pricing-architecture",
+  "infrastructure-shift",
+  "market-repositioning",
+] as const;
+
+const signalLayerValues = [
+  "product",
+  "operations",
+  "distribution",
+  "pricing",
+  "organization",
+  "infrastructure",
+] as const;
+
+const aiSignalOutputSchema = z.object({
+  frameLabel: z.enum(dimFrameLabels),
+  changedLayer: z.enum(signalLayerValues),
+  categoryId: z
+    .string()
+    .trim()
+    .refine(
+      (value) => categories.some((category) => category.id === value),
+      "invalid_category",
+    ),
+  coreShift: z.string().trim().min(1).max(260),
+  whyNowPressure: z.string().trim().min(1).max(260),
+  evidencePoints: z.array(z.string().trim().min(1).max(220)).max(5),
+  missingInfo: z.array(z.string().trim().min(1).max(220)).max(5),
+  titleDirection: z.string().trim().min(1).max(180),
+});
+
+const aiDraftOutputSchema = editorialDraftInputSchema.extend({
+  generationSummary: z.string().trim().min(1).max(220),
+});
+
+type AiSignalOutput = z.infer<typeof aiSignalOutputSchema>;
+type AiDraftOutput = z.infer<typeof aiDraftOutputSchema>;
+
+type ProposalLinkRecord = {
+  url: string;
+  label: string | null;
+  linkType: string;
+};
+
+type ProposalAssetRecord = {
+  id: string;
+  originalFilename: string | null;
+  mimeType: string;
+  kind: string;
+  sizeBytes: number | null;
+};
+
+type StyleExample = {
+  title: string;
+  excerpt: string;
+  interpretiveFrame: string;
+  categoryId: string;
+  tagIds: string[];
+};
+
+const publishedStyleExamples: StyleExample[] = generatedArticleSources.map((source) => ({
+  title: source.frontmatter.title,
+  excerpt: source.frontmatter.excerpt,
+  interpretiveFrame: source.frontmatter.interpretiveFrame,
+  categoryId: source.frontmatter.categoryId,
+  tagIds: source.frontmatter.tagIds,
+}));
+
+const aiSignalSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "frameLabel",
+    "changedLayer",
+    "categoryId",
+    "coreShift",
+    "whyNowPressure",
+    "evidencePoints",
+    "missingInfo",
+    "titleDirection",
+  ],
+  properties: {
+    frameLabel: {
+      type: "string",
+      enum: [...dimFrameLabels],
+    },
+    changedLayer: {
+      type: "string",
+      enum: [...signalLayerValues],
+    },
+    categoryId: {
+      type: "string",
+      enum: categories.map((category) => category.id),
+    },
+    coreShift: { type: "string" },
+    whyNowPressure: { type: "string" },
+    evidencePoints: {
+      type: "array",
+      maxItems: 5,
+      items: { type: "string" },
+    },
+    missingInfo: {
+      type: "array",
+      maxItems: 5,
+      items: { type: "string" },
+    },
+    titleDirection: { type: "string" },
+  },
+} satisfies Record<string, unknown>;
+
+const aiDraftSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "title",
+    "displayTitleLines",
+    "excerpt",
+    "interpretiveFrame",
+    "categoryId",
+    "coverImageUrl",
+    "bodyMarkdown",
+    "generationSummary",
+  ],
+  properties: {
+    title: { type: "string" },
+    displayTitleLines: {
+      type: "array",
+      maxItems: 4,
+      items: { type: "string" },
+    },
+    excerpt: { type: "string" },
+    interpretiveFrame: { type: "string" },
+    categoryId: {
+      type: "string",
+      enum: categories.map((category) => category.id),
+    },
+    coverImageUrl: { type: "string" },
+    bodyMarkdown: { type: "string" },
+    generationSummary: { type: "string" },
+  },
+} satisfies Record<string, unknown>;
 
 function inferCategoryId(summary?: string | null, whyNow?: string | null, stage?: string | null) {
   const corpus = [summary, whyNow, stage].filter(Boolean).join(" ").toLowerCase();

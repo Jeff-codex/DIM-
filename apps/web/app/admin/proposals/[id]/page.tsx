@@ -27,6 +27,10 @@ function hasOfficialLink(proposal: Awaited<ReturnType<typeof getProposalDetail>>
   return proposal?.links.some((link) => link.linkType === "official") ?? false;
 }
 
+function getAssetPreviewUrl(proposalId: string, assetId: string) {
+  return `/api/admin/proposals/${proposalId}/assets/${assetId}`;
+}
+
 type ProposalRecord = NonNullable<Awaited<ReturnType<typeof getProposalDetail>>>;
 
 function nextActionHint(status: string) {
@@ -309,11 +313,40 @@ export default async function ProposalDetailPage({
                 {proposal.assets.length === 0 ? (
                   <p className={styles.emptyCopy}>업로드된 파일이 없습니다</p>
                 ) : (
-                  <ul className={styles.simpleList}>
+                  <ul className={styles.assetList}>
                     {proposal.assets.map((asset) => (
-                      <li key={asset.id}>
-                        <span>{asset.originalFilename ?? asset.r2Key}</span>
-                        <span className={styles.listMeta}>{asset.kind}</span>
+                      <li key={asset.id} className={styles.assetItem}>
+                        {asset.kind === "image" ? (
+                          <a
+                            href={getAssetPreviewUrl(proposal.id, asset.id)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.assetThumbLink}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={getAssetPreviewUrl(proposal.id, asset.id)}
+                              alt={asset.originalFilename ?? asset.r2Key}
+                              className={styles.assetThumb}
+                            />
+                          </a>
+                        ) : (
+                          <div className={styles.assetThumbPlaceholder}>{asset.kind}</div>
+                        )}
+                        <div className={styles.assetBody}>
+                          <span>{asset.originalFilename ?? asset.r2Key}</span>
+                          <span className={styles.listMeta}>
+                            {asset.kind} · {asset.mimeType}
+                          </span>
+                          <a
+                            href={getAssetPreviewUrl(proposal.id, asset.id)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.inlineLink}
+                          >
+                            자산 열기
+                          </a>
+                        </div>
                       </li>
                     ))}
                   </ul>

@@ -37,6 +37,13 @@ type EditorialDraftEditorProps = {
   proposalId: string;
   categories: DraftCategoryOption[];
   initialDraft: EditorialDraftRecord;
+  sourceAssets: Array<{
+    id: string;
+    label: string;
+    kind: string;
+    mimeType: string;
+    previewUrl: string;
+  }>;
 };
 
 function serializeDraft(record: EditorialDraftRecord) {
@@ -59,6 +66,7 @@ export function EditorialDraftEditor({
   proposalId,
   categories,
   initialDraft,
+  sourceAssets,
 }: EditorialDraftEditorProps) {
   const [draft, setDraft] = useState(initialDraft);
   const [status, setStatus] = useState("수정한 내용은 저장 전까지 이 화면에서 바로 미리 볼 수 있습니다");
@@ -197,6 +205,14 @@ export function EditorialDraftEditor({
     }
   };
 
+  const handleUseAssetAsCover = (previewUrl: string, label: string) => {
+    setDraft((current) => ({
+      ...current,
+      coverImageUrl: previewUrl,
+    }));
+    setStatus(`${label} 이미지를 커버 미리보기로 반영했습니다`);
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
@@ -326,6 +342,64 @@ export function EditorialDraftEditor({
               <strong>{draft.sourceProposalUpdatedAt ?? "-"}</strong>
             </div>
           </div>
+
+          {sourceAssets.length > 0 ? (
+            <section className={styles.assetShelf}>
+              <div className={styles.groupHeader}>
+                <p className={styles.groupLabel}>첨부 자산</p>
+                <p className={styles.groupHint}>
+                  proposal에 첨부된 이미지와 자료를 바로 열어 보고, 이미지 자산은 draft 커버로
+                  즉시 가져올 수 있습니다
+                </p>
+              </div>
+              <div className={styles.assetGrid}>
+                {sourceAssets.map((asset) => {
+                  const isCurrentCover = draft.coverImageUrl === asset.previewUrl;
+                  const isImage = asset.kind === "image";
+
+                  return (
+                    <article key={asset.id} className={styles.assetCard}>
+                      {isImage ? (
+                        <a href={asset.previewUrl} target="_blank" rel="noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={asset.previewUrl}
+                            alt={asset.label}
+                            className={styles.assetThumb}
+                          />
+                        </a>
+                      ) : (
+                        <div className={styles.assetThumbPlaceholder}>{asset.kind}</div>
+                      )}
+                      <div className={styles.assetCardBody}>
+                        <strong>{asset.label}</strong>
+                        <span>{asset.mimeType}</span>
+                      </div>
+                      <div className={styles.assetCardActions}>
+                        <a
+                          href={asset.previewUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={styles.assetLink}
+                        >
+                          열기
+                        </a>
+                        {isImage ? (
+                          <button
+                            type="button"
+                            className={isCurrentCover ? styles.assetButtonActive : styles.assetButton}
+                            onClick={() => handleUseAssetAsCover(asset.previewUrl, asset.label)}
+                          >
+                            {isCurrentCover ? "현재 커버" : "커버로 쓰기"}
+                          </button>
+                        ) : null}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
 
           <div className={styles.fields}>
             <section className={styles.fieldGroup}>

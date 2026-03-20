@@ -35,3 +35,13 @@ The current public product framing is:
 - DIM is an editorial intelligence magazine, not a newsroom and not a tip line.
 - Public-facing Korean wording should stay direct, editorial, and easy to scan.
 - DIM work should continue as a recursive improvement loop with the existing agent set whenever possible.
+
+## Bonchallyeok
+
+DIM식 해석은 `본찰력`이라는 고유의 비즈니스 분석 철학에 기반한다.
+
+- DIM은 무엇이 나왔는지보다 무엇이 바뀌는지를 먼저 본다.
+- DIM은 기능 설명보다 구조 변화와 운영 맥락을 먼저 드러낸다.
+- DIM의 판단문은 요약이 아니라 왜 지금 중요한지에 대한 편집 결론이어야 한다.
+- DIM은 원문을 옮기지 않고, 비교 지점과 맥락을 더해 읽을 이유를 만든다.
+- 자동 초안 생성, 편집 검토, 최종 발행 판단은 모두 본찰력 기준을 따라야 한다.
