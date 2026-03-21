@@ -132,13 +132,21 @@ async function upsertRoute(securityToken, zoneId, pattern, script, routeId) {
 }
 
 async function reconcileRoutes(config) {
+  const routes = Array.isArray(config.routes) ? config.routes : [];
+
+  if (routes.length === 0) {
+    console.log("No production routes configured locally; skipping route reconcile.");
+    return;
+  }
+
   const securityToken = process.env.CLOUDFLARE_SECURITY_TOKEN?.trim();
 
   if (!securityToken) {
-    throw new Error("CLOUDFLARE_SECURITY_TOKEN is required for DIM route reconcile");
+    console.warn(
+      "CLOUDFLARE_SECURITY_TOKEN is not set; skipping DIM route reconcile and relying on existing production routes.",
+    );
+    return;
   }
-
-  const routes = Array.isArray(config.routes) ? config.routes : [];
   const serviceName = config.name;
 
   for (const route of routes) {
