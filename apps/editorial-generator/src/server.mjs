@@ -749,6 +749,9 @@ async function handleGenerateDraft(payload) {
   const fallbackDraft = buildFallbackDraft(input);
   let signals = input.fallbackSignals;
   let generationStatus = "fallback";
+  let signalError = null;
+  let draftError = null;
+  let fallbackStage = null;
 
   try {
     const signalResponse = await requestStructuredJson({
@@ -769,6 +772,8 @@ async function handleGenerateDraft(payload) {
     signals = normalizeSignalCandidate(signalResponse, input.fallbackSignals);
   } catch (error) {
     console.error("DIM generator signal extraction fallback", error);
+    signalError = error instanceof Error ? error.message.slice(0, 2000) : "unknown_signal_error";
+    fallbackStage = "signal";
     signals = signalSchema.parse({
       ...input.fallbackSignals,
       coreShift: limitText(input.fallbackSignals.coreShift, 260),
@@ -818,6 +823,9 @@ async function handleGenerateDraft(payload) {
     return {
       ok: true,
       generationStatus,
+      fallbackStage: null,
+      signalError,
+      draftError: null,
       signals,
       draft: {
         ...draft,
@@ -826,10 +834,15 @@ async function handleGenerateDraft(payload) {
     };
   } catch (error) {
     console.error("DIM generator draft fallback", error);
+    draftError = error instanceof Error ? error.message.slice(0, 2000) : "unknown_draft_error";
+    fallbackStage = fallbackStage ?? "draft";
 
     return {
       ok: true,
       generationStatus,
+      fallbackStage,
+      signalError,
+      draftError,
       signals,
       draft: draftSchema.parse(fallbackDraft),
     };

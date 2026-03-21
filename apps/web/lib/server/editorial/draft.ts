@@ -179,6 +179,9 @@ type DraftGenerationMeta = {
 type ExternalDraftGeneratorResponse = {
   ok: true;
   generationStatus: "ai" | "fallback";
+  fallbackStage?: "signal" | "draft" | null;
+  signalError?: string | null;
+  draftError?: string | null;
   signals: Partial<AiSignalOutput> | null;
   draft: Partial<AiDraftOutput> | null;
 };
@@ -934,6 +937,9 @@ async function requestExternalDraftGeneration(input: {
     .object({
       ok: z.literal(true),
       generationStatus: z.enum(["ai", "fallback"]),
+      fallbackStage: z.enum(["signal", "draft"]).nullable().optional(),
+      signalError: z.string().trim().max(2000).nullable().optional(),
+      draftError: z.string().trim().max(2000).nullable().optional(),
       signals: z.unknown(),
       draft: z.unknown(),
     })
@@ -942,6 +948,9 @@ async function requestExternalDraftGeneration(input: {
   return {
     ok: true,
     generationStatus: parsed.generationStatus,
+    fallbackStage: parsed.fallbackStage ?? null,
+    signalError: parsed.signalError ?? null,
+    draftError: parsed.draftError ?? null,
     signals:
       parsed.signals && typeof parsed.signals === "object"
         ? (parsed.signals as Partial<AiSignalOutput>)
@@ -1046,6 +1055,13 @@ async function generateAiDraft(input: {
           signalStrategy: external.generationStatus === "ai" ? "ai" : "rule",
           generationSummary: parsed.generationSummary,
           visibility: parsed.visibility,
+          generationError:
+            external.generationStatus === "fallback"
+              ? [external.fallbackStage, external.signalError, external.draftError]
+                  .filter(Boolean)
+                  .join(" | ")
+                  .slice(0, 1000)
+              : undefined,
           signalModel: config.signalModel,
           draftModel: config.draftModel,
         },
