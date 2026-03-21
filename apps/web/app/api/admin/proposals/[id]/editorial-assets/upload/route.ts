@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminIdentity } from "@/lib/server/editorial/admin";
 import { uploadEditorialImageForProposal } from "@/lib/server/editorial/assets";
+import { updateEditorialDraftCoverImage } from "@/lib/server/editorial/draft";
 
 export const runtime = "nodejs";
 
@@ -36,10 +37,16 @@ export async function POST(
     }
 
     const family = await uploadEditorialImageForProposal(id, file, identity.email);
+    const coverImageUrl = family?.detail?.publicUrl ?? family?.master?.publicUrl ?? null;
+    const draft =
+      coverImageUrl
+        ? await updateEditorialDraftCoverImage(id, coverImageUrl, identity.email)
+        : null;
 
     return NextResponse.json({
       ok: true,
       family,
+      draft,
     });
   } catch (error) {
     console.error("Failed to upload editorial image", error);

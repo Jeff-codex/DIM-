@@ -217,19 +217,19 @@ const aiSignalSchema = {
       type: "string",
       enum: categories.map((category) => category.id),
     },
-    coreShift: { type: "string" },
-    whyNowPressure: { type: "string" },
+    coreShift: { type: "string", minLength: 1, maxLength: 260 },
+    whyNowPressure: { type: "string", minLength: 1, maxLength: 260 },
     evidencePoints: {
       type: "array",
       maxItems: 5,
-      items: { type: "string" },
+      items: { type: "string", minLength: 1, maxLength: 220 },
     },
     missingInfo: {
       type: "array",
       maxItems: 5,
-      items: { type: "string" },
+      items: { type: "string", minLength: 1, maxLength: 220 },
     },
-    titleDirection: { type: "string" },
+    titleDirection: { type: "string", minLength: 1, maxLength: 180 },
   },
 } satisfies Record<string, unknown>;
 
@@ -248,21 +248,21 @@ const aiDraftSchema = {
     "visibility",
   ],
   properties: {
-    title: { type: "string" },
+    title: { type: "string", minLength: 1, maxLength: 200 },
     displayTitleLines: {
       type: "array",
       maxItems: 4,
-      items: { type: "string" },
+      items: { type: "string", minLength: 1, maxLength: 120 },
     },
-    excerpt: { type: "string" },
-    interpretiveFrame: { type: "string" },
+    excerpt: { type: "string", minLength: 1, maxLength: 320 },
+    interpretiveFrame: { type: "string", minLength: 1, maxLength: 320 },
     categoryId: {
       type: "string",
       enum: categories.map((category) => category.id),
     },
-    coverImageUrl: { type: "string" },
-    bodyMarkdown: { type: "string" },
-    generationSummary: { type: "string" },
+    coverImageUrl: { type: "string", maxLength: 2048 },
+    bodyMarkdown: { type: "string", minLength: 1, maxLength: 24000 },
+    generationSummary: { type: "string", minLength: 1, maxLength: 220 },
     visibility: {
       type: "object",
       additionalProperties: false,
@@ -282,32 +282,32 @@ const aiDraftSchema = {
         questionMap: {
           type: "array",
           maxItems: 6,
-          items: { type: "string" },
+          items: { type: "string", minLength: 1, maxLength: 160 },
         },
-        answerBlock: { type: "string" },
+        answerBlock: { type: "string", minLength: 1, maxLength: 320 },
         evidenceBlocks: {
           type: "array",
           maxItems: 6,
-          items: { type: "string" },
+          items: { type: "string", minLength: 1, maxLength: 260 },
         },
         entityMap: {
           type: "array",
           maxItems: 8,
-          items: { type: "string" },
+          items: { type: "string", minLength: 1, maxLength: 220 },
         },
         citationSuggestions: {
           type: "array",
           maxItems: 6,
-          items: { type: "string" },
+          items: { type: "string", minLength: 1, maxLength: 220 },
         },
         schemaParityChecks: {
           type: "array",
           maxItems: 6,
-          items: { type: "string" },
+          items: { type: "string", minLength: 1, maxLength: 220 },
         },
-        caveatBlock: { type: "string" },
-        conversionNextStep: { type: "string" },
-        freshnessNote: { type: "string" },
+        caveatBlock: { type: "string", minLength: 1, maxLength: 260 },
+        conversionNextStep: { type: "string", minLength: 1, maxLength: 220 },
+        freshnessNote: { type: "string", minLength: 1, maxLength: 220 },
         visibilityChecklist: {
           type: "object",
           additionalProperties: false,
@@ -349,6 +349,197 @@ function limitText(value: string, max: number) {
   return value.length <= max ? value : `${value.slice(0, max - 1).trimEnd()}…`;
 }
 
+function normalizeBoundedText(
+  value: string | null | undefined,
+  fallback: string,
+  max: number,
+) {
+  const cleaned = cleanText(value) || fallback;
+  return limitText(cleaned, max);
+}
+
+function normalizeBoundedList(
+  values: Array<string | null | undefined>,
+  fallback: string,
+  itemMax: number,
+  listMax: number,
+) {
+  const normalized = values
+    .map((value) => cleanText(value))
+    .filter(Boolean)
+    .map((value) => limitText(value, itemMax))
+    .slice(0, listMax);
+
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  return [limitText(fallback, itemMax)];
+}
+
+function buildValidatedFallbackSignals(
+  proposal: ProposalSeedInput,
+  links: ProposalLinkRecord[],
+): AiSignalOutput {
+  const fallback = buildRuleSignals(proposal, links);
+
+  return aiSignalOutputSchema.parse({
+    ...fallback,
+    coreShift: normalizeBoundedText(
+      proposal.summary,
+      `${proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
+      260,
+    ),
+    whyNowPressure: normalizeBoundedText(
+      proposal.whyNow,
+      "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
+      260,
+    ),
+    evidencePoints: normalizeBoundedList(
+      [proposal.productDescription],
+      "공개 설명과 공식 링크를 먼저 확인합니다.",
+      220,
+      5,
+    ),
+    missingInfo: [],
+    titleDirection: normalizeBoundedText(proposal.projectName, proposal.projectName, 180),
+  });
+}
+
+function normalizeSignalCandidate(
+  candidate: Partial<AiSignalOutput> | null | undefined,
+  fallback: AiSignalOutput,
+): AiSignalOutput {
+  return aiSignalOutputSchema.parse({
+    frameLabel: candidate?.frameLabel ?? fallback.frameLabel,
+    changedLayer: candidate?.changedLayer ?? fallback.changedLayer,
+    categoryId: candidate?.categoryId ?? fallback.categoryId,
+    coreShift: normalizeBoundedText(candidate?.coreShift, fallback.coreShift, 260),
+    whyNowPressure: normalizeBoundedText(
+      candidate?.whyNowPressure,
+      fallback.whyNowPressure,
+      260,
+    ),
+    evidencePoints: normalizeBoundedList(
+      candidate?.evidencePoints ?? [],
+      fallback.evidencePoints[0] ?? "근거 포인트를 더 보강해야 합니다.",
+      220,
+      5,
+    ),
+    missingInfo: normalizeBoundedList(
+      candidate?.missingInfo ?? [],
+      fallback.missingInfo[0] ?? "추가 정보가 필요합니다.",
+      220,
+      5,
+    ),
+    titleDirection: normalizeBoundedText(
+      candidate?.titleDirection,
+      fallback.titleDirection,
+      180,
+    ),
+  });
+}
+
+function normalizeVisibilityCandidate(
+  candidate: Partial<DraftVisibilityMetadata> | null | undefined,
+  fallback: DraftVisibilityMetadata,
+): DraftVisibilityMetadata {
+  return aiVisibilityMetadataSchema.parse({
+    questionMap: normalizeBoundedList(
+      candidate?.questionMap ?? [],
+      fallback.questionMap[0] ?? "이 제안을 무엇으로 읽어야 하는가",
+      160,
+      6,
+    ),
+    answerBlock: normalizeBoundedText(candidate?.answerBlock, fallback.answerBlock, 320),
+    evidenceBlocks: normalizeBoundedList(
+      candidate?.evidenceBlocks ?? [],
+      fallback.evidenceBlocks[0] ?? "근거 포인트를 더 보강해야 합니다.",
+      260,
+      6,
+    ),
+    entityMap: normalizeBoundedList(
+      candidate?.entityMap ?? [],
+      fallback.entityMap[0] ?? "주체: 추가 확인 필요",
+      220,
+      8,
+    ),
+    citationSuggestions: normalizeBoundedList(
+      candidate?.citationSuggestions ?? [],
+      fallback.citationSuggestions[0] ?? "공식 링크를 최소 1개 이상 남깁니다.",
+      220,
+      6,
+    ),
+    schemaParityChecks: normalizeBoundedList(
+      candidate?.schemaParityChecks ?? [],
+      fallback.schemaParityChecks[0] ?? "visible text와 structured data 정합성을 확인합니다.",
+      220,
+      6,
+    ),
+    caveatBlock: normalizeBoundedText(candidate?.caveatBlock, fallback.caveatBlock, 260),
+    conversionNextStep: normalizeBoundedText(
+      candidate?.conversionNextStep,
+      fallback.conversionNextStep,
+      220,
+    ),
+    freshnessNote: normalizeBoundedText(
+      candidate?.freshnessNote,
+      fallback.freshnessNote,
+      220,
+    ),
+    visibilityChecklist: {
+      eligibility:
+        candidate?.visibilityChecklist?.eligibility ?? fallback.visibilityChecklist.eligibility,
+      relevance:
+        candidate?.visibilityChecklist?.relevance ?? fallback.visibilityChecklist.relevance,
+      extractability:
+        candidate?.visibilityChecklist?.extractability ??
+        fallback.visibilityChecklist.extractability,
+      groundability:
+        candidate?.visibilityChecklist?.groundability ??
+        fallback.visibilityChecklist.groundability,
+      convertibility:
+        candidate?.visibilityChecklist?.convertibility ??
+        fallback.visibilityChecklist.convertibility,
+    },
+  });
+}
+
+function normalizeDraftCandidate(
+  candidate: Partial<AiDraftOutput> | null | undefined,
+  fallback: EditorialDraftRecord,
+  fallbackVisibility: DraftVisibilityMetadata,
+): AiDraftOutput {
+  return aiDraftOutputSchema.parse({
+    title: normalizeBoundedText(candidate?.title, fallback.title, 200),
+    displayTitleLines: normalizeBoundedList(
+      candidate?.displayTitleLines ?? [],
+      fallback.displayTitleLines[0] ?? fallback.title,
+      120,
+      4,
+    ),
+    excerpt: normalizeBoundedText(candidate?.excerpt, fallback.excerpt, 320),
+    interpretiveFrame: normalizeBoundedText(
+      candidate?.interpretiveFrame,
+      fallback.interpretiveFrame,
+      320,
+    ),
+    categoryId: candidate?.categoryId ?? fallback.categoryId,
+    coverImageUrl: normalizeBoundedText(
+      candidate?.coverImageUrl ?? null,
+      fallback.coverImageUrl ?? "",
+      2048,
+    ),
+    bodyMarkdown: normalizeBoundedText(candidate?.bodyMarkdown, fallback.bodyMarkdown, 24000),
+    generationSummary: normalizeBoundedText(
+      candidate?.generationSummary,
+      "본찰력 초안을 만들었습니다.",
+      220,
+    ),
+    visibility: normalizeVisibilityCandidate(candidate?.visibility, fallbackVisibility),
+  });
+}
+
 function firstImageAssetUrl(
   proposalId: string,
   assets: ProposalAssetRecord[],
@@ -374,11 +565,19 @@ function buildSeedDraft(
   return {
     id: crypto.randomUUID(),
     proposalId,
-    title: proposal.projectName,
+    title: limitText(proposal.projectName, 200),
     displayTitleLines: [],
-    excerpt: proposal.summary ?? `${proposal.projectName}를 어떤 맥락으로 봐야 하는지 정리합니다.`,
+    excerpt: normalizeBoundedText(
+      proposal.summary,
+      `${proposal.projectName}를 어떤 맥락으로 봐야 하는지 정리합니다.`,
+      320,
+    ),
     interpretiveFrame:
-      proposal.whyNow ?? `${proposal.projectName}가 지금 어떤 구조 변화를 만드는지 먼저 판단합니다.`,
+      normalizeBoundedText(
+        proposal.whyNow,
+        `${proposal.projectName}가 지금 어떤 구조 변화를 만드는지 먼저 판단합니다.`,
+        320,
+      ),
     categoryId: inferCategoryId(proposal.summary, proposal.whyNow, proposal.stage),
     coverImageUrl,
     bodyMarkdown: seedDraftBody(proposal),
@@ -399,43 +598,64 @@ function buildFallbackVisibility(input: {
 }): DraftVisibilityMetadata {
   return {
     questionMap: [
-      `${input.proposal.projectName}는 무엇을 바꾸려 하는가`,
-      `${input.proposal.projectName}를 무엇이 아니라 무엇으로 읽어야 하는가`,
+      limitText(`${input.proposal.projectName}는 무엇을 바꾸려 하는가`, 160),
+      limitText(`${input.proposal.projectName}를 무엇이 아니라 무엇으로 읽어야 하는가`, 160),
       cleanText(input.proposal.whyNow)
-        ? `왜 지금 ${input.proposal.projectName}를 봐야 하는가`
+        ? limitText(`왜 지금 ${input.proposal.projectName}를 봐야 하는가`, 160)
         : "왜 지금 중요한지에 대한 근거가 충분한가",
     ],
-    answerBlock:
-      cleanText(input.proposal.summary) ||
+    answerBlock: normalizeBoundedText(
+      input.proposal.summary,
       `${input.proposal.projectName}가 만드는 구조 변화를 한 문장으로 먼저 설명해야 합니다.`,
+      320,
+    ),
     evidenceBlocks:
       input.signals.evidencePoints.length > 0
         ? input.signals.evidencePoints
-        : [cleanText(input.proposal.productDescription) || "공식 링크와 원문 설명에서 사실 포인트를 더 뽑아야 합니다."],
+        : normalizeBoundedList(
+            [input.proposal.productDescription],
+            "공식 링크와 원문 설명에서 사실 포인트를 더 뽑아야 합니다.",
+            260,
+            6,
+          ),
     entityMap: [
-      `주체: ${input.proposal.projectName}`,
-      cleanText(input.proposal.stage) ? `단계: ${cleanText(input.proposal.stage)}` : "단계: 추가 확인 필요",
-      cleanText(input.proposal.market) ? `시장: ${cleanText(input.proposal.market)}` : "시장: 추가 확인 필요",
+      limitText(`주체: ${input.proposal.projectName}`, 220),
+      cleanText(input.proposal.stage)
+        ? limitText(`단계: ${cleanText(input.proposal.stage)}`, 220)
+        : "단계: 추가 확인 필요",
+      cleanText(input.proposal.market)
+        ? limitText(`시장: ${cleanText(input.proposal.market)}`, 220)
+        : "시장: 추가 확인 필요",
     ],
     citationSuggestions:
       input.links.length > 0
-        ? input.links.slice(0, 4).map((link) => `${link.linkType}: ${link.label ?? link.url}`)
+        ? input.links
+            .slice(0, 4)
+            .map((link) => limitText(`${link.linkType}: ${link.label ?? link.url}`, 220))
         : ["공식 링크나 정책/가격 페이지를 최소 1개 이상 확보해야 합니다."],
     schemaParityChecks: [
       "title, excerpt, interpretiveFrame이 visible text와 같은 결론을 말하는지 확인합니다.",
       "structured data가 visible text보다 과장된 주장을 하지 않게 맞춥니다.",
     ],
-    caveatBlock:
-      input.signals.missingInfo[0] ??
+    caveatBlock: normalizeBoundedText(
+      input.signals.missingInfo[0],
       "근거와 최신성이 더 보강되기 전까지는 판단문을 과장하지 않는 편이 안전합니다.",
-    conversionNextStep:
+      260,
+    ),
+    conversionNextStep: normalizeBoundedText(
       cleanText(input.proposal.market)
         ? `${cleanText(input.proposal.market)} 관점에서 왜 먼저 보이는지 후속 문장을 덧붙입니다.`
-        : "비교 지점과 다음 읽을 거리를 붙여 전환 동선을 더 선명하게 만듭니다.",
-    freshnessNote:
+        : null,
+      "비교 지점과 다음 읽을 거리를 붙여 전환 동선을 더 선명하게 만듭니다.",
+      220,
+    ),
+    freshnessNote: normalizeBoundedText(
       cleanText(input.proposal.updatedAt)
         ? `기준 자료 시점은 ${cleanText(input.proposal.updatedAt)} 입니다.`
-        : "기준 자료의 날짜를 명시해 freshness를 잠가야 합니다.",
+        : null,
+      "기준 자료의 날짜를 명시해 freshness를 잠가야 합니다.",
+      220,
+    ),
     visibilityChecklist: {
       eligibility: input.links.length > 0 ? "strong" : "needs_work",
       relevance: cleanText(input.proposal.summary) ? "strong" : "needs_work",
@@ -636,30 +856,10 @@ async function generateAiSignals(input: {
   assets: ProposalAssetRecord[];
 }) {
   const config = await getEditorialAiConfigSafe();
-  const fallback = buildRuleSignals(input.proposal, input.links);
+  const fallbackSignals = buildValidatedFallbackSignals(input.proposal, input.links);
 
   if (!config.enabled || (config.externalGeneratorConfigured && !config.apiKeyPresent)) {
-    return aiSignalOutputSchema.parse({
-      ...fallback,
-      coreShift: limitText(
-        input.proposal.summary ??
-          `${input.proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
-        260,
-      ),
-      whyNowPressure:
-        limitText(
-          input.proposal.whyNow ?? "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
-          260,
-        ),
-      evidencePoints: [
-        limitText(
-          input.proposal.productDescription ?? "공개 설명과 공식 링크를 먼저 확인합니다.",
-          220,
-        ),
-      ],
-      missingInfo: [],
-      titleDirection: limitText(input.proposal.projectName, 180),
-    });
+    return fallbackSignals;
   }
 
   try {
@@ -676,31 +876,11 @@ async function generateAiSignals(input: {
       maxOutputTokens: 1800,
     });
 
-    return aiSignalOutputSchema.parse(response);
+    return normalizeSignalCandidate(response as Partial<AiSignalOutput>, fallbackSignals);
   } catch (error) {
     console.error("DIM signal extraction failed, falling back to rule signals", error);
 
-    return aiSignalOutputSchema.parse({
-      ...fallback,
-      coreShift: limitText(
-        input.proposal.summary ??
-          `${input.proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
-        260,
-      ),
-      whyNowPressure:
-        limitText(
-          input.proposal.whyNow ?? "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
-          260,
-        ),
-      evidencePoints: [
-        limitText(
-          input.proposal.productDescription ?? "공개 설명과 공식 링크를 먼저 확인합니다.",
-          220,
-        ),
-      ],
-      missingInfo: [],
-      titleDirection: limitText(input.proposal.projectName, 180),
-    });
+    return fallbackSignals;
   }
 }
 
@@ -777,23 +957,11 @@ async function generateAiDraft(input: {
     input.editorEmail,
     coverImageUrl,
   );
-  const fallbackSignals = buildRuleSignals(input.proposal, input.links);
+  const fallbackSignals = buildValidatedFallbackSignals(input.proposal, input.links);
   const fallbackVisibility = buildFallbackVisibility({
     proposal: input.proposal,
     links: input.links,
-    signals: aiSignalOutputSchema.parse({
-      ...fallbackSignals,
-      coreShift:
-        input.proposal.summary ??
-        `${input.proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
-      whyNowPressure:
-        input.proposal.whyNow ?? "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
-      evidencePoints: [
-        input.proposal.productDescription ?? "공개 설명과 공식 링크를 먼저 확인합니다.",
-      ],
-      missingInfo: [],
-      titleDirection: input.proposal.projectName,
-    }),
+    signals: fallbackSignals,
   });
 
   if (!config.enabled) {
@@ -835,7 +1003,11 @@ async function generateAiDraft(input: {
     });
 
     if (external) {
-      const parsed = aiDraftOutputSchema.parse(external.draft);
+      const parsed = normalizeDraftCandidate(
+        external.draft as Partial<AiDraftOutput>,
+        fallbackDraft,
+        fallbackVisibility,
+      );
 
       return {
         draft: {
@@ -881,7 +1053,11 @@ async function generateAiDraft(input: {
       maxOutputTokens: 4200,
     });
 
-    const parsed = aiDraftOutputSchema.parse(response);
+    const parsed = normalizeDraftCandidate(
+      response as Partial<AiDraftOutput>,
+      fallbackDraft,
+      fallbackVisibility,
+    );
 
     return {
       draft: {
@@ -1467,4 +1643,32 @@ export async function updateEditorialDraft(
       ? (JSON.parse(updated.sourceSnapshotJson) as EditorialDraftRecord["sourceSnapshot"])
       : null,
   } satisfies EditorialDraftRecord;
+}
+
+export async function updateEditorialDraftCoverImage(
+  proposalId: string,
+  coverImageUrl: string,
+  editorEmail: string,
+) {
+  const existing = await ensureEditorialDraftForProposal(proposalId, editorEmail, {
+    skipStatusCheck: true,
+  });
+
+  if (existing.kind !== "ready") {
+    return null;
+  }
+
+  return updateEditorialDraft(
+    proposalId,
+    {
+      title: existing.draft.title,
+      displayTitleLines: existing.draft.displayTitleLines,
+      excerpt: existing.draft.excerpt,
+      interpretiveFrame: existing.draft.interpretiveFrame,
+      categoryId: existing.draft.categoryId,
+      coverImageUrl,
+      bodyMarkdown: existing.draft.bodyMarkdown,
+    },
+    editorEmail,
+  );
 }

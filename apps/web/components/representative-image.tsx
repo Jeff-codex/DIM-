@@ -11,9 +11,9 @@ type RepresentativeImageProps = {
 };
 
 const imageDimensions = {
-  lead: { width: 1200, height: 800, sizes: "(max-width: 960px) 100vw, 42vw" },
+  lead: { width: 1200, height: 900, sizes: "(max-width: 960px) 100vw, 42vw" },
   card: { width: 800, height: 600, sizes: "(max-width: 760px) 100vw, 220px" },
-  detail: { width: 1440, height: 960, sizes: "(max-width: 760px) 100vw, 720px" },
+  detail: { width: 1600, height: 1000, sizes: "(max-width: 760px) 100vw, 720px" },
 } as const;
 
 export function RepresentativeImage({

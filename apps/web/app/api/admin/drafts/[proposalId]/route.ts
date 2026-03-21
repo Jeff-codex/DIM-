@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { humanizeDraftGenerationErrorMessage } from "@/lib/editorial-draft-generation";
 import { getAdminIdentity } from "@/lib/server/editorial/admin";
 import {
   editorialDraftInputSchema,
@@ -92,11 +93,14 @@ export async function POST(
     });
   } catch (error) {
     console.error("Failed to save editorial draft", error);
+    const rawDetail = error instanceof Error ? error.message : null;
 
     return NextResponse.json(
       {
         ok: false,
         error: "editorial_draft_save_failed",
+        detail: humanizeDraftGenerationErrorMessage(rawDetail) ?? "편집 초안을 저장하지 못했습니다.",
+        rawDetail,
       },
       { status: 400 },
     );
@@ -151,11 +155,16 @@ export async function PUT(
     });
   } catch (error) {
     console.error("Failed to regenerate editorial draft", error);
+    const rawDetail = error instanceof Error ? error.message : null;
 
     return NextResponse.json(
       {
         ok: false,
         error: "editorial_draft_regenerate_failed",
+        detail:
+          humanizeDraftGenerationErrorMessage(rawDetail) ??
+          "초안을 다시 만들지 못했습니다.",
+        rawDetail,
       },
       { status: 400 },
     );

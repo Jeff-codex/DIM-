@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminIdentity } from "@/lib/server/editorial/admin";
 import { promoteProposalAssetForProposal } from "@/lib/server/editorial/assets";
+import { updateEditorialDraftCoverImage } from "@/lib/server/editorial/draft";
 
 export const runtime = "nodejs";
 
@@ -33,10 +34,16 @@ export async function POST(
       body.proposalAssetId,
       identity.email,
     );
+    const coverImageUrl = family?.detail?.publicUrl ?? family?.master?.publicUrl ?? null;
+    const draft =
+      coverImageUrl
+        ? await updateEditorialDraftCoverImage(id, coverImageUrl, identity.email)
+        : null;
 
     return NextResponse.json({
       ok: true,
       family,
+      draft,
     });
   } catch (error) {
     console.error("Failed to promote proposal asset", error);

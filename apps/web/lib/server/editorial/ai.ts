@@ -109,6 +109,104 @@ function readResponseOutputText(payload: unknown): string {
   throw new Error("OpenAI response did not include structured text output");
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientOpenAiStatus(status: number) {
+  return [408, 409, 429, 500, 502, 503, 504].includes(status);
+}
+
+function readRetryAfterMs(headers: Headers) {
+  const retryAfter = headers.get("retry-after");
+
+  if (!retryAfter) {
+    return null;
+  }
+
+  const seconds = Number(retryAfter);
+
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000;
+  }
+
+  const retryAt = Date.parse(retryAfter);
+
+  if (!Number.isNaN(retryAt)) {
+    return Math.max(retryAt - Date.now(), 0);
+  }
+
+  return null;
+}
+
+function readResponseRefusal(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const record = payload as {
+    output?: Array<{
+      content?: Array<{
+        type?: string;
+        refusal?: string;
+      }>;
+    }>;
+  };
+
+  for (const item of record.output ?? []) {
+    for (const content of item.content ?? []) {
+      if (content?.type === "refusal" && typeof content.refusal === "string" && content.refusal.trim()) {
+        return content.refusal.trim();
+      }
+    }
+  }
+
+  return null;
+}
+
+function assertResponseCompleteness(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return;
+  }
+
+  const record = payload as {
+    status?: string;
+    incomplete_details?: {
+      reason?: string;
+    };
+  };
+
+  if (record.status === "incomplete") {
+    throw new Error(
+      `OpenAI response incomplete: ${record.incomplete_details?.reason ?? "unknown"}`,
+    );
+  }
+
+  const refusal = readResponseRefusal(payload);
+
+  if (refusal) {
+    throw new Error(`OpenAI response refused: ${refusal}`);
+  }
+}
+
+function shouldRetryStructuredRequest(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.message.startsWith("OpenAI network error") ||
+    error.message.includes("OpenAI request failed (408)") ||
+    error.message.includes("OpenAI request failed (409)") ||
+    error.message.includes("OpenAI request failed (429)") ||
+    error.message.includes("OpenAI request failed (500)") ||
+    error.message.includes("OpenAI request failed (502)") ||
+    error.message.includes("OpenAI request failed (503)") ||
+    error.message.includes("OpenAI request failed (504)") ||
+    error.message === "OpenAI response incomplete: max_output_tokens"
+  );
+}
+
 export async function requestEditorialStructuredJson<T>({
   model,
   schemaName,
@@ -118,54 +216,78 @@ export async function requestEditorialStructuredJson<T>({
   maxOutputTokens = 3200,
 }: StructuredJsonRequest): Promise<T> {
   const config = await requireEditorialAiConfig();
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-      ...(config.projectId ? { "OpenAI-Project": config.projectId } : {}),
-    },
-    body: JSON.stringify({
-      model,
-      max_output_tokens: maxOutputTokens,
-      input: [
-        {
-          role: "system",
-          content: [
-            {
-              type: "input_text",
-              text: systemPrompt,
-            },
-          ],
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: userPrompt,
-            },
-          ],
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: schemaName,
-          schema,
-          strict: true,
-        },
-      },
-    }),
-  });
+  let lastError: unknown = null;
+  let currentMaxOutputTokens = maxOutputTokens;
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`OpenAI request failed (${response.status}): ${errorBody}`);
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+          ...(config.projectId ? { "OpenAI-Project": config.projectId } : {}),
+        },
+        body: JSON.stringify({
+          model,
+          max_output_tokens: currentMaxOutputTokens,
+          instructions: systemPrompt,
+          input: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "input_text",
+                  text: userPrompt,
+                },
+              ],
+            },
+          ],
+          text: {
+            format: {
+              type: "json_schema",
+              name: schemaName,
+              schema,
+              strict: true,
+            },
+          },
+        }),
+      });
+
+      const requestId = response.headers.get("x-request-id");
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+
+        if (attempt < 3 && isTransientOpenAiStatus(response.status)) {
+          const retryAfterMs = readRetryAfterMs(response.headers) ?? 500 * attempt;
+          await sleep(retryAfterMs);
+          continue;
+        }
+
+        throw new Error(
+          `OpenAI request failed (${response.status})${requestId ? ` [request ${requestId}]` : ""}: ${errorBody}`,
+        );
+      }
+
+      const payload = (await response.json()) as unknown;
+      assertResponseCompleteness(payload);
+      const outputText = readResponseOutputText(payload);
+      return JSON.parse(outputText) as T;
+    } catch (error) {
+      lastError = error;
+
+      if (attempt === 3 || !shouldRetryStructuredRequest(error)) {
+        break;
+      }
+
+      if (error instanceof Error && error.message === "OpenAI response incomplete: max_output_tokens") {
+        currentMaxOutputTokens = Math.ceil(currentMaxOutputTokens * 1.35);
+      }
+
+      await sleep(500 * attempt);
+    }
   }
 
-  const payload = (await response.json()) as unknown;
-  const outputText = readResponseOutputText(payload);
-
-  return JSON.parse(outputText) as T;
+  throw lastError instanceof Error ? lastError : new Error("OpenAI structured request failed");
 }

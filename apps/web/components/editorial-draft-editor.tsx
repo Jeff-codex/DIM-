@@ -10,6 +10,7 @@ import type {
   DraftGenerationViewState,
   DraftVisibilityMetadata,
 } from "@/lib/editorial-draft-generation";
+import { humanizeDraftGenerationErrorMessage } from "@/lib/editorial-draft-generation";
 import styles from "./editorial-draft-editor.module.css";
 
 type DraftCategoryOption = {
@@ -86,6 +87,8 @@ type EditorialDraftEditorProps = {
   generationVisibility: DraftVisibilityMetadata | null;
 };
 
+type EditorialAssetFamilyRecord = EditorialDraftEditorProps["editorialAssets"][number];
+
 function serializeDraft(record: EditorialDraftRecord) {
   return JSON.stringify({
     title: record.title,
@@ -100,6 +103,10 @@ function serializeDraft(record: EditorialDraftRecord) {
 
 function isFilled(value: string | null | undefined) {
   return Boolean(value?.trim());
+}
+
+function resolveEditorialFamilyCoverUrl(family: EditorialAssetFamilyRecord) {
+  return family.detail?.publicUrl ?? family.master?.publicUrl ?? undefined;
 }
 
 export function EditorialDraftEditor({
@@ -180,6 +187,61 @@ export function EditorialDraftEditor({
     ? "저장 후 발행 준비본을 만들어 canonical/slug 후보를 확인하면 됩니다"
     : "제목, 핵심 답변, 핵심 판단, 본문 순서로 먼저 채우는 게 가장 빠릅니다";
 
+  const persistDraft = async (
+    nextDraft: EditorialDraftRecord,
+    messages: {
+      success: string;
+      failure: string;
+    },
+  ) => {
+    const previousDraft = draft;
+    setDraft(nextDraft);
+
+    try {
+      const response = await fetch(`/api/admin/drafts/${proposalId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(nextDraft),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as
+          | {
+              detail?: string;
+              rawDetail?: string | null;
+            }
+          | null;
+
+        throw new Error(
+          payload?.detail ??
+            humanizeDraftGenerationErrorMessage(payload?.rawDetail ?? null) ??
+            messages.failure,
+        );
+      }
+
+      const data = (await response.json()) as {
+        draft?: EditorialDraftRecord;
+      };
+      const persistedDraft = data.draft ?? nextDraft;
+
+      setDraft(persistedDraft);
+      setLastSavedSnapshot(serializeDraft(persistedDraft));
+      setStatus(messages.success);
+
+      return persistedDraft;
+    } catch (error) {
+      setDraft(previousDraft);
+      setStatus(
+        error instanceof Error && error.message
+          ? error.message
+          : messages.failure,
+      );
+      return null;
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
 
@@ -207,7 +269,7 @@ export function EditorialDraftEditor({
 
       setStatus("편집 초안을 저장했습니다");
     } catch {
-      setStatus("편집 초안을 저장하지 못했습니다. Access와 runtime 연결을 다시 확인해 주세요");
+      setStatus("편집 초안을 저장하지 못했습니다. 저장 형식과 연결 상태를 다시 확인해 주세요");
     } finally {
       setSaving(false);
     }
@@ -254,15 +316,19 @@ export function EditorialDraftEditor({
     }
   };
 
-  const handleUseAssetAsCover = (previewUrl: string, label: string) => {
-    setDraft((current) => ({
-      ...current,
+  const handleUseAssetAsCover = async (previewUrl: string, label: string) => {
+    const nextDraft = {
+      ...draft,
       coverImageUrl: previewUrl,
-    }));
-    setStatus(`${label} 이미지를 커버 미리보기로 반영했습니다`);
+    };
+
+    await persistDraft(nextDraft, {
+        success: `${label} 이미지를 커버로 반영하고 저장했습니다`,
+        failure: `${label} 이미지를 커버로 반영했지만 저장하지 못했습니다. 저장 형식과 연결 상태를 다시 확인해 주세요`,
+      });
   };
 
-  const mergeEditorialFamily = (family: EditorialDraftEditorProps["editorialAssets"][number]) => {
+  const mergeEditorialFamily = (family: EditorialAssetFamilyRecord) => {
     setEditorialAssetFamilies((current) => {
       const next = current.filter((item) => item.familyId !== family.familyId);
       return [family, ...next];
@@ -286,7 +352,11 @@ export function EditorialDraftEditor({
       });
 
       const data = (await response.json().catch(() => null)) as
-        | { family?: EditorialDraftEditorProps["editorialAssets"][number]; error?: string }
+        | {
+            family?: EditorialDraftEditorProps["editorialAssets"][number];
+            draft?: EditorialDraftRecord;
+            error?: string;
+          }
         | null;
 
       if (!response.ok || !data?.family) {
@@ -306,7 +376,30 @@ export function EditorialDraftEditor({
       }
 
       mergeEditorialFamily(data.family);
-      setStatus("새 이미지를 추가했습니다. master, 카드, 상세 파생본도 함께 준비했습니다");
+
+      if (data.draft) {
+        setDraft(data.draft);
+        setLastSavedSnapshot(serializeDraft(data.draft));
+        setStatus("새 이미지를 커버로 적용하고 저장했습니다. master, 카드, 상세 파생본도 함께 준비했습니다");
+        return;
+      }
+
+      const nextCoverUrl = resolveEditorialFamilyCoverUrl(data.family);
+
+      if (!nextCoverUrl) {
+        setStatus("새 이미지를 추가했습니다. master, 카드, 상세 파생본도 함께 준비했습니다");
+        return;
+      }
+
+      const nextDraft = {
+        ...draft,
+        coverImageUrl: nextCoverUrl,
+      };
+
+      await persistDraft(nextDraft, {
+        success: "새 이미지를 커버로 적용하고 저장했습니다. master, 카드, 상세 파생본도 함께 준비했습니다",
+        failure: "새 이미지를 커버로 적용했지만 저장하지 못했습니다. 저장 형식과 연결 상태를 다시 확인해 주세요",
+      });
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "이미지를 추가하지 못했습니다",
@@ -331,7 +424,11 @@ export function EditorialDraftEditor({
       });
 
       const data = (await response.json().catch(() => null)) as
-        | { family?: EditorialDraftEditorProps["editorialAssets"][number]; error?: string }
+        | {
+            family?: EditorialDraftEditorProps["editorialAssets"][number];
+            draft?: EditorialDraftRecord;
+            error?: string;
+          }
         | null;
 
       if (!response.ok || !data?.family?.master) {
@@ -347,11 +444,30 @@ export function EditorialDraftEditor({
       }
 
       mergeEditorialFamily(data.family);
-      setDraft((current) => ({
-        ...current,
-        coverImageUrl: data.family?.master?.publicUrl,
-      }));
-      setStatus(`${label} 이미지를 커버용 편집 자산으로 준비했습니다`);
+
+      if (data.draft) {
+        setDraft(data.draft);
+        setLastSavedSnapshot(serializeDraft(data.draft));
+        setStatus(`${label} 이미지를 커버용 편집 자산으로 준비하고 저장했습니다`);
+        return;
+      }
+
+      const nextCoverUrl = resolveEditorialFamilyCoverUrl(data.family);
+
+      if (!nextCoverUrl) {
+        setStatus(`${label} 이미지를 커버용 편집 자산으로 준비했습니다`);
+        return;
+      }
+
+      const nextDraft = {
+        ...draft,
+        coverImageUrl: nextCoverUrl,
+      };
+
+      await persistDraft(nextDraft, {
+        success: `${label} 이미지를 커버용 편집 자산으로 준비하고 저장했습니다`,
+        failure: `${label} 이미지를 커버용 편집 자산으로 준비했지만 저장하지 못했습니다. 저장 형식과 연결 상태를 다시 확인해 주세요`,
+      });
     } catch (error) {
       setStatus(
         error instanceof Error
@@ -549,7 +665,10 @@ export function EditorialDraftEditor({
                         return null;
                       }
 
-                      const isCurrentCover = draft.coverImageUrl === currentMaster.publicUrl;
+                      const familyCoverUrl = resolveEditorialFamilyCoverUrl(family);
+                      const isCurrentCover = Boolean(
+                        familyCoverUrl && draft.coverImageUrl === familyCoverUrl,
+                      );
                       const sourceBadge =
                         family.sourceType === "admin_upload" ? "편집 추가" : "원본 승격";
 
@@ -585,10 +704,12 @@ export function EditorialDraftEditor({
                               type="button"
                               className={isCurrentCover ? styles.assetButtonActive : styles.assetButton}
                               onClick={() =>
-                                handleUseAssetAsCover(
-                                  currentMaster.publicUrl,
-                                  family.originalFilename ?? "편집 이미지",
-                                )
+                                familyCoverUrl
+                                  ? handleUseAssetAsCover(
+                                      familyCoverUrl,
+                                      family.originalFilename ?? "편집 이미지",
+                                    )
+                                  : Promise.resolve()
                               }
                             >
                               {isCurrentCover ? "현재 커버" : "커버로 쓰기"}

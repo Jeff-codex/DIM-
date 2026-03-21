@@ -287,13 +287,13 @@
 .assetThumb,
 .assetThumbPlaceholder {
   width: 100%;
-  aspect-ratio: 1.28;
+  aspect-ratio: 4 / 3;
   border: 1px solid rgba(145, 163, 217, 0.12);
-  background: rgba(6, 9, 17, 0.92);
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .assetThumb {
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .assetThumbPlaceholder {

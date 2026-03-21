@@ -150,11 +150,19 @@ const signalOutputSchema = {
     frameLabel: { type: "string", enum: [...dimFrameLabels] },
     changedLayer: { type: "string", enum: [...signalLayerValues] },
     categoryId: { type: "string", enum: [...categoryIds] },
-    coreShift: { type: "string" },
-    whyNowPressure: { type: "string" },
-    evidencePoints: { type: "array", maxItems: 5, items: { type: "string" } },
-    missingInfo: { type: "array", maxItems: 5, items: { type: "string" } },
-    titleDirection: { type: "string" },
+    coreShift: { type: "string", minLength: 1, maxLength: 260 },
+    whyNowPressure: { type: "string", minLength: 1, maxLength: 260 },
+    evidencePoints: {
+      type: "array",
+      maxItems: 5,
+      items: { type: "string", minLength: 1, maxLength: 220 },
+    },
+    missingInfo: {
+      type: "array",
+      maxItems: 5,
+      items: { type: "string", minLength: 1, maxLength: 220 },
+    },
+    titleDirection: { type: "string", minLength: 1, maxLength: 180 },
   },
 };
 
@@ -173,14 +181,18 @@ const draftOutputSchema = {
     "visibility",
   ],
   properties: {
-    title: { type: "string" },
-    displayTitleLines: { type: "array", maxItems: 4, items: { type: "string" } },
-    excerpt: { type: "string" },
-    interpretiveFrame: { type: "string" },
+    title: { type: "string", minLength: 1, maxLength: 200 },
+    displayTitleLines: {
+      type: "array",
+      maxItems: 4,
+      items: { type: "string", minLength: 1, maxLength: 120 },
+    },
+    excerpt: { type: "string", minLength: 1, maxLength: 320 },
+    interpretiveFrame: { type: "string", minLength: 1, maxLength: 320 },
     categoryId: { type: "string", enum: [...categoryIds] },
-    coverImageUrl: { type: "string" },
-    bodyMarkdown: { type: "string" },
-    generationSummary: { type: "string" },
+    coverImageUrl: { type: "string", maxLength: 2048 },
+    bodyMarkdown: { type: "string", minLength: 1, maxLength: 24000 },
+    generationSummary: { type: "string", minLength: 1, maxLength: 220 },
     visibility: {
       type: "object",
       additionalProperties: false,
@@ -197,15 +209,35 @@ const draftOutputSchema = {
         "visibilityChecklist",
       ],
       properties: {
-        questionMap: { type: "array", maxItems: 6, items: { type: "string" } },
-        answerBlock: { type: "string" },
-        evidenceBlocks: { type: "array", maxItems: 6, items: { type: "string" } },
-        entityMap: { type: "array", maxItems: 8, items: { type: "string" } },
-        citationSuggestions: { type: "array", maxItems: 6, items: { type: "string" } },
-        schemaParityChecks: { type: "array", maxItems: 6, items: { type: "string" } },
-        caveatBlock: { type: "string" },
-        conversionNextStep: { type: "string" },
-        freshnessNote: { type: "string" },
+        questionMap: {
+          type: "array",
+          maxItems: 6,
+          items: { type: "string", minLength: 1, maxLength: 160 },
+        },
+        answerBlock: { type: "string", minLength: 1, maxLength: 320 },
+        evidenceBlocks: {
+          type: "array",
+          maxItems: 6,
+          items: { type: "string", minLength: 1, maxLength: 260 },
+        },
+        entityMap: {
+          type: "array",
+          maxItems: 8,
+          items: { type: "string", minLength: 1, maxLength: 220 },
+        },
+        citationSuggestions: {
+          type: "array",
+          maxItems: 6,
+          items: { type: "string", minLength: 1, maxLength: 220 },
+        },
+        schemaParityChecks: {
+          type: "array",
+          maxItems: 6,
+          items: { type: "string", minLength: 1, maxLength: 220 },
+        },
+        caveatBlock: { type: "string", minLength: 1, maxLength: 260 },
+        conversionNextStep: { type: "string", minLength: 1, maxLength: 220 },
+        freshnessNote: { type: "string", minLength: 1, maxLength: 220 },
         visibilityChecklist: {
           type: "object",
           additionalProperties: false,
@@ -263,6 +295,91 @@ function readResponseOutputText(payload) {
   throw new Error("OpenAI response did not include structured text output");
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientOpenAiStatus(status) {
+  return [408, 409, 429, 500, 502, 503, 504].includes(status);
+}
+
+function readRetryAfterMs(headers) {
+  const retryAfter = headers.get("retry-after");
+
+  if (!retryAfter) {
+    return null;
+  }
+
+  const seconds = Number(retryAfter);
+
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000;
+  }
+
+  const retryAt = Date.parse(retryAfter);
+
+  if (!Number.isNaN(retryAt)) {
+    return Math.max(retryAt - Date.now(), 0);
+  }
+
+  return null;
+}
+
+function readResponseRefusal(payload) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  for (const item of payload.output ?? []) {
+    for (const content of item.content ?? []) {
+      if (content?.type === "refusal" && typeof content.refusal === "string" && content.refusal.trim()) {
+        return content.refusal.trim();
+      }
+    }
+  }
+
+  return null;
+}
+
+function assertResponseCompleteness(payload) {
+  if (!payload || typeof payload !== "object") {
+    return;
+  }
+
+  if (payload.status === "incomplete") {
+    const reason =
+      typeof payload.incomplete_details?.reason === "string"
+        ? payload.incomplete_details.reason
+        : "unknown";
+
+    throw new Error(`OpenAI response incomplete: ${reason}`);
+  }
+
+  const refusal = readResponseRefusal(payload);
+
+  if (refusal) {
+    throw new Error(`OpenAI response refused: ${refusal}`);
+  }
+}
+
+function shouldRetryStructuredRequest(error) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.message.startsWith("OpenAI network error") ||
+    error.message.includes("OpenAI request failed (408)") ||
+    error.message.includes("OpenAI request failed (409)") ||
+    error.message.includes("OpenAI request failed (429)") ||
+    error.message.includes("OpenAI request failed (500)") ||
+    error.message.includes("OpenAI request failed (502)") ||
+    error.message.includes("OpenAI request failed (503)") ||
+    error.message.includes("OpenAI request failed (504)") ||
+    error.message === "OpenAI response incomplete: max_output_tokens"
+  );
+}
+
 async function requestStructuredJson({
   model,
   schemaName,
@@ -275,44 +392,75 @@ async function requestStructuredJson({
     throw new Error("OPENAI_API_KEY is not configured");
   }
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      ...(projectId ? { "OpenAI-Project": projectId } : {}),
-    },
-    body: JSON.stringify({
-      model,
-      max_output_tokens: maxOutputTokens,
-      input: [
-        {
-          role: "system",
-          content: [{ type: "input_text", text: systemPrompt }],
-        },
-        {
-          role: "user",
-          content: [{ type: "input_text", text: userPrompt }],
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: schemaName,
-          schema,
-          strict: true,
-        },
-      },
-    }),
-  });
+  let lastError = null;
+  let currentMaxOutputTokens = maxOutputTokens;
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`OpenAI request failed (${response.status}): ${body}`);
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          ...(projectId ? { "OpenAI-Project": projectId } : {}),
+        },
+        body: JSON.stringify({
+          model,
+          temperature: 0.2,
+          max_output_tokens: currentMaxOutputTokens,
+          instructions: systemPrompt,
+          input: [
+            {
+              role: "user",
+              content: [{ type: "input_text", text: userPrompt }],
+            },
+          ],
+          text: {
+            format: {
+              type: "json_schema",
+              name: schemaName,
+              schema,
+              strict: true,
+            },
+          },
+        }),
+      });
+
+      const requestId = response.headers.get("x-request-id");
+
+      if (!response.ok) {
+        const body = await response.text();
+
+        if (attempt < 3 && isTransientOpenAiStatus(response.status)) {
+          const retryAfterMs = readRetryAfterMs(response.headers) ?? 500 * attempt;
+          await sleep(retryAfterMs);
+          continue;
+        }
+
+        throw new Error(
+          `OpenAI request failed (${response.status})${requestId ? ` [request ${requestId}]` : ""}: ${body}`,
+        );
+      }
+
+      const payload = await response.json();
+      assertResponseCompleteness(payload);
+      return JSON.parse(readResponseOutputText(payload));
+    } catch (error) {
+      lastError = error;
+
+      if (attempt === 3 || !shouldRetryStructuredRequest(error)) {
+        break;
+      }
+
+      if (error instanceof Error && error.message === "OpenAI response incomplete: max_output_tokens") {
+        currentMaxOutputTokens = Math.ceil(currentMaxOutputTokens * 1.35);
+      }
+
+      await sleep(500 * attempt);
+    }
   }
 
-  const payload = await response.json();
-  return JSON.parse(readResponseOutputText(payload));
+  throw lastError ?? new Error("OpenAI structured request failed");
 }
 
 function cleanText(value) {
@@ -559,6 +707,8 @@ async function handleGenerateDraft(payload) {
         ].join("\n\n"),
       userPrompt: buildDraftPrompt({
         proposal: input.proposal,
+        links: input.links,
+        assets: input.assets,
         signals,
         styleExamples,
       }),

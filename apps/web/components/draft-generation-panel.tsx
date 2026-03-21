@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ADMIN_SECTION_LABELS } from "@/lib/admin-labels";
-import type { DraftGenerationQuality, DraftGenerationViewState } from "@/lib/editorial-draft-generation";
+import {
+  humanizeDraftGenerationErrorMessage,
+  type DraftGenerationQuality,
+  type DraftGenerationViewState,
+} from "@/lib/editorial-draft-generation";
 import styles from "./draft-generation-panel.module.css";
 
 type DraftGenerationPanelProps = {
@@ -117,6 +121,21 @@ export function DraftGenerationPanel({
   const [status, setStatus] = useState(summary ?? "초안 생성 상태를 이곳에서 확인합니다");
   const view = getViewCopy(scope, state, quality);
 
+  const readResponseDetail = async (response: Response, fallback: string) => {
+    const payload = (await response.json().catch(() => null)) as
+      | {
+          detail?: string;
+          rawDetail?: string | null;
+        }
+      | null;
+
+    return (
+      payload?.detail ??
+      humanizeDraftGenerationErrorMessage(payload?.rawDetail ?? null) ??
+      fallback
+    );
+  };
+
   const handleRefresh = () => {
     router.refresh();
   };
@@ -130,13 +149,19 @@ export function DraftGenerationPanel({
       });
 
       if (!response.ok) {
-        throw new Error("draft-regenerate-failed");
+        throw new Error(
+          await readResponseDetail(response, "초안을 다시 만들지 못했습니다. 생성 경로를 다시 확인해 주세요"),
+        );
       }
 
       setStatus("최신 기준으로 초안을 다시 만들고 있습니다");
       router.refresh();
-    } catch {
-      setStatus("초안을 다시 만들지 못했습니다. 연결 상태를 다시 확인해 주세요");
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "초안을 다시 만들지 못했습니다. 생성 경로를 다시 확인해 주세요",
+      );
     } finally {
       setSubmitting(false);
     }
