@@ -166,7 +166,7 @@ const signalOutputSchema = {
   },
 };
 
-const draftOutputSchema = {
+const draftModelOutputSchema = {
   type: "object",
   additionalProperties: false,
   required: [
@@ -178,7 +178,6 @@ const draftOutputSchema = {
     "coverImageUrl",
     "bodyMarkdown",
     "generationSummary",
-    "visibility",
   ],
   properties: {
     title: { type: "string", minLength: 1, maxLength: 200 },
@@ -193,71 +192,6 @@ const draftOutputSchema = {
     coverImageUrl: { type: "string", maxLength: 2048 },
     bodyMarkdown: { type: "string", minLength: 1, maxLength: 24000 },
     generationSummary: { type: "string", minLength: 1, maxLength: 220 },
-    visibility: {
-      type: "object",
-      additionalProperties: false,
-      required: [
-        "questionMap",
-        "answerBlock",
-        "evidenceBlocks",
-        "entityMap",
-        "citationSuggestions",
-        "schemaParityChecks",
-        "caveatBlock",
-        "conversionNextStep",
-        "freshnessNote",
-        "visibilityChecklist",
-      ],
-      properties: {
-        questionMap: {
-          type: "array",
-          maxItems: 6,
-          items: { type: "string", minLength: 1, maxLength: 160 },
-        },
-        answerBlock: { type: "string", minLength: 1, maxLength: 320 },
-        evidenceBlocks: {
-          type: "array",
-          maxItems: 6,
-          items: { type: "string", minLength: 1, maxLength: 260 },
-        },
-        entityMap: {
-          type: "array",
-          maxItems: 8,
-          items: { type: "string", minLength: 1, maxLength: 220 },
-        },
-        citationSuggestions: {
-          type: "array",
-          maxItems: 6,
-          items: { type: "string", minLength: 1, maxLength: 220 },
-        },
-        schemaParityChecks: {
-          type: "array",
-          maxItems: 6,
-          items: { type: "string", minLength: 1, maxLength: 220 },
-        },
-        caveatBlock: { type: "string", minLength: 1, maxLength: 260 },
-        conversionNextStep: { type: "string", minLength: 1, maxLength: 220 },
-        freshnessNote: { type: "string", minLength: 1, maxLength: 220 },
-        visibilityChecklist: {
-          type: "object",
-          additionalProperties: false,
-          required: [
-            "eligibility",
-            "relevance",
-            "extractability",
-            "groundability",
-            "convertibility",
-          ],
-          properties: {
-            eligibility: { type: "string", enum: visibilityLevelValues },
-            relevance: { type: "string", enum: visibilityLevelValues },
-            extractability: { type: "string", enum: visibilityLevelValues },
-            groundability: { type: "string", enum: visibilityLevelValues },
-            convertibility: { type: "string", enum: visibilityLevelValues },
-          },
-        },
-      },
-    },
   },
 };
 
@@ -858,7 +792,7 @@ async function handleGenerateDraft(payload) {
       const draftResponse = await requestStructuredJson({
         model: input.draftModel || draftModel,
         schemaName: "dim_editorial_draft",
-        schema: draftOutputSchema,
+        schema: draftModelOutputSchema,
         systemPrompt: [
           input.bonchallyeokSystemPrompt,
           "당신의 출력은 DIM 편집자가 거의 바로 손볼 수 있는 고품질 초안이어야 한다.",
