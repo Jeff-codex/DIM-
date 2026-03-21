@@ -486,7 +486,7 @@ function chooseStyleExamples(pool, categoryId, titleDirection) {
       return { example, score };
     })
     .sort((left, right) => right.score - left.score)
-    .slice(0, 2)
+    .slice(0, 1)
     .map((entry) => entry.example);
 }
 
@@ -496,7 +496,7 @@ function buildDraftPrompt(input) {
     "목표는 즉시 발행이 아니라, 거의 바로 편집 가능한 고품질 초안이다.",
     "초안은 AI가 쓴 것처럼 보이면 안 되며, 실제 전문 에디터가 한 번 손본 문장처럼 자연스럽고 정돈되어야 한다.",
     "제안 원문을 반복하지 말고, 무엇이 아니라 무엇으로 읽어야 하는지 판단문으로 남겨라.",
-    "출력은 기사 문장만이 아니라 visibility metadata를 갖춘 knowledge object여야 한다.",
+    "출력은 실제 발행 직전까지 다듬을 수 있는 기사 초안이어야 한다.",
     "",
     `프로젝트명: ${input.proposal.projectName}`,
     `한 줄 소개: ${compactProposalText(input.proposal.summary, 180)}`,
@@ -534,7 +534,6 @@ function buildDraftPrompt(input) {
     "## 다음 읽기와 전환",
     "시장 정보가 충분하면 '## 누구에게 먼저 보이는가'를 넣어도 된다.",
     `카테고리는 다음 중 하나만 선택한다: ${categoryIds.join(", ")}`,
-    "visibility metadata에는 questionMap, answerBlock, evidenceBlocks, entityMap, citationSuggestions, schemaParityChecks, caveatBlock, conversionNextStep, freshnessNote, visibilityChecklist를 반드시 채운다.",
   ].join("\n");
 }
 
@@ -746,46 +745,22 @@ function normalizeDraftCandidate(candidate, fallback) {
 async function handleGenerateDraft(payload) {
   const input = generateDraftRequestSchema.parse(payload);
   const fallbackDraft = buildFallbackDraft(input);
-  let signals = input.fallbackSignals;
+  let signals = signalSchema.parse({
+    ...input.fallbackSignals,
+    coreShift: limitText(input.fallbackSignals.coreShift, 260),
+    whyNowPressure: limitText(input.fallbackSignals.whyNowPressure, 260),
+    evidencePoints: input.fallbackSignals.evidencePoints
+      .slice(0, 5)
+      .map((point) => limitText(point, 220)),
+    missingInfo: input.fallbackSignals.missingInfo
+      .slice(0, 5)
+      .map((point) => limitText(point, 220)),
+    titleDirection: limitText(input.fallbackSignals.titleDirection, 180),
+  });
   let generationStatus = "fallback";
-  let signalError = null;
+  let signalError = "signal_openai_disabled_for_latency";
   let draftError = null;
   let fallbackStage = null;
-
-  try {
-    const signalResponse = await requestStructuredJson({
-      model: input.signalModel || signalModel,
-      schemaName: "dim_signal_extraction",
-      schema: signalOutputSchema,
-      systemPrompt: [
-        input.bonchallyeokSystemPrompt,
-        "지금 단계에서는 긴 본문을 쓰지 말고, 초안 생성을 위한 구조 신호만 뽑는다.",
-        "브랜드 소개가 아니라 구조 변화, 운영 맥락, 가격/유통/인프라 이동 여부를 먼저 판정한다.",
-      ].join("\n\n"),
-      userPrompt: buildSignalPrompt(input),
-      maxOutputTokens: 650,
-      reasoningEffort: "low",
-      verbosity: "low",
-    });
-
-    signals = normalizeSignalCandidate(signalResponse, input.fallbackSignals);
-  } catch (error) {
-    console.error("DIM generator signal extraction fallback", error);
-    signalError = error instanceof Error ? error.message.slice(0, 2000) : "unknown_signal_error";
-    fallbackStage = "signal";
-    signals = signalSchema.parse({
-      ...input.fallbackSignals,
-      coreShift: limitText(input.fallbackSignals.coreShift, 260),
-      whyNowPressure: limitText(input.fallbackSignals.whyNowPressure, 260),
-      evidencePoints: input.fallbackSignals.evidencePoints
-        .slice(0, 5)
-        .map((point) => limitText(point, 220)),
-      missingInfo: input.fallbackSignals.missingInfo
-        .slice(0, 5)
-        .map((point) => limitText(point, 220)),
-      titleDirection: limitText(input.fallbackSignals.titleDirection, 180),
-    });
-  }
 
   try {
     const styleExamples = chooseStyleExamples(
@@ -804,16 +779,16 @@ async function handleGenerateDraft(payload) {
           "visibility metadata는 편집자가 extractability, groundability, entity clarity, conversion readiness를 바로 판단할 수 있게 써야 한다.",
           "기계적인 문장, 광고 카피, 보도자료 요약 문체를 금지한다.",
         ].join("\n\n"),
-      userPrompt: buildDraftPrompt({
+        userPrompt: buildDraftPrompt({
         proposal: input.proposal,
         links: input.links,
         assets: input.assets,
         signals,
         styleExamples,
       }),
-      maxOutputTokens: 2200,
+      maxOutputTokens: 1600,
       reasoningEffort: "low",
-      verbosity: "medium",
+      verbosity: "low",
     });
 
     const draft = normalizeDraftCandidate(draftResponse, fallbackDraft);
