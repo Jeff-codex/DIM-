@@ -126,8 +126,24 @@ export function DraftGenerationPanel({
       | {
           detail?: string;
           rawDetail?: string | null;
+          error?: string;
+          status?: string;
         }
       | null;
+
+    if (response.status === 401 || response.status === 403) {
+      return "편집 권한 또는 접근 세션을 다시 확인해 주세요";
+    }
+
+    if (response.status === 409) {
+      return payload?.status
+        ? `이 제안은 아직 초안 재생성 단계가 아닙니다. 현재 상태: ${payload.status}`
+        : "이 제안은 아직 초안을 다시 만들 수 있는 상태가 아닙니다";
+    }
+
+    if (response.status >= 500) {
+      return "초안 생성기 또는 편집 런타임 연결 상태를 먼저 확인해 주세요";
+    }
 
     return (
       payload?.detail ??
@@ -154,7 +170,7 @@ export function DraftGenerationPanel({
         );
       }
 
-      setStatus("최신 기준으로 초안을 다시 만들고 있습니다");
+      setStatus("최신 기준으로 초안을 다시 만들었습니다");
       router.refresh();
     } catch (error) {
       setStatus(
@@ -162,6 +178,7 @@ export function DraftGenerationPanel({
           ? error.message
           : "초안을 다시 만들지 못했습니다. 생성 경로를 다시 확인해 주세요",
       );
+      router.refresh();
     } finally {
       setSubmitting(false);
     }

@@ -37,11 +37,20 @@ export async function POST(
     }
 
     const family = await uploadEditorialImageForProposal(id, file, identity.email);
+
+    if (!family?.master) {
+      throw new Error("editorial_asset_family_store_failed");
+    }
+
     const coverImageUrl = family?.detail?.publicUrl ?? family?.master?.publicUrl ?? null;
     const draft =
       coverImageUrl
         ? await updateEditorialDraftCoverImage(id, coverImageUrl, identity.email)
         : null;
+
+    if (coverImageUrl && !draft) {
+      throw new Error("editorial_draft_cover_apply_failed");
+    }
 
     return NextResponse.json({
       ok: true,

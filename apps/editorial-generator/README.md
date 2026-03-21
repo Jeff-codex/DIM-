@@ -17,7 +17,7 @@ Cloudflare Workers가 직접 OpenAI API를 호출할 수 없는 환경 제약을
 - `OPENAI_API_KEY`
 - `OPENAI_PROJECT_ID` (optional)
 - `DIM_GENERATOR_SHARED_SECRET`
-- `OPENAI_SIGNAL_MODEL` (default `gpt-5.4-mini`)
+- `OPENAI_SIGNAL_MODEL` (default `gpt-5-mini`)
 - `OPENAI_DRAFT_MODEL` (default `gpt-5.4`)
 - `PORT` (default `8788`)
 - `DIM_GENERATOR_VERSION` (optional)

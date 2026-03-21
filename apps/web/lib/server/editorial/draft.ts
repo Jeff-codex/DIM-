@@ -179,8 +179,8 @@ type DraftGenerationMeta = {
 type ExternalDraftGeneratorResponse = {
   ok: true;
   generationStatus: "ai" | "fallback";
-  signals: AiSignalOutput;
-  draft: AiDraftOutput;
+  signals: Partial<AiSignalOutput> | null;
+  draft: Partial<AiDraftOutput> | null;
 };
 
 const publishedStyleExamples: StyleExample[] = generatedArticleSources.map((source) => ({
@@ -858,7 +858,7 @@ async function generateAiSignals(input: {
   const config = await getEditorialAiConfigSafe();
   const fallbackSignals = buildValidatedFallbackSignals(input.proposal, input.links);
 
-  if (!config.enabled || (config.externalGeneratorConfigured && !config.apiKeyPresent)) {
+  if (!config.enabled || config.externalGeneratorConfigured) {
     return fallbackSignals;
   }
 
@@ -934,12 +934,23 @@ async function requestExternalDraftGeneration(input: {
     .object({
       ok: z.literal(true),
       generationStatus: z.enum(["ai", "fallback"]),
-      signals: aiSignalOutputSchema,
-      draft: aiDraftOutputSchema,
+      signals: z.unknown(),
+      draft: z.unknown(),
     })
-    .parse(payload) satisfies ExternalDraftGeneratorResponse;
+    .parse(payload);
 
-  return parsed;
+  return {
+    ok: true,
+    generationStatus: parsed.generationStatus,
+    signals:
+      parsed.signals && typeof parsed.signals === "object"
+        ? (parsed.signals as Partial<AiSignalOutput>)
+        : null,
+    draft:
+      parsed.draft && typeof parsed.draft === "object"
+        ? (parsed.draft as Partial<AiDraftOutput>)
+        : null,
+  } satisfies ExternalDraftGeneratorResponse;
 }
 
 async function generateAiDraft(input: {
@@ -1003,10 +1014,18 @@ async function generateAiDraft(input: {
     });
 
     if (external) {
+      const normalizedSignals = normalizeSignalCandidate(
+        external.signals,
+        generatedSignals,
+      );
       const parsed = normalizeDraftCandidate(
-        external.draft as Partial<AiDraftOutput>,
+        external.draft,
         fallbackDraft,
-        fallbackVisibility,
+        buildFallbackVisibility({
+          proposal: input.proposal,
+          links: input.links,
+          signals: normalizedSignals,
+        }),
       );
 
       return {
@@ -1024,7 +1043,7 @@ async function generateAiDraft(input: {
           generationStatus:
             external.generationStatus === "ai" ? "succeeded" : "fallback_succeeded",
           generationStrategy: "external",
-          signalStrategy: "ai",
+          signalStrategy: external.generationStatus === "ai" ? "ai" : "rule",
           generationSummary: parsed.generationSummary,
           visibility: parsed.visibility,
           signalModel: config.signalModel,
@@ -1110,7 +1129,7 @@ async function getEditorialAiConfigSafe(): Promise<EditorialAiConfig> {
     return {
       enabled: false,
       apiKeyPresent: false,
-      signalModel: "gpt-5.4-mini",
+      signalModel: "gpt-5-mini",
       draftModel: "gpt-5.4",
       generatorUrl: undefined,
       generatorSecretPresent: false,

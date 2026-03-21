@@ -104,6 +104,15 @@ export type ProposalDetail = {
   hasSnapshot: boolean;
   draftSourceProposalUpdatedAt: string | null;
   draftGeneratedAt: string | null;
+  draftSourceSnapshot: {
+    projectName: string;
+    summary: string | null;
+    productDescription: string | null;
+    whyNow: string | null;
+    stage: string | null;
+    market: string | null;
+    updatedAt: string | null;
+  } | null;
   links: Array<{
     id: string;
     url: string;
@@ -336,6 +345,12 @@ export async function getProposalDetail(id: string): Promise<ProposalDetail | nu
         WHERE ed.proposal_id = proposal.id
         LIMIT 1
       ) AS draftGeneratedAt,
+      (
+        SELECT ed.source_snapshot_json
+        FROM editorial_draft ed
+        WHERE ed.proposal_id = proposal.id
+        LIMIT 1
+      ) AS draftSourceSnapshotJson,
       EXISTS(
         SELECT 1
         FROM publication_snapshot ps
@@ -346,7 +361,14 @@ export async function getProposalDetail(id: string): Promise<ProposalDetail | nu
     LIMIT 1`,
   )
     .bind(id)
-    .first<Omit<ProposalDetail, "links" | "assets" | "workflowEvents" | "processingJobs">>();
+    .first<
+      Omit<
+        ProposalDetail,
+        "links" | "assets" | "workflowEvents" | "processingJobs" | "draftSourceSnapshot"
+      > & {
+        draftSourceSnapshotJson: string | null;
+      }
+    >();
 
   if (!proposal) {
     return null;
@@ -409,6 +431,11 @@ export async function getProposalDetail(id: string): Promise<ProposalDetail | nu
 
   return {
     ...proposal,
+    draftSourceSnapshot:
+      typeof proposal.draftSourceSnapshotJson === "string" &&
+      proposal.draftSourceSnapshotJson
+        ? JSON.parse(proposal.draftSourceSnapshotJson)
+        : null,
     links: linksResult.results ?? [],
     assets: assetsResult.results ?? [],
     workflowEvents: workflowResult.results ?? [],
@@ -479,10 +506,20 @@ export async function updateProposalTriage(
     ),
   ]);
 
+  let draftGenerationState: "ready" | "failed" | null = null;
+  let draftGenerationError: string | null = null;
+
   if (nextStatus === "in_review") {
-    await ensureEditorialDraftForProposal(proposalId, identity.email, {
-      skipStatusCheck: true,
-    });
+    try {
+      await ensureEditorialDraftForProposal(proposalId, identity.email, {
+        skipStatusCheck: true,
+      });
+      draftGenerationState = "ready";
+    } catch (error) {
+      draftGenerationState = "failed";
+      draftGenerationError =
+        error instanceof Error ? error.message : "draft_generation_failed";
+    }
   }
 
   return {
@@ -491,5 +528,7 @@ export async function updateProposalTriage(
     toStatus: nextStatus,
     assigneeEmail,
     reviewedAt: timestamp,
+    draftGenerationState,
+    draftGenerationError,
   };
 }

@@ -23,6 +23,16 @@ export type DraftVisibilityMetadata = {
   visibilityChecklist: DraftVisibilityChecklist;
 };
 
+export type DraftSourceSnapshot = {
+  projectName: string;
+  summary: string | null;
+  productDescription: string | null;
+  whyNow: string | null;
+  stage: string | null;
+  market: string | null;
+  updatedAt: string | null;
+};
+
 export type DraftGenerationViewState =
   | "idle"
   | "generating"
@@ -39,6 +49,35 @@ export type DraftGenerationJobRecord = {
   payloadJson?: string | null;
   errorMessage?: string | null;
 };
+
+function normalizeSnapshotField(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+export function hasDraftSourceContentMismatch(
+  currentSourceSnapshot?: DraftSourceSnapshot | null,
+  draftSourceSnapshot?: DraftSourceSnapshot | null,
+) {
+  if (!currentSourceSnapshot || !draftSourceSnapshot) {
+    return null;
+  }
+
+  const fields: Array<keyof Omit<DraftSourceSnapshot, "updatedAt">> = [
+    "projectName",
+    "summary",
+    "productDescription",
+    "whyNow",
+    "stage",
+    "market",
+  ];
+
+  return fields.some(
+    (field) =>
+      normalizeSnapshotField(currentSourceSnapshot[field]) !==
+      normalizeSnapshotField(draftSourceSnapshot[field]),
+  );
+}
 
 type DraftGenerationPayload = {
   generationStatus?: "succeeded" | "fallback_succeeded" | "failed";
@@ -130,6 +169,10 @@ export function humanizeDraftGenerationErrorMessage(raw?: string | null) {
     return "외부 초안 생성기가 내부 오류를 반환했습니다. generator 서버 로그를 먼저 확인해야 합니다.";
   }
 
+  if (trimmed.includes("External DIM draft generator failed (524)")) {
+    return "외부 초안 생성기가 시간 안에 응답하지 못했습니다. 잠시 뒤 다시 시도하거나 generator 상태를 먼저 확인해야 합니다.";
+  }
+
   if (trimmed.includes("OpenAI response incomplete")) {
     return "AI가 초안을 끝까지 생성하지 못했습니다. 출력 길이 또는 응답 중단 원인을 다시 확인해야 합니다.";
   }
@@ -146,6 +189,14 @@ export function humanizeDraftGenerationErrorMessage(raw?: string | null) {
     return "이미지 파생본 생성 과정에서 오류가 발생했습니다. generator 서버 상태를 다시 확인해야 합니다.";
   }
 
+  if (trimmed.includes("editorial_asset_family_store_failed")) {
+    return "편집용 이미지 자산을 저장하지 못했습니다. 업로드를 다시 시도해야 합니다.";
+  }
+
+  if (trimmed.includes("editorial_draft_cover_apply_failed")) {
+    return "이미지를 올렸지만 draft 커버에 반영하지 못했습니다. 연결 상태를 다시 확인해야 합니다.";
+  }
+
   return trimmed;
 }
 
@@ -154,12 +205,20 @@ export function resolveDraftGenerationState(input: {
   proposalStatus: string;
   proposalUpdatedAt?: string | null;
   draftSourceProposalUpdatedAt?: string | null;
+  proposalSourceSnapshot?: DraftSourceSnapshot | null;
+  draftSourceSnapshot?: DraftSourceSnapshot | null;
   processingJobs: DraftGenerationJobRecord[];
 }) {
   const draftJob = input.processingJobs.find((job) => job.taskType === draftGenerationTaskType);
   const draftJobPayload = parseGenerationPayload(draftJob?.payloadJson);
-
-  const hasSourceMismatch = Boolean(
+  const sourceContentMismatch = hasDraftSourceContentMismatch(
+    input.proposalSourceSnapshot,
+    input.draftSourceSnapshot,
+  );
+  const shouldUseTimestampFallback =
+    !input.proposalSourceSnapshot && !input.draftSourceSnapshot;
+  const sourceTimestampMismatch = Boolean(
+    shouldUseTimestampFallback &&
     input.hasDraft &&
       input.proposalUpdatedAt &&
       input.draftSourceProposalUpdatedAt &&
@@ -167,16 +226,18 @@ export function resolveDraftGenerationState(input: {
         new Date(input.draftSourceProposalUpdatedAt).getTime(),
   );
 
+  const hasSourceMismatch = sourceContentMismatch ?? sourceTimestampMismatch;
+
   let state: DraftGenerationViewState = "idle";
 
   if (draftJob?.status === "processing" || draftJob?.status === "queued") {
     state = input.hasDraft ? "retry" : "generating";
+  } else if (draftJob?.status === "failed") {
+    state = "failed";
   } else if (input.hasDraft && hasSourceMismatch) {
     state = "stale";
   } else if (input.hasDraft) {
     state = "generated";
-  } else if (draftJob?.status === "failed") {
-    state = "failed";
   } else if (input.proposalStatus === "in_review") {
     state = "generating";
   }
@@ -186,15 +247,19 @@ export function resolveDraftGenerationState(input: {
       ? "fallback"
       : draftJobPayload?.generationStatus === "succeeded"
         ? "ai"
-        : null;
+      : null;
+
+  const shouldExposeErrorMessage = state === "failed";
 
   return {
     state,
     quality,
     summary: draftJobPayload?.generationSummary ?? null,
-    errorMessage: humanizeDraftGenerationErrorMessage(
-      draftJob?.errorMessage ?? draftJobPayload?.generationError ?? null,
-    ),
+    errorMessage: shouldExposeErrorMessage
+      ? humanizeDraftGenerationErrorMessage(
+          draftJob?.errorMessage ?? draftJobPayload?.generationError ?? null,
+        )
+      : null,
     strategy: draftJobPayload?.generationStrategy ?? null,
     visibility: draftJobPayload?.visibility ?? null,
     hasSourceMismatch,

@@ -150,6 +150,16 @@ export default async function ProposalDetailPage({
     proposalStatus: proposal.status,
     proposalUpdatedAt: proposal.updatedAt,
     draftSourceProposalUpdatedAt: proposal.draftSourceProposalUpdatedAt,
+    proposalSourceSnapshot: {
+      projectName: proposal.projectName,
+      summary: proposal.summary,
+      productDescription: proposal.productDescription,
+      whyNow: proposal.whyNow,
+      stage: proposal.stage,
+      market: proposal.market,
+      updatedAt: proposal.updatedAt,
+    },
+    draftSourceSnapshot: proposal.draftSourceSnapshot,
     processingJobs: proposal.processingJobs,
   });
 

@@ -57,13 +57,20 @@ export function VisibilityReadinessPanel({
       : "이 평가는 마지막 생성 시점 기준입니다. 아래 편집 입력을 수정해도 자동 재계산되지는 않으니, 재생성이 필요하면 초안 생성 패널에서 다시 호출하세요.";
 
   if (!metadata) {
+    const legacyTitle =
+      scope === "proposal"
+        ? "초안이 아직 visibility metadata를 만들지 못했습니다"
+        : "이 초안은 visibility 진단이 없는 예전 형식 초안입니다";
+    const legacyDescription =
+      scope === "proposal"
+        ? "다음 생성부터는 질문 맵, 근거 블록, 엔터티 맵, 전환 준비도를 함께 저장합니다."
+        : "현재 초안 자체는 편집할 수 있지만, 질문 맵·근거 블록·엔터티 맵이 아직 같이 저장되지 않았습니다. 초안을 다시 만들면 이 진단도 함께 채워집니다.";
+
     return (
       <section className={styles.panel}>
         <p className={styles.eyebrow}>{eyebrow}</p>
-        <h2 className={styles.title}>초안이 아직 visibility metadata를 만들지 못했습니다</h2>
-        <p className={styles.description}>
-          다음 생성부터는 질문 맵, 근거 블록, 엔터티 맵, 전환 준비도를 함께 저장합니다.
-        </p>
+        <h2 className={styles.title}>{legacyTitle}</h2>
+        <p className={styles.description}>{legacyDescription}</p>
       </section>
     );
   }

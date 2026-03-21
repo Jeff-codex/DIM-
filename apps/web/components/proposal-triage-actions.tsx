@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { humanizeDraftGenerationErrorMessage } from "@/lib/editorial-draft-generation";
 import styles from "./proposal-triage-actions.module.css";
 
 type ProposalTriageActionsProps = {
@@ -59,13 +60,34 @@ export function ProposalTriageActions({
         }),
       });
 
+      const data = (await response.json().catch(() => null)) as
+        | {
+            toStatus?: string;
+            detail?: string;
+            rawDetail?: string | null;
+            draftGenerationState?: "ready" | "failed" | null;
+            draftGenerationError?: string | null;
+          }
+        | null;
+
       if (!response.ok) {
-        throw new Error("triage-request-failed");
+        throw new Error(
+          data?.detail ??
+            humanizeDraftGenerationErrorMessage(data?.rawDetail ?? null) ??
+            "상태를 바꾸지 못했습니다. 접근 권한과 연결 상태를 다시 확인해 주세요",
+        );
       }
 
-      const data = (await response.json()) as { toStatus?: string };
+      if (data?.toStatus === "in_review" && data.draftGenerationState === "failed") {
+        setStatus(
+          humanizeDraftGenerationErrorMessage(data.draftGenerationError ?? null) ??
+            "편집 검토로 넘겼지만 초안 생성은 끝까지 이어지지 않았습니다. 바로 다시 생성하거나 직접 편집으로 이어갈 수 있습니다",
+        );
+        router.refresh();
+        return;
+      }
 
-      if (redirectToDraftOnReview && data.toStatus === "in_review") {
+      if (redirectToDraftOnReview && data?.toStatus === "in_review") {
         setStatus("편집 검토로 넘겼습니다. 초안 화면으로 이동합니다");
         router.push(`/admin/drafts/${proposalId}`);
         router.refresh();
@@ -73,13 +95,18 @@ export function ProposalTriageActions({
       }
 
       setStatus(
-        data.toStatus
+        data?.toStatus
           ? `상태를 ${data.toStatus}로 바꿨습니다`
           : "제안 상태를 업데이트했습니다",
       );
       router.refresh();
-    } catch {
-      setStatus("상태를 바꾸지 못했습니다. 접근 권한과 연결 상태를 다시 확인해 주세요");
+    } catch (error) {
+      setStatus(
+        error instanceof Error && error.message
+          ? error.message
+          : "상태를 바꾸지 못했습니다. 접근 권한과 연결 상태를 다시 확인해 주세요",
+      );
+      router.refresh();
     } finally {
       setSubmitting(null);
     }

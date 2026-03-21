@@ -60,12 +60,25 @@ export default async function EditorialDraftPage({
       mimeType: asset.mimeType,
       previewUrl: `/api/admin/proposals/${proposalId}/assets/${asset.id}`,
     })) ?? [];
+  const proposalSourceSnapshot = proposal
+    ? {
+        projectName: proposal.projectName,
+        summary: proposal.summary,
+        productDescription: proposal.productDescription,
+        whyNow: proposal.whyNow,
+        stage: proposal.stage,
+        market: proposal.market,
+        updatedAt: proposal.updatedAt,
+      }
+    : draft.draft.sourceSnapshot;
   const draftGeneration = resolveDraftGenerationState({
     hasDraft: proposal?.hasDraft ?? true,
     proposalStatus: proposal?.status ?? "in_review",
     proposalUpdatedAt: proposal?.updatedAt ?? draft.draft.updatedAt,
     draftSourceProposalUpdatedAt:
       proposal?.draftSourceProposalUpdatedAt ?? draft.draft.sourceProposalUpdatedAt,
+    proposalSourceSnapshot,
+    draftSourceSnapshot: proposal?.draftSourceSnapshot ?? draft.draft.sourceSnapshot,
     processingJobs: proposal?.processingJobs ?? [],
   });
 
@@ -84,6 +97,7 @@ export default async function EditorialDraftPage({
       generationSummary={draftGeneration.summary}
       generationErrorMessage={draftGeneration.errorMessage}
       generationVisibility={draftGeneration.visibility}
+      proposalSourceSnapshot={proposalSourceSnapshot}
     />
   );
 }

@@ -101,7 +101,7 @@ const draft = await requestJson("/v1/editorial/draft", {
     ],
     bonchallyeokSystemPrompt:
       "본찰력은 사물·현상·정보의 겉면에 반응하지 않고, 그 이면에서 작동하는 구조·의도·힘의 흐름·본질적 메커니즘을 꿰뚫어 보는 능력이다.",
-    signalModel: process.env.OPENAI_SIGNAL_MODEL || "gpt-5.4-mini",
+    signalModel: process.env.OPENAI_SIGNAL_MODEL || "gpt-5-mini",
     draftModel: process.env.OPENAI_DRAFT_MODEL || "gpt-5.4",
   }),
 });

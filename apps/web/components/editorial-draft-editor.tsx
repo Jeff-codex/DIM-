@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { DraftGenerationPanel } from "@/components/draft-generation-panel";
@@ -8,9 +9,13 @@ import { VisibilityReadinessPanel } from "@/components/visibility-readiness-pane
 import type {
   DraftGenerationQuality,
   DraftGenerationViewState,
+  DraftSourceSnapshot,
   DraftVisibilityMetadata,
 } from "@/lib/editorial-draft-generation";
-import { humanizeDraftGenerationErrorMessage } from "@/lib/editorial-draft-generation";
+import {
+  hasDraftSourceContentMismatch,
+  humanizeDraftGenerationErrorMessage,
+} from "@/lib/editorial-draft-generation";
 import styles from "./editorial-draft-editor.module.css";
 
 type DraftCategoryOption = {
@@ -85,6 +90,7 @@ type EditorialDraftEditorProps = {
   generationSummary?: string | null;
   generationErrorMessage?: string | null;
   generationVisibility: DraftVisibilityMetadata | null;
+  proposalSourceSnapshot: DraftSourceSnapshot | null;
 };
 
 type EditorialAssetFamilyRecord = EditorialDraftEditorProps["editorialAssets"][number];
@@ -120,7 +126,9 @@ export function EditorialDraftEditor({
   generationSummary,
   generationErrorMessage,
   generationVisibility,
+  proposalSourceSnapshot,
 }: EditorialDraftEditorProps) {
+  const router = useRouter();
   const [draft, setDraft] = useState(initialDraft);
   const [editorialAssetFamilies, setEditorialAssetFamilies] = useState(editorialAssets);
   const [status, setStatus] = useState("수정한 내용은 저장 전까지 이 화면에서 바로 미리 볼 수 있습니다");
@@ -147,8 +155,7 @@ export function EditorialDraftEditor({
   const hasSnapshotReady = hasTitle && hasExcerpt && hasVerdict && hasBody;
   const isDirty = serializeDraft(draft) !== lastSavedSnapshot;
   const hasSourceMismatch = Boolean(
-    draft.sourceProposalUpdatedAt &&
-      new Date(draft.sourceProposalUpdatedAt).getTime() > new Date(draft.updatedAt).getTime(),
+    hasDraftSourceContentMismatch(proposalSourceSnapshot, draft.sourceSnapshot),
   );
   const saveStateLabel = saving
     ? "저장 중"
@@ -229,6 +236,7 @@ export function EditorialDraftEditor({
       setDraft(persistedDraft);
       setLastSavedSnapshot(serializeDraft(persistedDraft));
       setStatus(messages.success);
+      router.refresh();
 
       return persistedDraft;
     } catch (error) {
@@ -360,6 +368,9 @@ export function EditorialDraftEditor({
         | null;
 
       if (!response.ok || !data?.family) {
+        const detailMessage =
+          humanizeDraftGenerationErrorMessage(data?.error ?? null) ?? data?.error ?? null;
+
         if (data?.error === "editorial_image_type_invalid") {
           throw new Error("이미지 형식이 맞지 않습니다. JPG, PNG, WEBP만 올릴 수 있습니다");
         }
@@ -372,7 +383,7 @@ export function EditorialDraftEditor({
           throw new Error("이미지가 너무 작습니다. 1600 × 1200px 이상 이미지를 올려 주세요");
         }
 
-        throw new Error("이미지를 추가하지 못했습니다");
+        throw new Error(detailMessage ?? "이미지를 추가하지 못했습니다");
       }
 
       mergeEditorialFamily(data.family);
@@ -381,6 +392,7 @@ export function EditorialDraftEditor({
         setDraft(data.draft);
         setLastSavedSnapshot(serializeDraft(data.draft));
         setStatus("새 이미지를 커버로 적용하고 저장했습니다. master, 카드, 상세 파생본도 함께 준비했습니다");
+        router.refresh();
         return;
       }
 
@@ -388,6 +400,7 @@ export function EditorialDraftEditor({
 
       if (!nextCoverUrl) {
         setStatus("새 이미지를 추가했습니다. master, 카드, 상세 파생본도 함께 준비했습니다");
+        router.refresh();
         return;
       }
 
@@ -432,6 +445,9 @@ export function EditorialDraftEditor({
         | null;
 
       if (!response.ok || !data?.family?.master) {
+        const detailMessage =
+          humanizeDraftGenerationErrorMessage(data?.error ?? null) ?? data?.error ?? null;
+
         if (data?.error === "proposal_asset_not_image") {
           throw new Error("이미지 첨부만 커버로 승격할 수 있습니다");
         }
@@ -440,7 +456,7 @@ export function EditorialDraftEditor({
           throw new Error("첨부 이미지가 너무 작습니다. 1600 × 1200px 이상 이미지를 써 주세요");
         }
 
-        throw new Error("첨부 이미지를 편집용 커버로 준비하지 못했습니다");
+        throw new Error(detailMessage ?? "첨부 이미지를 편집용 커버로 준비하지 못했습니다");
       }
 
       mergeEditorialFamily(data.family);
@@ -449,6 +465,7 @@ export function EditorialDraftEditor({
         setDraft(data.draft);
         setLastSavedSnapshot(serializeDraft(data.draft));
         setStatus(`${label} 이미지를 커버용 편집 자산으로 준비하고 저장했습니다`);
+        router.refresh();
         return;
       }
 
@@ -456,6 +473,7 @@ export function EditorialDraftEditor({
 
       if (!nextCoverUrl) {
         setStatus(`${label} 이미지를 커버용 편집 자산으로 준비했습니다`);
+        router.refresh();
         return;
       }
 

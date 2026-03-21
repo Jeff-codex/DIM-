@@ -33,7 +33,7 @@ export async function getEditorialAiConfig(): Promise<EditorialAiConfig> {
     enabled: apiKeyPresent || externalGeneratorConfigured,
     apiKeyPresent,
     projectId: aiEnv.OPENAI_PROJECT_ID,
-    signalModel: aiEnv.OPENAI_SIGNAL_MODEL || "gpt-5.4-mini",
+    signalModel: aiEnv.OPENAI_SIGNAL_MODEL || "gpt-5-mini",
     draftModel: aiEnv.OPENAI_DRAFT_MODEL || "gpt-5.4",
     generatorUrl,
     generatorSecretPresent,
@@ -54,7 +54,7 @@ export async function requireEditorialAiConfig(): Promise<EditorialAiConfig & { 
     apiKeyPresent: true,
     apiKey: aiEnv.OPENAI_API_KEY,
     projectId: aiEnv.OPENAI_PROJECT_ID,
-    signalModel: aiEnv.OPENAI_SIGNAL_MODEL || "gpt-5.4-mini",
+    signalModel: aiEnv.OPENAI_SIGNAL_MODEL || "gpt-5-mini",
     draftModel: aiEnv.OPENAI_DRAFT_MODEL || "gpt-5.4",
     generatorUrl: aiEnv.EDITORIAL_DRAFT_GENERATOR_URL?.trim() || undefined,
     generatorSecretPresent: Boolean(aiEnv.EDITORIAL_GENERATOR_SHARED_SECRET?.trim()),
@@ -232,6 +232,9 @@ export async function requestEditorialStructuredJson<T>({
           model,
           max_output_tokens: currentMaxOutputTokens,
           instructions: systemPrompt,
+          reasoning: {
+            effort: "low",
+          },
           input: [
             {
               role: "user",
@@ -244,6 +247,7 @@ export async function requestEditorialStructuredJson<T>({
             },
           ],
           text: {
+            verbosity: "medium",
             format: {
               type: "json_schema",
               name: schemaName,
