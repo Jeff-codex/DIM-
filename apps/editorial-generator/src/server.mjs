@@ -342,7 +342,6 @@ async function requestStructuredJson({
         },
         body: JSON.stringify({
           model,
-          temperature: 0.2,
           max_output_tokens: currentMaxOutputTokens,
           instructions: systemPrompt,
           reasoning: reasoningEffort
