@@ -73,6 +73,28 @@ const styleExampleSchema = z.object({
   tagIds: z.array(z.string().trim().min(1).max(80)).max(12),
 });
 
+const visibilityLevelValues = ["strong", "needs_work", "missing"];
+const visibilityLevelSchema = z.enum(visibilityLevelValues);
+
+const visibilityMetadataSchema = z.object({
+  questionMap: z.array(z.string().trim().min(1).max(160)).max(6),
+  answerBlock: z.string().trim().min(1).max(320),
+  evidenceBlocks: z.array(z.string().trim().min(1).max(260)).max(6),
+  entityMap: z.array(z.string().trim().min(1).max(220)).max(8),
+  citationSuggestions: z.array(z.string().trim().min(1).max(220)).max(6),
+  schemaParityChecks: z.array(z.string().trim().min(1).max(220)).max(6),
+  caveatBlock: z.string().trim().min(1).max(260),
+  conversionNextStep: z.string().trim().min(1).max(220),
+  freshnessNote: z.string().trim().min(1).max(220),
+  visibilityChecklist: z.object({
+    eligibility: visibilityLevelSchema,
+    relevance: visibilityLevelSchema,
+    extractability: visibilityLevelSchema,
+    groundability: visibilityLevelSchema,
+    convertibility: visibilityLevelSchema,
+  }),
+});
+
 const draftSchema = z.object({
   title: z.string().trim().min(1).max(200),
   displayTitleLines: z.array(z.string().trim().min(1).max(120)).max(4).default([]),
@@ -82,6 +104,7 @@ const draftSchema = z.object({
   coverImageUrl: z.string().trim().max(2048).optional().nullable(),
   bodyMarkdown: z.string().trim().min(1).max(24000),
   generationSummary: z.string().trim().min(1).max(220),
+  visibility: visibilityMetadataSchema,
 });
 
 const imageVariantRequestSchema = z.object({
@@ -147,6 +170,7 @@ const draftOutputSchema = {
     "coverImageUrl",
     "bodyMarkdown",
     "generationSummary",
+    "visibility",
   ],
   properties: {
     title: { type: "string" },
@@ -157,6 +181,51 @@ const draftOutputSchema = {
     coverImageUrl: { type: "string" },
     bodyMarkdown: { type: "string" },
     generationSummary: { type: "string" },
+    visibility: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "questionMap",
+        "answerBlock",
+        "evidenceBlocks",
+        "entityMap",
+        "citationSuggestions",
+        "schemaParityChecks",
+        "caveatBlock",
+        "conversionNextStep",
+        "freshnessNote",
+        "visibilityChecklist",
+      ],
+      properties: {
+        questionMap: { type: "array", maxItems: 6, items: { type: "string" } },
+        answerBlock: { type: "string" },
+        evidenceBlocks: { type: "array", maxItems: 6, items: { type: "string" } },
+        entityMap: { type: "array", maxItems: 8, items: { type: "string" } },
+        citationSuggestions: { type: "array", maxItems: 6, items: { type: "string" } },
+        schemaParityChecks: { type: "array", maxItems: 6, items: { type: "string" } },
+        caveatBlock: { type: "string" },
+        conversionNextStep: { type: "string" },
+        freshnessNote: { type: "string" },
+        visibilityChecklist: {
+          type: "object",
+          additionalProperties: false,
+          required: [
+            "eligibility",
+            "relevance",
+            "extractability",
+            "groundability",
+            "convertibility",
+          ],
+          properties: {
+            eligibility: { type: "string", enum: visibilityLevelValues },
+            relevance: { type: "string", enum: visibilityLevelValues },
+            extractability: { type: "string", enum: visibilityLevelValues },
+            groundability: { type: "string", enum: visibilityLevelValues },
+            convertibility: { type: "string", enum: visibilityLevelValues },
+          },
+        },
+      },
+    },
   },
 };
 
@@ -250,6 +319,10 @@ function cleanText(value) {
   return value?.trim() ?? "";
 }
 
+function limitText(value, max) {
+  return value.length <= max ? value : `${value.slice(0, max - 1).trimEnd()}…`;
+}
+
 function buildSignalPrompt(input) {
   return [
     "아래는 DIM에 들어온 피처 제안 원문이다.",
@@ -300,6 +373,7 @@ function buildDraftPrompt(input) {
     "목표는 즉시 발행이 아니라, 거의 바로 편집 가능한 고품질 초안이다.",
     "초안은 AI가 쓴 것처럼 보이면 안 되며, 실제 전문 에디터가 한 번 손본 문장처럼 자연스럽고 정돈되어야 한다.",
     "제안 원문을 반복하지 말고, 무엇이 아니라 무엇으로 읽어야 하는지 판단문으로 남겨라.",
+    "출력은 기사 문장만이 아니라 visibility metadata를 갖춘 knowledge object여야 한다.",
     "",
     `프로젝트명: ${input.proposal.projectName}`,
     `한 줄 소개: ${cleanText(input.proposal.summary) || "(없음)"}`,
@@ -315,6 +389,18 @@ function buildDraftPrompt(input) {
     `근거 포인트: ${input.signals.evidencePoints.join(" | ") || "(없음)"}`,
     `부족한 정보: ${input.signals.missingInfo.join(" | ") || "(없음)"}`,
     "",
+    "공식/참고 링크:",
+    ...(input.links.length
+      ? input.links.map((link) => `- [${link.linkType}] ${link.label ?? "(라벨 없음)"} :: ${link.url}`)
+      : ["- (없음)"]),
+    "",
+    "SEO/AEO/GEO 고정 계약:",
+    "- eligibility, relevance, extractability, groundability, convertibility를 함께 고려한다.",
+    "- answer first, passage-level answerability, evidence density > adjective density를 지킨다.",
+    "- citations, quotations, statistics, readability, fluency, source hygiene를 강화하고 keyword stuffing을 피한다.",
+    "- visible text와 structured data는 같은 사실을 말해야 한다.",
+    "- entity clarity를 유지해 회사명, 제품명, 시장, 날짜, 정책, 가격, 링크 주체가 흔들리지 않게 한다.",
+    "",
     "스타일 예시:",
     ...input.styleExamples.map(
       (example, index) =>
@@ -322,12 +408,17 @@ function buildDraftPrompt(input) {
     ),
     "",
     "본문은 다음 섹션 순서를 유지한다.",
+    "## 핵심 답변",
     "## 무엇이 바뀌었나",
     "## 어떤 구조를 봐야 하나",
+    "## 근거와 확인 포인트",
     "## 왜 지금 중요한가",
     "## DIM의 해석",
+    "## 주의할 점",
+    "## 다음 읽기와 전환",
     "시장 정보가 충분하면 '## 누구에게 먼저 보이는가'를 넣어도 된다.",
     `카테고리는 다음 중 하나만 선택한다: ${categoryIds.join(", ")}`,
+    "visibility metadata에는 questionMap, answerBlock, evidenceBlocks, entityMap, citationSuggestions, schemaParityChecks, caveatBlock, conversionNextStep, freshnessNote, visibilityChecklist를 반드시 채운다.",
   ].join("\n");
 }
 
@@ -352,12 +443,63 @@ function buildFallbackDraft(input) {
     title: proposal.projectName,
     displayTitleLines: [],
     excerpt: proposal.summary ?? `${proposal.projectName}를 어떤 맥락으로 봐야 하는지 정리합니다.`,
-    interpretiveFrame:
-      proposal.whyNow ?? `${proposal.projectName}가 지금 어떤 구조 변화를 만드는지 먼저 판단합니다.`,
-    categoryId: input.fallbackSignals.categoryId,
-    coverImageUrl: input.coverImageUrl ?? "",
-    bodyMarkdown: body.join("\n"),
-    generationSummary: "규칙 기반 초안을 먼저 준비했습니다",
+      interpretiveFrame:
+        proposal.whyNow ?? `${proposal.projectName}가 지금 어떤 구조 변화를 만드는지 먼저 판단합니다.`,
+      categoryId: input.fallbackSignals.categoryId,
+      coverImageUrl: input.coverImageUrl ?? "",
+      bodyMarkdown: body.join("\n"),
+      generationSummary: "규칙 기반 초안을 먼저 준비했습니다",
+      visibility: buildFallbackVisibility(input),
+    };
+  }
+
+function buildFallbackVisibility(input) {
+  return {
+    questionMap: [
+      `${input.proposal.projectName}는 무엇을 바꾸려 하는가`,
+      `${input.proposal.projectName}를 무엇이 아니라 무엇으로 읽어야 하는가`,
+      cleanText(input.proposal.whyNow)
+        ? `왜 지금 ${input.proposal.projectName}를 봐야 하는가`
+        : "왜 지금 중요한지에 대한 근거가 충분한가",
+    ],
+    answerBlock:
+      cleanText(input.proposal.summary) ||
+      `${input.proposal.projectName}가 만드는 구조 변화를 한 문장으로 먼저 설명해야 합니다.`,
+    evidenceBlocks:
+      input.fallbackSignals.evidencePoints.length > 0
+        ? input.fallbackSignals.evidencePoints
+        : [cleanText(input.proposal.productDescription) || "공식 링크와 원문 설명에서 사실 포인트를 더 보강해야 합니다."],
+    entityMap: [
+      `주체: ${input.proposal.projectName}`,
+      cleanText(input.proposal.stage) ? `단계: ${cleanText(input.proposal.stage)}` : "단계: 추가 확인 필요",
+      cleanText(input.proposal.market) ? `시장: ${cleanText(input.proposal.market)}` : "시장: 추가 확인 필요",
+    ],
+    citationSuggestions:
+      input.links.length > 0
+        ? input.links.slice(0, 4).map((link) => `${link.linkType}: ${link.label ?? link.url}`)
+        : ["공식 링크나 정책/가격 페이지를 최소 1개 이상 확보해야 합니다."],
+    schemaParityChecks: [
+      "title, excerpt, interpretiveFrame이 visible text와 같은 결론을 말하는지 확인합니다.",
+      "structured data가 visible text보다 앞서 과장된 표현을 하지 않게 맞춥니다.",
+    ],
+    caveatBlock:
+      input.fallbackSignals.missingInfo[0] ??
+      "근거와 최신성이 더 보강되기 전까지는 판단문을 과장하지 않는 편이 안전합니다.",
+    conversionNextStep:
+      cleanText(input.proposal.market)
+        ? `${cleanText(input.proposal.market)} 관점에서 왜 먼저 보이는지 후속 문장을 덧붙입니다.`
+        : "비교 지점과 다음 읽을 거리를 붙여 전환 동선을 더 선명하게 만듭니다.",
+    freshnessNote:
+      cleanText(input.proposal.updatedAt)
+        ? `기준 자료 시점은 ${cleanText(input.proposal.updatedAt)} 입니다.`
+        : "기준 자료의 날짜를 명시해 freshness를 잠가야 합니다.",
+    visibilityChecklist: {
+      eligibility: input.links.length > 0 ? "strong" : "needs_work",
+      relevance: cleanText(input.proposal.summary) ? "strong" : "needs_work",
+      extractability: cleanText(input.proposal.summary) ? "needs_work" : "missing",
+      groundability: input.fallbackSignals.evidencePoints.length > 0 ? "needs_work" : "missing",
+      convertibility: cleanText(input.proposal.market) ? "needs_work" : "missing",
+    },
   };
 }
 
@@ -384,6 +526,18 @@ async function handleGenerateDraft(payload) {
     signals = signalSchema.parse(signalResponse);
   } catch (error) {
     console.error("DIM generator signal extraction fallback", error);
+    signals = signalSchema.parse({
+      ...input.fallbackSignals,
+      coreShift: limitText(input.fallbackSignals.coreShift, 260),
+      whyNowPressure: limitText(input.fallbackSignals.whyNowPressure, 260),
+      evidencePoints: input.fallbackSignals.evidencePoints
+        .slice(0, 5)
+        .map((point) => limitText(point, 220)),
+      missingInfo: input.fallbackSignals.missingInfo
+        .slice(0, 5)
+        .map((point) => limitText(point, 220)),
+      titleDirection: limitText(input.fallbackSignals.titleDirection, 180),
+    });
   }
 
   try {
@@ -392,16 +546,17 @@ async function handleGenerateDraft(payload) {
       signals.categoryId,
       signals.titleDirection,
     );
-    const draftResponse = await requestStructuredJson({
-      model: input.draftModel || draftModel,
-      schemaName: "dim_editorial_draft",
-      schema: draftOutputSchema,
-      systemPrompt: [
-        input.bonchallyeokSystemPrompt,
-        "당신의 출력은 DIM 편집자가 거의 바로 손볼 수 있는 고품질 초안이어야 한다.",
-        "한 줄 소개는 첫 답변, 핵심 판단은 편집 결론, 본문은 구조 변화의 이유를 설명해야 한다.",
-        "기계적인 문장, 광고 카피, 보도자료 요약 문체를 금지한다.",
-      ].join("\n\n"),
+      const draftResponse = await requestStructuredJson({
+        model: input.draftModel || draftModel,
+        schemaName: "dim_editorial_draft",
+        schema: draftOutputSchema,
+        systemPrompt: [
+          input.bonchallyeokSystemPrompt,
+          "당신의 출력은 DIM 편집자가 거의 바로 손볼 수 있는 고품질 초안이어야 한다.",
+          "한 줄 소개는 첫 답변, 핵심 판단은 편집 결론, 본문은 구조 변화의 이유를 설명해야 한다.",
+          "visibility metadata는 편집자가 extractability, groundability, entity clarity, conversion readiness를 바로 판단할 수 있게 써야 한다.",
+          "기계적인 문장, 광고 카피, 보도자료 요약 문체를 금지한다.",
+        ].join("\n\n"),
       userPrompt: buildDraftPrompt({
         proposal: input.proposal,
         signals,

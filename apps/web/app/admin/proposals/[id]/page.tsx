@@ -4,6 +4,7 @@ import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { DraftGenerationPanel } from "@/components/draft-generation-panel";
 import { ProposalProcessingActions } from "@/components/proposal-processing-actions";
 import { ProposalTriageActions } from "@/components/proposal-triage-actions";
+import { VisibilityReadinessPanel } from "@/components/visibility-readiness-panel";
 import {
   ADMIN_SECTION_LABELS,
   ADMIN_STATUS_LABELS,
@@ -247,6 +248,13 @@ export default async function ProposalDetailPage({
           summary={draftGeneration.summary}
           errorMessage={draftGeneration.errorMessage}
           hasDraft={proposal.hasDraft}
+        />
+      ) : null}
+
+      {proposal.status === "in_review" ? (
+        <VisibilityReadinessPanel
+          metadata={draftGeneration.visibility}
+          scope="proposal"
         />
       ) : null}
 

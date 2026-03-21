@@ -4,7 +4,12 @@ import { useMemo, useState } from "react";
 import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { DraftGenerationPanel } from "@/components/draft-generation-panel";
 import { EditorialDraftPreview } from "@/components/editorial-draft-preview";
-import type { DraftGenerationQuality, DraftGenerationViewState } from "@/lib/editorial-draft-generation";
+import { VisibilityReadinessPanel } from "@/components/visibility-readiness-panel";
+import type {
+  DraftGenerationQuality,
+  DraftGenerationViewState,
+  DraftVisibilityMetadata,
+} from "@/lib/editorial-draft-generation";
 import styles from "./editorial-draft-editor.module.css";
 
 type DraftCategoryOption = {
@@ -78,6 +83,7 @@ type EditorialDraftEditorProps = {
   generationQuality: DraftGenerationQuality;
   generationSummary?: string | null;
   generationErrorMessage?: string | null;
+  generationVisibility: DraftVisibilityMetadata | null;
 };
 
 function serializeDraft(record: EditorialDraftRecord) {
@@ -106,6 +112,7 @@ export function EditorialDraftEditor({
   generationQuality,
   generationSummary,
   generationErrorMessage,
+  generationVisibility,
 }: EditorialDraftEditorProps) {
   const [draft, setDraft] = useState(initialDraft);
   const [editorialAssetFamilies, setEditorialAssetFamilies] = useState(editorialAssets);
@@ -402,6 +409,8 @@ export function EditorialDraftEditor({
         errorMessage={generationErrorMessage}
         hasDraft
       />
+
+      <VisibilityReadinessPanel metadata={generationVisibility} scope="draft" />
 
       <section className={styles.statusRail}>
         <article className={styles.statusCard}>

@@ -1,5 +1,28 @@
 export const draftGenerationTaskType = "proposal.draft_generation";
 
+export type DraftVisibilityLevel = "strong" | "needs_work" | "missing";
+
+export type DraftVisibilityChecklist = {
+  eligibility: DraftVisibilityLevel;
+  relevance: DraftVisibilityLevel;
+  extractability: DraftVisibilityLevel;
+  groundability: DraftVisibilityLevel;
+  convertibility: DraftVisibilityLevel;
+};
+
+export type DraftVisibilityMetadata = {
+  questionMap: string[];
+  answerBlock: string;
+  evidenceBlocks: string[];
+  entityMap: string[];
+  citationSuggestions: string[];
+  schemaParityChecks: string[];
+  caveatBlock: string;
+  conversionNextStep: string;
+  freshnessNote: string;
+  visibilityChecklist: DraftVisibilityChecklist;
+};
+
 export type DraftGenerationViewState =
   | "idle"
   | "generating"
@@ -22,6 +45,7 @@ type DraftGenerationPayload = {
   generationStrategy?: string;
   signalStrategy?: string;
   generationSummary?: string;
+  visibility?: DraftVisibilityMetadata;
 };
 
 function parseGenerationPayload(payloadJson?: string | null): DraftGenerationPayload | null {
@@ -81,6 +105,7 @@ export function resolveDraftGenerationState(input: {
     summary: draftJobPayload?.generationSummary ?? null,
     errorMessage: draftJob?.errorMessage ?? null,
     strategy: draftJobPayload?.generationStrategy ?? null,
+    visibility: draftJobPayload?.visibility ?? null,
     hasSourceMismatch,
   };
 }

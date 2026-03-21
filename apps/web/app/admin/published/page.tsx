@@ -74,7 +74,7 @@ export default async function AdminPublishedPage({
   const filteredFeatures = filterFeatures(features, currentView, query);
   const viewLinks: Array<{ id: PublishedView; label: string; count: number }> = [
     { id: "all", label: "전체", count: features.length },
-    { id: "featured", label: "featured", count: features.filter((item) => item.featured).length },
+    { id: "featured", label: "대표 피처", count: features.filter((item) => item.featured).length },
     { id: "revision", label: "개정 있음", count: features.filter((item) => item.revision).length },
     { id: "stale", label: "개정 없음", count: features.filter((item) => !item.revision).length },
   ];
@@ -173,8 +173,8 @@ export default async function AdminPublishedPage({
                     <dd>{feature.revision?.status ?? "없음"}</dd>
                   </div>
                   <div>
-                    <dt>개정 proposal</dt>
-                    <dd>{feature.revision?.proposalId ?? "-"}</dd>
+                    <dt>담당</dt>
+                    <dd>{feature.revision?.assigneeEmail ?? "-"}</dd>
                   </div>
                   <div>
                     <dt>마지막 개정 갱신</dt>

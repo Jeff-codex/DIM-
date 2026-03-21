@@ -24,6 +24,7 @@ export type PublishedFeatureAdminItem = {
     updatedAt: string;
     hasDraft: boolean;
     hasSnapshot: boolean;
+    assigneeEmail: string | null;
   } | null;
 };
 
@@ -31,7 +32,30 @@ export type PublishedFeatureAdminDetail = PublishedFeatureAdminItem & {
   bodyHtml: string;
   bodyMarkdown: string;
   authorName: string;
+  revisionDetail: {
+    proposalId: string;
+    status: string;
+    updatedAt: string;
+    hasDraft: boolean;
+    hasSnapshot: boolean;
+    assigneeEmail: string | null;
+    reviewNote: string | null;
+    reviewedAt: string | null;
+    workflowEvents: Array<{
+      id: string;
+      fromState: string | null;
+      toState: string | null;
+      actorType: string;
+      actorId: string | null;
+      note: string | null;
+      createdAt: string;
+    }>;
+  } | null;
 };
+
+type PublishedRevisionWorkflowEvent = NonNullable<
+  PublishedFeatureAdminDetail["revisionDetail"]
+>["workflowEvents"][number];
 
 function buildRevisionSeedDraft(input: {
   proposalId: string;
@@ -87,6 +111,7 @@ async function listRevisionMap() {
        p.id AS proposalId,
        p.status,
        p.updated_at AS updatedAt,
+       p.assignee_email AS assigneeEmail,
        p.dedupe_key AS dedupeKey,
        EXISTS(
          SELECT 1
@@ -107,6 +132,7 @@ async function listRevisionMap() {
       proposalId: string;
       status: string;
       updatedAt: string;
+      assigneeEmail: string | null;
       dedupeKey: string | null;
       hasDraft: number;
       hasSnapshot: number;
@@ -120,6 +146,7 @@ async function listRevisionMap() {
       updatedAt: string;
       hasDraft: boolean;
       hasSnapshot: boolean;
+      assigneeEmail: string | null;
     }
   >();
 
@@ -136,6 +163,7 @@ async function listRevisionMap() {
       updatedAt: row.updatedAt,
       hasDraft: row.hasDraft === 1,
       hasSnapshot: row.hasSnapshot === 1,
+      assigneeEmail: row.assigneeEmail,
     });
   }
 
@@ -165,13 +193,87 @@ export async function listPublishedFeaturesForAdmin(): Promise<PublishedFeatureA
 export async function getPublishedFeatureDetailForAdmin(
   slug: string,
 ): Promise<PublishedFeatureAdminDetail | null> {
-  const [source, revisionMap] = await Promise.all([
+  const [source, revisionMap, env] = await Promise.all([
     getPublishedArticleSourceBySlug(slug),
     listRevisionMap(),
+    getEditorialEnv({
+      requireBucket: false,
+      requireQueue: false,
+    }),
   ]);
 
   if (!source) {
     return null;
+  }
+
+  const revision = revisionMap.get(source.article.slug) ?? null;
+  let revisionDetail: PublishedFeatureAdminDetail["revisionDetail"] = null;
+
+  if (revision) {
+    const revisionRecord = await env.EDITORIAL_DB.prepare(
+      `SELECT
+         p.id AS proposalId,
+         p.status,
+         p.updated_at AS updatedAt,
+         p.assignee_email AS assigneeEmail,
+         p.review_note AS reviewNote,
+         p.reviewed_at AS reviewedAt,
+         EXISTS(
+           SELECT 1
+           FROM editorial_draft ed
+           WHERE ed.proposal_id = p.id
+         ) AS hasDraft,
+         EXISTS(
+           SELECT 1
+           FROM publication_snapshot ps
+           WHERE ps.proposal_id = p.id
+         ) AS hasSnapshot
+       FROM proposal p
+       WHERE p.id = ?
+       LIMIT 1`,
+    )
+      .bind(revision.proposalId)
+      .first<{
+        proposalId: string;
+        status: string;
+        updatedAt: string;
+        assigneeEmail: string | null;
+        reviewNote: string | null;
+        reviewedAt: string | null;
+        hasDraft: number;
+        hasSnapshot: number;
+      }>();
+
+    const workflowEventsResult = await env.EDITORIAL_DB.prepare(
+      `SELECT
+         id,
+         from_state AS fromState,
+         to_state AS toState,
+         actor_type AS actorType,
+         actor_id AS actorId,
+         note,
+         created_at AS createdAt
+       FROM workflow_event
+       WHERE subject_type = 'proposal'
+         AND subject_id = ?
+       ORDER BY created_at DESC`,
+    )
+      .bind(revision.proposalId)
+      .all<PublishedRevisionWorkflowEvent>();
+
+    if (revisionRecord) {
+      revisionDetail = {
+        proposalId: revisionRecord.proposalId,
+        status: revisionRecord.status,
+        updatedAt: revisionRecord.updatedAt,
+        hasDraft: revisionRecord.hasDraft === 1,
+        hasSnapshot: revisionRecord.hasSnapshot === 1,
+        assigneeEmail: revisionRecord.assigneeEmail,
+        reviewNote: revisionRecord.reviewNote,
+        reviewedAt: revisionRecord.reviewedAt,
+        workflowEvents: workflowEventsResult.results ?? [],
+      };
+    }
   }
 
   return {
@@ -184,10 +286,11 @@ export async function getPublishedFeatureDetailForAdmin(
     categoryName: source.article.category.name,
     publishedAt: source.article.publishedAt,
     featured: source.article.featured,
-    revision: revisionMap.get(source.article.slug) ?? null,
+    revision,
     bodyHtml: source.bodyHtml,
     bodyMarkdown: source.bodyMarkdown,
     authorName: source.article.author.name,
+    revisionDetail,
   };
 }
 

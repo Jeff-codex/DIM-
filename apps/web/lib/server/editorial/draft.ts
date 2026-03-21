@@ -1,7 +1,10 @@
 import "server-only";
 import { z } from "zod";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
-import { draftGenerationTaskType } from "@/lib/editorial-draft-generation";
+import {
+  draftGenerationTaskType,
+  type DraftVisibilityMetadata,
+} from "@/lib/editorial-draft-generation";
 import {
   requestEditorialStructuredJson,
   getEditorialAiConfig,
@@ -111,8 +114,30 @@ const aiSignalOutputSchema = z.object({
   titleDirection: z.string().trim().min(1).max(180),
 });
 
+const aiVisibilityLevelSchema = z.enum(["strong", "needs_work", "missing"]);
+
+const aiVisibilityMetadataSchema = z.object({
+  questionMap: z.array(z.string().trim().min(1).max(160)).max(6),
+  answerBlock: z.string().trim().min(1).max(320),
+  evidenceBlocks: z.array(z.string().trim().min(1).max(260)).max(6),
+  entityMap: z.array(z.string().trim().min(1).max(220)).max(8),
+  citationSuggestions: z.array(z.string().trim().min(1).max(220)).max(6),
+  schemaParityChecks: z.array(z.string().trim().min(1).max(220)).max(6),
+  caveatBlock: z.string().trim().min(1).max(260),
+  conversionNextStep: z.string().trim().min(1).max(220),
+  freshnessNote: z.string().trim().min(1).max(220),
+  visibilityChecklist: z.object({
+    eligibility: aiVisibilityLevelSchema,
+    relevance: aiVisibilityLevelSchema,
+    extractability: aiVisibilityLevelSchema,
+    groundability: aiVisibilityLevelSchema,
+    convertibility: aiVisibilityLevelSchema,
+  }),
+});
+
 const aiDraftOutputSchema = editorialDraftInputSchema.extend({
   generationSummary: z.string().trim().min(1).max(220),
+  visibility: aiVisibilityMetadataSchema,
 });
 
 type AiSignalOutput = z.infer<typeof aiSignalOutputSchema>;
@@ -145,6 +170,7 @@ type DraftGenerationMeta = {
   generationStrategy: "external" | "direct_openai" | "rule_seed";
   signalStrategy: "ai" | "rule";
   generationSummary: string;
+  visibility: DraftVisibilityMetadata;
   generationError?: string;
   signalModel?: string;
   draftModel?: string;
@@ -219,6 +245,7 @@ const aiDraftSchema = {
     "coverImageUrl",
     "bodyMarkdown",
     "generationSummary",
+    "visibility",
   ],
   properties: {
     title: { type: "string" },
@@ -236,6 +263,71 @@ const aiDraftSchema = {
     coverImageUrl: { type: "string" },
     bodyMarkdown: { type: "string" },
     generationSummary: { type: "string" },
+    visibility: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "questionMap",
+        "answerBlock",
+        "evidenceBlocks",
+        "entityMap",
+        "citationSuggestions",
+        "schemaParityChecks",
+        "caveatBlock",
+        "conversionNextStep",
+        "freshnessNote",
+        "visibilityChecklist",
+      ],
+      properties: {
+        questionMap: {
+          type: "array",
+          maxItems: 6,
+          items: { type: "string" },
+        },
+        answerBlock: { type: "string" },
+        evidenceBlocks: {
+          type: "array",
+          maxItems: 6,
+          items: { type: "string" },
+        },
+        entityMap: {
+          type: "array",
+          maxItems: 8,
+          items: { type: "string" },
+        },
+        citationSuggestions: {
+          type: "array",
+          maxItems: 6,
+          items: { type: "string" },
+        },
+        schemaParityChecks: {
+          type: "array",
+          maxItems: 6,
+          items: { type: "string" },
+        },
+        caveatBlock: { type: "string" },
+        conversionNextStep: { type: "string" },
+        freshnessNote: { type: "string" },
+        visibilityChecklist: {
+          type: "object",
+          additionalProperties: false,
+          required: [
+            "eligibility",
+            "relevance",
+            "extractability",
+            "groundability",
+            "convertibility",
+          ],
+          properties: {
+            eligibility: { type: "string", enum: ["strong", "needs_work", "missing"] },
+            relevance: { type: "string", enum: ["strong", "needs_work", "missing"] },
+            extractability: { type: "string", enum: ["strong", "needs_work", "missing"] },
+            groundability: { type: "string", enum: ["strong", "needs_work", "missing"] },
+            convertibility: { type: "string", enum: ["strong", "needs_work", "missing"] },
+          },
+        },
+      },
+    },
   },
 } satisfies Record<string, unknown>;
 
@@ -251,6 +343,10 @@ type ProposalSeedInput = {
 
 function cleanText(value?: string | null) {
   return value?.trim() ?? "";
+}
+
+function limitText(value: string, max: number) {
+  return value.length <= max ? value : `${value.slice(0, max - 1).trimEnd()}…`;
 }
 
 function firstImageAssetUrl(
@@ -293,6 +389,60 @@ function buildSeedDraft(
     sourceSnapshot,
     createdAt: now,
     updatedAt: now,
+  };
+}
+
+function buildFallbackVisibility(input: {
+  proposal: ProposalSeedInput;
+  links: ProposalLinkRecord[];
+  signals: AiSignalOutput;
+}): DraftVisibilityMetadata {
+  return {
+    questionMap: [
+      `${input.proposal.projectName}는 무엇을 바꾸려 하는가`,
+      `${input.proposal.projectName}를 무엇이 아니라 무엇으로 읽어야 하는가`,
+      cleanText(input.proposal.whyNow)
+        ? `왜 지금 ${input.proposal.projectName}를 봐야 하는가`
+        : "왜 지금 중요한지에 대한 근거가 충분한가",
+    ],
+    answerBlock:
+      cleanText(input.proposal.summary) ||
+      `${input.proposal.projectName}가 만드는 구조 변화를 한 문장으로 먼저 설명해야 합니다.`,
+    evidenceBlocks:
+      input.signals.evidencePoints.length > 0
+        ? input.signals.evidencePoints
+        : [cleanText(input.proposal.productDescription) || "공식 링크와 원문 설명에서 사실 포인트를 더 뽑아야 합니다."],
+    entityMap: [
+      `주체: ${input.proposal.projectName}`,
+      cleanText(input.proposal.stage) ? `단계: ${cleanText(input.proposal.stage)}` : "단계: 추가 확인 필요",
+      cleanText(input.proposal.market) ? `시장: ${cleanText(input.proposal.market)}` : "시장: 추가 확인 필요",
+    ],
+    citationSuggestions:
+      input.links.length > 0
+        ? input.links.slice(0, 4).map((link) => `${link.linkType}: ${link.label ?? link.url}`)
+        : ["공식 링크나 정책/가격 페이지를 최소 1개 이상 확보해야 합니다."],
+    schemaParityChecks: [
+      "title, excerpt, interpretiveFrame이 visible text와 같은 결론을 말하는지 확인합니다.",
+      "structured data가 visible text보다 과장된 주장을 하지 않게 맞춥니다.",
+    ],
+    caveatBlock:
+      input.signals.missingInfo[0] ??
+      "근거와 최신성이 더 보강되기 전까지는 판단문을 과장하지 않는 편이 안전합니다.",
+    conversionNextStep:
+      cleanText(input.proposal.market)
+        ? `${cleanText(input.proposal.market)} 관점에서 왜 먼저 보이는지 후속 문장을 덧붙입니다.`
+        : "비교 지점과 다음 읽을 거리를 붙여 전환 동선을 더 선명하게 만듭니다.",
+    freshnessNote:
+      cleanText(input.proposal.updatedAt)
+        ? `기준 자료 시점은 ${cleanText(input.proposal.updatedAt)} 입니다.`
+        : "기준 자료의 날짜를 명시해 freshness를 잠가야 합니다.",
+    visibilityChecklist: {
+      eligibility: input.links.length > 0 ? "strong" : "needs_work",
+      relevance: cleanText(input.proposal.summary) ? "strong" : "needs_work",
+      extractability: cleanText(input.proposal.summary) ? "needs_work" : "missing",
+      groundability: input.signals.evidencePoints.length > 0 ? "needs_work" : "missing",
+      convertibility: cleanText(input.proposal.market) ? "needs_work" : "missing",
+    },
   };
 }
 
@@ -429,6 +579,8 @@ function buildDraftUserPrompt(input: {
     "아래 proposal을 DIM의 본찰력 기준으로 재해석한 초안을 작성한다.",
     "목표는 즉시 발행이 아니라, 거의 바로 편집 가능한 고품질 초안이다.",
     "제안 원문을 반복하지 말고, 무엇이 아니라 무엇으로 읽어야 하는지 판단문으로 남겨라.",
+    "초안은 단순 기사 문장이 아니라 search-answer-generative ready knowledge object여야 한다.",
+    "excerpt는 direct answer block, interpretiveFrame은 편집 결론, visibility 메타는 근거/엔터티/전환 준비도를 설명해야 한다.",
     "",
     `프로젝트명: ${input.proposal.projectName}`,
     `한 줄 소개: ${cleanText(input.proposal.summary) || "(없음)"}`,
@@ -449,6 +601,14 @@ function buildDraftUserPrompt(input: {
       ? input.links.map((link) => `- [${link.linkType}] ${link.label ?? "(라벨 없음)"} :: ${link.url}`)
       : ["- (없음)"]),
     "",
+    "SEO/AEO/GEO 고정 계약:",
+    "- 검색 노출을 위해 eligibility, relevance, extractability, groundability, convertibility를 함께 고려한다.",
+    "- AEO는 답을 앞에 두고 질문형 구조, 짧은 정의, 표, 목록을 활용한다.",
+    "- GEO는 citations, quotations, statistics, readability, fluency, source hygiene를 강화하고 keyword stuffing을 피한다.",
+    "- visible text와 structured data는 반드시 같은 사실을 말해야 한다.",
+    "- evidence density가 adjective density보다 높아야 한다.",
+    "- entity map은 회사명, 제품명, 시장, 날짜, 정책, 가격, 링크 주체를 흔들리지 않게 정리해야 한다.",
+    "",
     "스타일 예시:",
     ...input.styleExamples.map(
       (example, index) =>
@@ -456,12 +616,17 @@ function buildDraftUserPrompt(input: {
     ),
     "",
     "본문은 다음 섹션 순서를 유지한다.",
+    "## 핵심 답변",
     "## 무엇이 바뀌었나",
     "## 어떤 구조를 봐야 하나",
+    "## 근거와 확인 포인트",
     "## 왜 지금 중요한가",
     "## DIM의 해석",
+    "## 주의할 점",
+    "## 다음 읽기와 전환",
     "시장 정보가 충분하면 '## 누구에게 먼저 보이는가'를 넣어도 된다.",
     "과장하지 말고, 뉴스 기사처럼 나열하지 말며, DIM다운 편집 결론으로 수렴한다.",
+    "또한 visibility 메타로 questionMap, answerBlock, evidenceBlocks, entityMap, citationSuggestions, schemaParityChecks, caveatBlock, conversionNextStep, freshnessNote, visibilityChecklist를 함께 생성한다.",
   ].join("\n");
 }
 
@@ -473,15 +638,27 @@ async function generateAiSignals(input: {
   const config = await getEditorialAiConfigSafe();
   const fallback = buildRuleSignals(input.proposal, input.links);
 
-  if (!config.enabled) {
+  if (!config.enabled || (config.externalGeneratorConfigured && !config.apiKeyPresent)) {
     return aiSignalOutputSchema.parse({
       ...fallback,
-      coreShift: input.proposal.summary ?? `${input.proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
+      coreShift: limitText(
+        input.proposal.summary ??
+          `${input.proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
+        260,
+      ),
       whyNowPressure:
-        input.proposal.whyNow ?? "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
-      evidencePoints: [input.proposal.productDescription ?? "공개 설명과 공식 링크를 먼저 확인합니다."],
+        limitText(
+          input.proposal.whyNow ?? "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
+          260,
+        ),
+      evidencePoints: [
+        limitText(
+          input.proposal.productDescription ?? "공개 설명과 공식 링크를 먼저 확인합니다.",
+          220,
+        ),
+      ],
       missingInfo: [],
-      titleDirection: input.proposal.projectName,
+      titleDirection: limitText(input.proposal.projectName, 180),
     });
   }
 
@@ -505,12 +682,24 @@ async function generateAiSignals(input: {
 
     return aiSignalOutputSchema.parse({
       ...fallback,
-      coreShift: input.proposal.summary ?? `${input.proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
+      coreShift: limitText(
+        input.proposal.summary ??
+          `${input.proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
+        260,
+      ),
       whyNowPressure:
-        input.proposal.whyNow ?? "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
-      evidencePoints: [input.proposal.productDescription ?? "공개 설명과 공식 링크를 먼저 확인합니다."],
+        limitText(
+          input.proposal.whyNow ?? "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
+          260,
+        ),
+      evidencePoints: [
+        limitText(
+          input.proposal.productDescription ?? "공개 설명과 공식 링크를 먼저 확인합니다.",
+          220,
+        ),
+      ],
       missingInfo: [],
-      titleDirection: input.proposal.projectName,
+      titleDirection: limitText(input.proposal.projectName, 180),
     });
   }
 }
@@ -588,6 +777,24 @@ async function generateAiDraft(input: {
     input.editorEmail,
     coverImageUrl,
   );
+  const fallbackSignals = buildRuleSignals(input.proposal, input.links);
+  const fallbackVisibility = buildFallbackVisibility({
+    proposal: input.proposal,
+    links: input.links,
+    signals: aiSignalOutputSchema.parse({
+      ...fallbackSignals,
+      coreShift:
+        input.proposal.summary ??
+        `${input.proposal.projectName}가 어떤 구조 변화를 만드는지 먼저 봅니다.`,
+      whyNowPressure:
+        input.proposal.whyNow ?? "왜 지금 이 제안이 나왔는지에 대한 압력이 더 필요합니다.",
+      evidencePoints: [
+        input.proposal.productDescription ?? "공개 설명과 공식 링크를 먼저 확인합니다.",
+      ],
+      missingInfo: [],
+      titleDirection: input.proposal.projectName,
+    }),
+  });
 
   if (!config.enabled) {
     return {
@@ -597,20 +804,21 @@ async function generateAiDraft(input: {
         generationStrategy: "rule_seed",
         signalStrategy: "rule",
         generationSummary: "OpenAI 설정이 없어 규칙 기반 초안을 먼저 만들었습니다",
+        visibility: fallbackVisibility,
       },
     };
   }
 
   try {
     const bonchallyeokSystemPrompt = buildBonchallyeokSystemPrompt();
-    const fallbackSignals = await generateAiSignals({
+    const generatedSignals = await generateAiSignals({
       proposal: input.proposal,
       links: input.links,
       assets: input.assets,
     });
     const styleExamples = chooseStyleExamples(
-      fallbackSignals.categoryId,
-      fallbackSignals.titleDirection,
+      generatedSignals.categoryId,
+      generatedSignals.titleDirection,
     );
 
     const external = await requestExternalDraftGeneration({
@@ -620,7 +828,7 @@ async function generateAiDraft(input: {
       links: input.links,
       assets: input.assets,
       coverImageUrl,
-      fallbackSignals,
+      fallbackSignals: generatedSignals,
       styleExamplesPool: publishedStyleExamples,
       bonchallyeokSystemPrompt,
       config,
@@ -646,6 +854,7 @@ async function generateAiDraft(input: {
           generationStrategy: "external",
           signalStrategy: "ai",
           generationSummary: parsed.generationSummary,
+          visibility: parsed.visibility,
           signalModel: config.signalModel,
           draftModel: config.draftModel,
         },
@@ -666,7 +875,7 @@ async function generateAiDraft(input: {
         proposal: input.proposal,
         links: input.links,
         assets: input.assets,
-        signals: fallbackSignals,
+        signals: generatedSignals,
         styleExamples,
       }),
       maxOutputTokens: 4200,
@@ -690,6 +899,7 @@ async function generateAiDraft(input: {
         generationStrategy: "direct_openai",
         signalStrategy: "ai",
         generationSummary: parsed.generationSummary,
+        visibility: parsed.visibility,
         signalModel: config.signalModel,
         draftModel: config.draftModel,
       },
@@ -706,6 +916,7 @@ async function generateAiDraft(input: {
         signalStrategy: "rule",
         generationSummary:
           "자동 초안 생성이 끝까지 이어지지 않아 규칙 기반 초안을 먼저 만들었습니다",
+        visibility: fallbackVisibility,
         generationError,
         signalModel: config.signalModel,
         draftModel: config.draftModel,

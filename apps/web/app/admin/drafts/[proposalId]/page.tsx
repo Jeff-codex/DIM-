@@ -83,6 +83,7 @@ export default async function EditorialDraftPage({
       generationQuality={draftGeneration.quality}
       generationSummary={draftGeneration.summary}
       generationErrorMessage={draftGeneration.errorMessage}
+      generationVisibility={draftGeneration.visibility}
     />
   );
 }
