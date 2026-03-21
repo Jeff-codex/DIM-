@@ -276,11 +276,16 @@ async function storeEditorialAssetFamily(input: {
     const r2Key = `editorial/${input.proposalId}/${familyId}/${role}.jpg`;
     const body = Buffer.from(variant.contentBase64, "base64");
 
-    await env.INTAKE_BUCKET.put(r2Key, body, {
-      httpMetadata: {
-        contentType: variant.mimeType,
-      },
-    });
+    try {
+      await env.INTAKE_BUCKET.put(r2Key, body, {
+        httpMetadata: {
+          contentType: variant.mimeType,
+        },
+      });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "unknown_r2_error";
+      throw new Error(`editorial_asset_variant_store_failed (${role}): ${detail}`);
+    }
 
     rows.push({
       id: assetId,
@@ -301,49 +306,61 @@ async function storeEditorialAssetFamily(input: {
     });
   }
 
-  await env.EDITORIAL_DB.batch(
-    rows.map((row) =>
-      env.EDITORIAL_DB.prepare(
-        `INSERT INTO editorial_asset (
-           id,
-           family_id,
-           proposal_id,
-           source_type,
-           source_proposal_asset_id,
-           role,
-           variant_key,
-           r2_key,
-           public_url,
-           original_filename,
-           mime_type,
-           width,
-           height,
-           size_bytes,
-           created_by,
-           created_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(
-        row.id,
-        row.familyId,
-        row.proposalId,
-        row.sourceType,
-        row.sourceProposalAssetId,
-        row.role,
-        row.variantKey,
-        `editorial/${input.proposalId}/${familyId}/${row.role}.jpg`,
-        row.publicUrl,
-        row.originalFilename,
-        row.mimeType,
-        row.width,
-        row.height,
-        row.sizeBytes,
-        row.createdBy,
-        row.createdAt,
+  try {
+    await env.EDITORIAL_DB.batch(
+      rows.map((row) =>
+        env.EDITORIAL_DB.prepare(
+          `INSERT INTO editorial_asset (
+             id,
+             family_id,
+             proposal_id,
+             source_type,
+             source_proposal_asset_id,
+             role,
+             variant_key,
+             r2_key,
+             public_url,
+             original_filename,
+             mime_type,
+             width,
+             height,
+             size_bytes,
+             created_by,
+             created_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ).bind(
+          row.id,
+          row.familyId,
+          row.proposalId,
+          row.sourceType,
+          row.sourceProposalAssetId,
+          row.role,
+          row.variantKey,
+          `editorial/${input.proposalId}/${familyId}/${row.role}.jpg`,
+          row.publicUrl,
+          row.originalFilename,
+          row.mimeType,
+          row.width,
+          row.height,
+          row.sizeBytes,
+          row.createdBy,
+          row.createdAt,
+        ),
       ),
-    ),
-  );
+    );
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "unknown_db_error";
+    throw new Error(`editorial_asset_family_store_failed: ${detail}`);
+  }
 
   const storedRows = await getEditorialAssetRowsByFamilyId(familyId);
+
+  if (storedRows.length < 3) {
+    throw new Error(
+      `editorial_asset_family_store_failed: persisted_rows=${storedRows.length}`,
+    );
+  }
+
   return groupEditorialAssetRows(storedRows)[0] ?? null;
 }
 

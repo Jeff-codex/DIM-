@@ -364,12 +364,17 @@ export function EditorialDraftEditor({
             family?: EditorialDraftEditorProps["editorialAssets"][number];
             draft?: EditorialDraftRecord;
             error?: string;
+            detail?: string;
+            rawDetail?: string | null;
           }
         | null;
 
       if (!response.ok || !data?.family) {
         const detailMessage =
-          humanizeDraftGenerationErrorMessage(data?.error ?? null) ?? data?.error ?? null;
+          data?.detail ??
+          humanizeDraftGenerationErrorMessage(data?.rawDetail ?? data?.error ?? null) ??
+          data?.error ??
+          null;
 
         if (data?.error === "editorial_image_type_invalid") {
           throw new Error("이미지 형식이 맞지 않습니다. JPG, PNG, WEBP만 올릴 수 있습니다");
@@ -441,12 +446,17 @@ export function EditorialDraftEditor({
             family?: EditorialDraftEditorProps["editorialAssets"][number];
             draft?: EditorialDraftRecord;
             error?: string;
+            detail?: string;
+            rawDetail?: string | null;
           }
         | null;
 
       if (!response.ok || !data?.family?.master) {
         const detailMessage =
-          humanizeDraftGenerationErrorMessage(data?.error ?? null) ?? data?.error ?? null;
+          data?.detail ??
+          humanizeDraftGenerationErrorMessage(data?.rawDetail ?? data?.error ?? null) ??
+          data?.error ??
+          null;
 
         if (data?.error === "proposal_asset_not_image") {
           throw new Error("이미지 첨부만 커버로 승격할 수 있습니다");

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminIdentity } from "@/lib/server/editorial/admin";
 import { promoteProposalAssetForProposal } from "@/lib/server/editorial/assets";
+import { humanizeDraftGenerationErrorMessage } from "@/lib/editorial-draft-generation";
 import { updateEditorialDraftCoverImage } from "@/lib/server/editorial/draft";
 
 export const runtime = "nodejs";
@@ -57,15 +58,33 @@ export async function POST(
   } catch (error) {
     console.error("Failed to promote proposal asset", error);
 
-    const message =
+    const rawDetail =
       error instanceof Error ? error.message : "editorial_asset_promote_failed";
+    const detail =
+      humanizeDraftGenerationErrorMessage(rawDetail) ??
+      "원본 이미지를 편집용 자산으로 준비하지 못했습니다.";
+    const status =
+      rawDetail === "proposal_asset_not_found" ||
+      rawDetail === "proposal_asset_not_image" ||
+      rawDetail === "proposal_asset_body_not_found" ||
+      rawDetail === "image_too_small_for_editorial_master"
+        ? 400
+        : rawDetail.includes("editorial_asset_variant_store_failed") ||
+            rawDetail.includes("editorial_asset_family_store_failed") ||
+            rawDetail.includes("editorial_draft_cover_apply_failed") ||
+            rawDetail.includes("editorial_image_generator_not_configured") ||
+            rawDetail.includes("editorial_image_generator_failed")
+          ? 500
+          : 400;
 
     return NextResponse.json(
       {
         ok: false,
-        error: message,
+        error: rawDetail,
+        detail,
+        rawDetail,
       },
-      { status: 400 },
+      { status },
     );
   }
 }

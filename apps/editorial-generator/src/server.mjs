@@ -497,6 +497,7 @@ function buildDraftPrompt(input) {
     "초안은 AI가 쓴 것처럼 보이면 안 되며, 실제 전문 에디터가 한 번 손본 문장처럼 자연스럽고 정돈되어야 한다.",
     "제안 원문을 반복하지 말고, 무엇이 아니라 무엇으로 읽어야 하는지 판단문으로 남겨라.",
     "출력은 실제 발행 직전까지 다듬을 수 있는 기사 초안이어야 한다.",
+    "제출 폼의 '무엇이 바뀌었나 / 어떤 구조를 봐야 하나 / 왜 지금 중요한가 / 누구에게 먼저 보이는가'는 내부 생성 규칙일 뿐, 그대로 제목이나 섹션명으로 쓰지 않는다.",
     "",
     `프로젝트명: ${input.proposal.projectName}`,
     `한 줄 소개: ${compactProposalText(input.proposal.summary, 180)}`,
@@ -523,16 +524,14 @@ function buildDraftPrompt(input) {
         `${index + 1}. 제목: ${limitText(example.title, 84)}\n   핵심 판단: ${limitText(example.interpretiveFrame, 140)}`,
     ),
     "",
-    "본문은 다음 섹션 순서를 유지한다.",
-    "## 핵심 답변",
-    "## 무엇이 바뀌었나",
-    "## 어떤 구조를 봐야 하나",
-    "## 근거와 확인 포인트",
-    "## 왜 지금 중요한가",
-    "## DIM의 해석",
-    "## 주의할 점",
-    "## 다음 읽기와 전환",
-    "시장 정보가 충분하면 '## 누구에게 먼저 보이는가'를 넣어도 된다.",
+    "본문은 다음 흐름을 유지한다.",
+    "1. 첫 문장에서 핵심 답변을 분명히 제시한다.",
+    "2. 구조 변화의 핵심을 풀어 쓴다.",
+    "3. 시장 압력과 운영 맥락을 설명한다.",
+    "4. 근거와 확인 포인트를 짧게 묶는다.",
+    "5. DIM의 해석과 주의할 점을 남긴다.",
+    "6. 시장 정보가 충분하면 어떤 주체에게 먼저 보이는지 덧붙인다.",
+    "소비자용 제출 문구를 섹션 제목으로 복사하지 말고, 실제 기사 문법으로 다시 편집한다.",
     `카테고리는 다음 중 하나만 선택한다: ${categoryIds.join(", ")}`,
   ].join("\n");
 }
@@ -540,18 +539,18 @@ function buildDraftPrompt(input) {
 function buildFallbackDraft(input) {
   const proposal = input.proposal;
   const body = [
-    "## 무엇이 바뀌었나",
+    "## 구조 변화의 핵심",
     proposal.summary ?? `${proposal.projectName}가 무엇을 바꾸려 하는지 정리합니다.`,
     "",
-    "## 어떤 구조를 봐야 하나",
+    "## 시장 압력과 재편",
     proposal.productDescription ?? "공개 자료와 설명을 기준으로 제품, 운영, 유통 구조를 먼저 정리합니다.",
     "",
-    "## 왜 지금 중요한가",
+    "## 지금 읽어야 하는 이유",
     proposal.whyNow ?? "지금 이 변화가 어떤 시장 맥락에서 의미를 갖는지 덧붙입니다.",
   ];
 
   if (proposal.market) {
-    body.push("", "## 누구에게 먼저 보이는가", proposal.market);
+    body.push("", "## 먼저 움직일 주체", proposal.market);
   }
 
   return {
@@ -758,7 +757,7 @@ async function handleGenerateDraft(payload) {
     titleDirection: limitText(input.fallbackSignals.titleDirection, 180),
   });
   let generationStatus = "fallback";
-  let signalError = "signal_openai_disabled_for_latency";
+  let signalError = null;
   let draftError = null;
   let fallbackStage = null;
 
@@ -786,7 +785,7 @@ async function handleGenerateDraft(payload) {
         signals,
         styleExamples,
       }),
-      maxOutputTokens: 1600,
+      maxOutputTokens: 1200,
       reasoningEffort: "low",
       verbosity: "low",
     });

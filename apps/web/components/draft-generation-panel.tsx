@@ -142,7 +142,11 @@ export function DraftGenerationPanel({
     }
 
     if (response.status >= 500) {
-      return "초안 생성기 또는 편집 런타임 연결 상태를 먼저 확인해 주세요";
+      return (
+        payload?.detail ??
+        humanizeDraftGenerationErrorMessage(payload?.rawDetail ?? null) ??
+        "초안 생성기 또는 편집 런타임 연결 상태를 먼저 확인해 주세요"
+      );
     }
 
     return (
@@ -196,7 +200,7 @@ export function DraftGenerationPanel({
       </div>
       <h2 className={styles.title}>{view.title}</h2>
       <p className={styles.description}>{view.description}</p>
-      {errorMessage ? <p className={styles.status}>{errorMessage}</p> : null}
+      {state === "failed" && errorMessage ? <p className={styles.status}>{errorMessage}</p> : null}
       <div className={styles.actions}>
         {state === "generated" ? (
           <>

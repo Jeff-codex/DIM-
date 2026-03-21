@@ -556,6 +556,20 @@ function firstImageAssetUrl(
   return `/api/admin/proposals/${proposalId}/assets/${firstImage.id}`;
 }
 
+function resolvePreferredCoverImageUrl(input: {
+  proposalId: string;
+  assets: ProposalAssetRecord[];
+  existingCoverImageUrl?: string | null;
+}) {
+  const existing = input.existingCoverImageUrl?.trim();
+
+  if (existing) {
+    return existing;
+  }
+
+  return firstImageAssetUrl(input.proposalId, input.assets);
+}
+
 function buildSeedDraft(
   proposalId: string,
   proposal: ProposalSeedInput,
@@ -804,6 +818,7 @@ function buildDraftUserPrompt(input: {
     "제안 원문을 반복하지 말고, 무엇이 아니라 무엇으로 읽어야 하는지 판단문으로 남겨라.",
     "초안은 단순 기사 문장이 아니라 search-answer-generative ready knowledge object여야 한다.",
     "excerpt는 direct answer block, interpretiveFrame은 편집 결론, visibility 메타는 근거/엔터티/전환 준비도를 설명해야 한다.",
+    "제출 폼의 '무엇이 바뀌었나 / 어떤 구조를 봐야 하나 / 왜 지금 중요한가 / 누구에게 먼저 보이는가'는 내부 생성 규칙일 뿐, 그대로 제목이나 섹션명으로 쓰지 않는다.",
     "",
     `프로젝트명: ${input.proposal.projectName}`,
     `한 줄 소개: ${cleanText(input.proposal.summary) || "(없음)"}`,
@@ -838,16 +853,14 @@ function buildDraftUserPrompt(input: {
         `${index + 1}. 제목: ${example.title}\n   핵심 답변: ${example.excerpt}\n   핵심 판단: ${example.interpretiveFrame}`,
     ),
     "",
-    "본문은 다음 섹션 순서를 유지한다.",
-    "## 핵심 답변",
-    "## 무엇이 바뀌었나",
-    "## 어떤 구조를 봐야 하나",
-    "## 근거와 확인 포인트",
-    "## 왜 지금 중요한가",
-    "## DIM의 해석",
-    "## 주의할 점",
-    "## 다음 읽기와 전환",
-    "시장 정보가 충분하면 '## 누구에게 먼저 보이는가'를 넣어도 된다.",
+    "본문은 다음 흐름을 유지한다.",
+    "1. 첫 문장에서 핵심 답변을 분명히 제시한다.",
+    "2. 구조 변화의 핵심을 풀어 쓴다.",
+    "3. 시장 압력과 운영 맥락을 설명한다.",
+    "4. 근거와 확인 포인트를 짧게 묶는다.",
+    "5. DIM의 해석과 주의할 점을 남긴다.",
+    "6. 시장 정보가 충분하면 어떤 주체에게 먼저 보이는지 덧붙인다.",
+    "소비자용 제출 문구를 섹션 제목으로 복사하지 말고, 실제 기사 문법으로 다시 편집한다.",
     "과장하지 말고, 뉴스 기사처럼 나열하지 말며, DIM다운 편집 결론으로 수렴한다.",
     "또한 visibility 메타로 questionMap, answerBlock, evidenceBlocks, entityMap, citationSuggestions, schemaParityChecks, caveatBlock, conversionNextStep, freshnessNote, visibilityChecklist를 함께 생성한다.",
   ].join("\n");
@@ -968,9 +981,14 @@ async function generateAiDraft(input: {
   links: ProposalLinkRecord[];
   assets: ProposalAssetRecord[];
   editorEmail: string;
+  preferredCoverImageUrl?: string;
 }): Promise<{ draft: EditorialDraftRecord; meta: DraftGenerationMeta }> {
   const config = await getEditorialAiConfigSafe();
-  const coverImageUrl = firstImageAssetUrl(input.proposalId, input.assets);
+  const coverImageUrl = resolvePreferredCoverImageUrl({
+    proposalId: input.proposalId,
+    assets: input.assets,
+    existingCoverImageUrl: input.preferredCoverImageUrl,
+  });
   const fallbackDraft = buildSeedDraft(
     input.proposalId,
     input.proposal,
@@ -1045,14 +1063,14 @@ async function generateAiDraft(input: {
           excerpt: parsed.excerpt,
           interpretiveFrame: parsed.interpretiveFrame,
           categoryId: parsed.categoryId,
-          coverImageUrl: parsed.coverImageUrl || coverImageUrl,
+          coverImageUrl: coverImageUrl ?? parsed.coverImageUrl,
           bodyMarkdown: parsed.bodyMarkdown,
         } satisfies EditorialDraftRecord,
         meta: {
           generationStatus:
             external.generationStatus === "ai" ? "succeeded" : "fallback_succeeded",
           generationStrategy: "external",
-          signalStrategy: external.generationStatus === "ai" ? "ai" : "rule",
+          signalStrategy: "rule",
           generationSummary: parsed.generationSummary,
           visibility: parsed.visibility,
           generationError:
@@ -1085,7 +1103,7 @@ async function generateAiDraft(input: {
         signals: generatedSignals,
         styleExamples,
       }),
-      maxOutputTokens: 4200,
+      maxOutputTokens: 2200,
     });
 
     const parsed = normalizeDraftCandidate(
@@ -1102,7 +1120,7 @@ async function generateAiDraft(input: {
         excerpt: parsed.excerpt,
         interpretiveFrame: parsed.interpretiveFrame,
         categoryId: parsed.categoryId,
-        coverImageUrl: parsed.coverImageUrl || coverImageUrl,
+          coverImageUrl: coverImageUrl ?? parsed.coverImageUrl,
         bodyMarkdown: parsed.bodyMarkdown,
       } satisfies EditorialDraftRecord,
       meta: {
@@ -1181,19 +1199,19 @@ function seedDraftBody(input: {
   market?: string | null;
 }) {
   const blocks = [
-    "## 무엇이 바뀌었나",
+    "## 구조 변화의 핵심",
     input.summary ?? `${input.projectName}가 무엇을 바꾸려 하는지 정리합니다.`,
     "",
-    "## 어떤 구조를 봐야 하나",
+    "## 시장 압력과 재편",
     input.productDescription ??
       "공개 자료와 서비스 설명을 기준으로 제품, 운영, 유통 구조를 먼저 정리합니다.",
     "",
-    "## 왜 지금 중요한가",
+    "## 지금 읽어야 하는 이유",
     input.whyNow ?? "지금 이 변화가 어떤 시장 맥락에서 의미를 갖는지 덧붙입니다.",
   ];
 
   if (input.market) {
-    blocks.push("", "## 누구에게 먼저 보이는가", input.market);
+    blocks.push("", "## 먼저 움직일 주체", input.market);
   }
 
   return blocks.join("\n");
@@ -1535,6 +1553,7 @@ export async function ensureEditorialDraftForProposal(
       links: linksResult.results ?? [],
       assets: assetsResult.results ?? [],
       editorEmail,
+      preferredCoverImageUrl: existing?.coverImageUrl,
     });
 
     await saveEditorialDraftRecord(env, proposalId, generated.draft, editorEmail);

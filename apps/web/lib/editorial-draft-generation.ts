@@ -189,6 +189,10 @@ export function humanizeDraftGenerationErrorMessage(raw?: string | null) {
     return "이미지 파생본 생성 과정에서 오류가 발생했습니다. generator 서버 상태를 다시 확인해야 합니다.";
   }
 
+  if (trimmed.includes("editorial_asset_variant_store_failed")) {
+    return "이미지 파생본 파일을 저장하지 못했습니다. 저장소 연결 상태를 다시 확인해야 합니다.";
+  }
+
   if (trimmed.includes("editorial_asset_family_store_failed")) {
     return "편집용 이미지 자산을 저장하지 못했습니다. 업로드를 다시 시도해야 합니다.";
   }
@@ -215,18 +219,7 @@ export function resolveDraftGenerationState(input: {
     input.proposalSourceSnapshot,
     input.draftSourceSnapshot,
   );
-  const shouldUseTimestampFallback =
-    !input.proposalSourceSnapshot && !input.draftSourceSnapshot;
-  const sourceTimestampMismatch = Boolean(
-    shouldUseTimestampFallback &&
-    input.hasDraft &&
-      input.proposalUpdatedAt &&
-      input.draftSourceProposalUpdatedAt &&
-      new Date(input.proposalUpdatedAt).getTime() >
-        new Date(input.draftSourceProposalUpdatedAt).getTime(),
-  );
-
-  const hasSourceMismatch = sourceContentMismatch ?? sourceTimestampMismatch;
+  const hasSourceMismatch = sourceContentMismatch ?? false;
 
   let state: DraftGenerationViewState = "idle";
 

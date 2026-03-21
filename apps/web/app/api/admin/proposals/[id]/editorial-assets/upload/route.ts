@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminIdentity } from "@/lib/server/editorial/admin";
 import { uploadEditorialImageForProposal } from "@/lib/server/editorial/assets";
+import { humanizeDraftGenerationErrorMessage } from "@/lib/editorial-draft-generation";
 import { updateEditorialDraftCoverImage } from "@/lib/server/editorial/draft";
 
 export const runtime = "nodejs";
@@ -60,15 +61,33 @@ export async function POST(
   } catch (error) {
     console.error("Failed to upload editorial image", error);
 
-    const message =
+    const rawDetail =
       error instanceof Error ? error.message : "editorial_image_upload_failed";
+    const detail =
+      humanizeDraftGenerationErrorMessage(rawDetail) ??
+      "새 이미지를 추가하지 못했습니다.";
+    const status =
+      rawDetail === "editorial_image_missing" ||
+      rawDetail === "editorial_image_type_invalid" ||
+      rawDetail === "editorial_image_size_invalid" ||
+      rawDetail === "image_too_small_for_editorial_master"
+        ? 400
+        : rawDetail.includes("editorial_asset_variant_store_failed") ||
+            rawDetail.includes("editorial_asset_family_store_failed") ||
+            rawDetail.includes("editorial_draft_cover_apply_failed") ||
+            rawDetail.includes("editorial_image_generator_not_configured") ||
+            rawDetail.includes("editorial_image_generator_failed")
+          ? 500
+          : 400;
 
     return NextResponse.json(
       {
         ok: false,
-        error: message,
+        error: rawDetail,
+        detail,
+        rawDetail,
       },
-      { status: 400 },
+      { status },
     );
   }
 }
