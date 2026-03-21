@@ -14,6 +14,7 @@ import type {
 
 type ArticleSource = {
   sourcePath: string;
+  bodyMarkdown: string;
   bodyHtml: string;
   article: ArticleSummary;
 };
@@ -63,6 +64,7 @@ function compareByPublishedAtDesc(a: ArticleSummary, b: ArticleSummary) {
 function resolveArticleSource({
   sourcePath,
   frontmatter,
+  bodyMarkdown,
   bodyHtml,
 }: (typeof generatedArticleSources)[number]): ArticleSource {
   const article: ArticleSummary = {
@@ -74,6 +76,7 @@ function resolveArticleSource({
 
   return {
     sourcePath,
+    bodyMarkdown,
     bodyHtml,
     article,
   };
@@ -125,6 +128,17 @@ export const getArticleBySlug = cache(
     };
   },
 );
+
+export const getPublishedArticleSourceBySlug = cache(async (slug: string) => {
+  const sources = await readAllArticleSources();
+  const source = sources.find((entry) => entry.article.slug === slug);
+
+  if (!source || source.article.status !== "published") {
+    return null;
+  }
+
+  return source;
+});
 
 export const getRelatedArticles = cache(async (slug: string, limit: number) => {
   const articles = await getPublishedArticles();

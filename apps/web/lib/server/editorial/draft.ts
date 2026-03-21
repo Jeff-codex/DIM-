@@ -981,6 +981,35 @@ async function saveEditorialDraftRecord(
     .run();
 }
 
+export async function saveSeedEditorialDraftForProposal(input: {
+  proposalId: string;
+  draft: EditorialDraftRecord;
+  editorEmail: string;
+  generationMeta?: Record<string, unknown>;
+}) {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+
+  await saveEditorialDraftRecord(env, input.proposalId, input.draft, input.editorEmail);
+  await upsertDraftGenerationJob(
+    env,
+    input.proposalId,
+    "completed",
+    input.draft.updatedAt,
+    input.generationMeta ?? {
+      generationStatus: "succeeded",
+      generationStrategy: "manual_seed",
+      signalStrategy: "rule",
+      requestedBy: input.editorEmail,
+    },
+    null,
+  );
+
+  return input.draft;
+}
+
 export async function ensureEditorialDraftForProposal(
   proposalId: string,
   editorEmail: string,

@@ -282,6 +282,7 @@ export async function listInboxProposals(limit = 24): Promise<ProposalInboxItem[
           AND ppj.status = 'completed'
       ) AS completedJobCount
     FROM proposal p
+    WHERE p.source <> 'admin_published_revision'
     ORDER BY p.submitted_at DESC
     LIMIT ?`,
   )

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProposalQueueActions } from "@/components/proposal-queue-actions";
+import { ADMIN_PRODUCT_NAME, ADMIN_SECTION_LABELS } from "@/lib/admin-labels";
 import {
   requireAdminIdentity,
   listInboxProposals,
@@ -201,8 +202,8 @@ export default async function AdminInboxPage({
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>DIM Editorial Admin</p>
-          <h1 className={styles.title}>제안 inbox</h1>
+          <p className={styles.eyebrow}>{ADMIN_PRODUCT_NAME}</p>
+          <h1 className={styles.title}>{ADMIN_SECTION_LABELS.inbox}</h1>
           <p className={styles.description}>
             공개 페이지에서 들어온 제안을 검토 순서대로 확인하고 다음 상태로 넘깁니다
           </p>
@@ -216,7 +217,7 @@ export default async function AdminInboxPage({
       <section className={styles.stats}>
         <article className={styles.statCard}>
           <p className={styles.statValue}>{proposals.length}</p>
-          <p className={styles.statLabel}>현재 inbox</p>
+          <p className={styles.statLabel}>현재 제안함</p>
         </article>
         <article className={styles.statCard}>
           <p className={styles.statValue}>{counts.received ?? 0}</p>

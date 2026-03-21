@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { EditorialDraftPreview } from "@/components/editorial-draft-preview";
+import { ADMIN_PRODUCT_NAME, ADMIN_SECTION_LABELS } from "@/lib/admin-labels";
 import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import { ensureEditorialDraftForProposal } from "@/lib/server/editorial/draft";
 import { categories } from "@/content/categories";
@@ -46,10 +47,10 @@ export default async function EditorialDraftPreviewPage({
   if (draft.kind === "not_ready") {
     return (
       <section className={styles.blocked}>
-        <p className={styles.eyebrow}>DIM Editorial Admin</p>
+        <p className={styles.eyebrow}>{ADMIN_PRODUCT_NAME}</p>
         <h1 className={styles.title}>아직 미리보기를 열 수 없는 상태입니다</h1>
         <p className={styles.description}>
-          proposal이 <strong>{draft.status}</strong> 상태라 아직 draft preview가 열리지 않았습니다.
+          제안이 <strong>{draft.status}</strong> 상태라 아직 {ADMIN_SECTION_LABELS.draft} 미리보기가 열리지 않았습니다.
           먼저 검토를 `in_review`로 넘긴 뒤 다시 확인해 주세요.
         </p>
       </section>
@@ -63,21 +64,21 @@ export default async function EditorialDraftPreviewPage({
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>Draft Preview</p>
+          <p className={styles.eyebrow}>{ADMIN_SECTION_LABELS.preview}</p>
           <h1 className={styles.title}>업로드 직전 읽힘을 따로 확인합니다</h1>
           <p className={styles.description}>
-            이 화면은 편집 입력 pane 없이 실제 피처처럼 읽히는지만 확인하는 전용 preview입니다
+            이 화면은 편집 입력창 없이 실제 피처처럼 읽히는지만 확인하는 전용 미리보기입니다
           </p>
         </div>
         <div className={styles.metaPanel}>
-          <p className={styles.metaLabel}>proposal</p>
+          <p className={styles.metaLabel}>제안</p>
           <p className={styles.metaValue}>{proposalId}</p>
-          <p className={styles.metaSubtle}>초안 생성 {toDateLabel(draft.draft.draftGeneratedAt)}</p>
+          <p className={styles.metaSubtle}>{ADMIN_SECTION_LABELS.draft} 생성 {toDateLabel(draft.draft.draftGeneratedAt)}</p>
           <p className={styles.metaSubtle}>
-            기준 proposal 업데이트 {toDateLabel(draft.draft.sourceProposalUpdatedAt)}
+            기준 제안 업데이트 {toDateLabel(draft.draft.sourceProposalUpdatedAt)}
           </p>
           <Link href={`/admin/drafts/${proposalId}`} className={styles.backLink}>
-            편집 화면으로 돌아가기
+            {ADMIN_SECTION_LABELS.draft}으로 돌아가기
           </Link>
         </div>
       </header>
@@ -100,7 +101,7 @@ export default async function EditorialDraftPreviewPage({
         <aside className={styles.detailRail}>
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>handoff 기준</p>
+              <p className={styles.sectionLabel}>초안 기준</p>
             </div>
             <div className={styles.signalRow}>
               <span
@@ -110,7 +111,7 @@ export default async function EditorialDraftPreviewPage({
                     : styles.signalChipWarning
                 }
               >
-                {draft.draft.sourceSnapshot?.whyNow ? "why now 있음" : "why now 부족"}
+                {draft.draft.sourceSnapshot?.whyNow ? "왜 지금 있음" : "왜 지금 부족"}
               </span>
               <span
                 className={

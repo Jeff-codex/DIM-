@@ -4,6 +4,10 @@ import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { DraftGenerationPanel } from "@/components/draft-generation-panel";
 import { ProposalProcessingActions } from "@/components/proposal-processing-actions";
 import { ProposalTriageActions } from "@/components/proposal-triage-actions";
+import {
+  ADMIN_SECTION_LABELS,
+  ADMIN_STATUS_LABELS,
+} from "@/lib/admin-labels";
 import { resolveDraftGenerationState } from "@/lib/editorial-draft-generation";
 import {
   requireAdminIdentity,
@@ -152,7 +156,7 @@ export default async function ProposalDetailPage({
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>Proposal Detail</p>
+          <p className={styles.eyebrow}>{ADMIN_SECTION_LABELS.proposal}</p>
           <h1 className={styles.title}>{proposal.projectName}</h1>
           <p className={styles.description}>
             공개 제안 원문을 유지한 채 상태만 바꾸고, 이후 편집 초안으로 넘깁니다
@@ -162,16 +166,16 @@ export default async function ProposalDetailPage({
           <p className={styles.metaLabel}>현재 상태</p>
           <p className={styles.metaValue}>{proposal.status}</p>
           <p className={styles.metaSubtle}>
-            completeness {proposal.completenessScore} / 담당{" "}
+            완성도 {proposal.completenessScore} / 담당{" "}
             {proposal.assigneeEmail ?? "-"}
           </p>
           {proposal.status === "in_review" ? (
             <Link href={`/admin/drafts/${proposal.id}`} className={styles.backLink}>
-              편집 초안 열기
+              {ADMIN_SECTION_LABELS.draft} 열기
             </Link>
           ) : (
             <p className={styles.metaSubtle}>
-              draft는 <strong>in_review</strong>부터 열립니다
+              {ADMIN_SECTION_LABELS.draft}은 <strong>in_review</strong>부터 열립니다
             </p>
           )}
         </div>
@@ -220,12 +224,12 @@ export default async function ProposalDetailPage({
             <dd>{proposal.assigneeEmail ?? "-"}</dd>
           </div>
           <div>
-            <dt>draft</dt>
+            <dt>{ADMIN_SECTION_LABELS.draft}</dt>
             <dd>
               {proposal.hasSnapshot
-                ? "snapshot 있음"
+                ? `${ADMIN_SECTION_LABELS.snapshot} 있음`
                 : proposal.hasDraft
-                  ? "draft 있음"
+                  ? `${ADMIN_SECTION_LABELS.draft} 있음`
                   : proposal.status === "in_review"
                     ? "열기 가능"
                     : "대기"}
@@ -252,7 +256,7 @@ export default async function ProposalDetailPage({
             <div className={styles.cardHeader}>
               <p className={styles.sectionLabel}>요약</p>
               <Link href="/admin/inbox" className={styles.backLink}>
-                inbox로 돌아가기
+                {ADMIN_SECTION_LABELS.inbox}으로 돌아가기
               </Link>
             </div>
             <dl className={styles.summaryGrid}>
@@ -393,7 +397,7 @@ export default async function ProposalDetailPage({
 
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>현재 병목</p>
+              <p className={styles.sectionLabel}>{ADMIN_STATUS_LABELS.nextAction}</p>
             </div>
             <p className={styles.longText}>{getCurrentBottleneck(proposal)}</p>
             <p className={styles.railHint}>{getQueueSummary(proposal)}</p>
@@ -401,7 +405,7 @@ export default async function ProposalDetailPage({
 
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>pipeline health</p>
+              <p className={styles.sectionLabel}>{ADMIN_STATUS_LABELS.processing}</p>
             </div>
             <dl className={styles.summaryGrid}>
               <div>
@@ -413,11 +417,11 @@ export default async function ProposalDetailPage({
                 <dd>{proposal.assets.length > 0 ? `${proposal.assets.length}개` : "없음"}</dd>
               </div>
               <div>
-                <dt>workflow event</dt>
+                <dt>{ADMIN_STATUS_LABELS.workflow}</dt>
                 <dd>{proposal.workflowEvents.length}건</dd>
               </div>
               <div>
-                <dt>processing job</dt>
+                <dt>처리 작업</dt>
                 <dd>{proposal.processingJobs.length}건</dd>
               </div>
             </dl>
@@ -442,7 +446,7 @@ export default async function ProposalDetailPage({
           </div>
 
           <details className={styles.foldCard}>
-            <summary className={styles.foldSummary}>검토 이력 보기</summary>
+            <summary className={styles.foldSummary}>{ADMIN_STATUS_LABELS.workflow} 보기</summary>
             <div className={styles.foldBody}>
               <ul className={styles.timeline}>
                 {proposal.workflowEvents.map((event) => (
@@ -464,7 +468,7 @@ export default async function ProposalDetailPage({
       </div>
 
       <details className={styles.foldCard}>
-        <summary className={styles.foldSummary}>원본 payload 보기</summary>
+        <summary className={styles.foldSummary}>원본 입력 보기</summary>
         <div className={styles.foldBody}>
           <pre className={styles.payload}>{proposal.rawPayloadJson}</pre>
         </div>

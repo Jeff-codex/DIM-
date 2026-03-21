@@ -1,6 +1,7 @@
 import { categories } from "@/content/categories";
 import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { EditorialDraftPreview } from "@/components/editorial-draft-preview";
+import { ADMIN_PRODUCT_NAME, ADMIN_SECTION_LABELS } from "@/lib/admin-labels";
 import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import {
   createOrUpdatePublicationSnapshot,
@@ -46,11 +47,11 @@ export default async function PublicationSnapshotPage({
     if (!created || "kind" in created) {
       return (
         <section className={styles.blocked}>
-          <p className={styles.eyebrow}>DIM Editorial Admin</p>
+          <p className={styles.eyebrow}>{ADMIN_PRODUCT_NAME}</p>
           <h1 className={styles.title}>아직 발행 준비본을 만들 수 없습니다</h1>
           <p className={styles.description}>
-            draft가 준비된 뒤에만 발행 준비본을 만들 수 있습니다. 먼저 제안 검토와
-            draft 편집을 마쳐 주세요.
+            {ADMIN_SECTION_LABELS.draft}이 준비된 뒤에만 발행 준비본을 만들 수 있습니다. 먼저 제안 검토와
+            {ADMIN_SECTION_LABELS.draft} 편집을 마쳐 주세요.
           </p>
         </section>
       );
@@ -66,7 +67,7 @@ export default async function PublicationSnapshotPage({
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>Publication Snapshot</p>
+          <p className={styles.eyebrow}>{ADMIN_SECTION_LABELS.snapshot}</p>
           <h1 className={styles.title}>업로드 직전 발행 준비본을 확인합니다</h1>
           <p className={styles.description}>
             제목, 해석 문장, slug, canonical 후보를 고정한 뒤 실제 발행 파이프라인으로 넘기는 단계입니다
@@ -74,7 +75,7 @@ export default async function PublicationSnapshotPage({
         </div>
         <div className={styles.metaPanel}>
           <p className={styles.metaLabel}>현재 상태</p>
-          <p className={styles.metaValue}>snapshot ready</p>
+          <p className={styles.metaValue}>발행 준비 완료</p>
           <p className={styles.metaSubtle}>slug {snapshot.articleSlug}</p>
           <p className={styles.metaSubtle}>업데이트 {toDateLabel(snapshot.updatedAt)}</p>
         </div>
@@ -116,11 +117,11 @@ export default async function PublicationSnapshotPage({
                 <dd>{snapshot.canonicalUrl ?? "-"}</dd>
               </div>
               <div>
-                <dt>prepared by</dt>
+                <dt>준비자</dt>
                 <dd>{snapshot.preparedBy ?? "-"}</dd>
               </div>
               <div>
-                <dt>updated</dt>
+                <dt>업데이트</dt>
                 <dd>{toDateLabel(snapshot.updatedAt)}</dd>
               </div>
             </dl>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ADMIN_SECTION_LABELS } from "@/lib/admin-labels";
 import type { DraftGenerationQuality, DraftGenerationViewState } from "@/lib/editorial-draft-generation";
 import styles from "./draft-generation-panel.module.css";
 
@@ -64,7 +65,7 @@ function getViewCopy(
     default:
       return {
         title: "초안 준비 전 단계입니다",
-        description: "proposal을 편집 검토로 넘기면 DIM 초안을 만들 수 있습니다",
+        description: "제안을 편집 검토로 넘기면 DIM 초안을 만들 수 있습니다",
       };
   }
 }
@@ -143,7 +144,7 @@ export function DraftGenerationPanel({
 
   return (
     <section className={styles.panel}>
-      <p className={styles.eyebrow}>draft status</p>
+      <p className={styles.eyebrow}>초안 상태</p>
       <div className={styles.signals}>
         <span className={getStateTone(state)}>{getStateLabel(state)}</span>
         {quality === "fallback" ? <span className={styles.signalWarning}>규칙 초안</span> : null}
@@ -158,7 +159,7 @@ export function DraftGenerationPanel({
         {state === "generated" ? (
           <>
             <Link href={`/admin/drafts/${proposalId}`} className={styles.primary}>
-              Draft 열기
+              {ADMIN_SECTION_LABELS.draft} 열기
             </Link>
             <Link href={`/admin/drafts/${proposalId}/preview`} className={styles.secondary}>
               읽기 미리보기
@@ -213,7 +214,7 @@ export function DraftGenerationPanel({
 
         {state === "idle" && scope === "draft" ? (
           <Link href={`/admin/proposals/${proposalId}`} className={styles.secondary}>
-            proposal detail로 돌아가기
+            {ADMIN_SECTION_LABELS.proposal}로 돌아가기
           </Link>
         ) : null}
       </div>

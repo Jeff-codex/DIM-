@@ -86,6 +86,7 @@ async function generateContentModule() {
       return {
         sourcePath: path.posix.join("content", "articles", entry),
         frontmatter,
+        bodyMarkdown: content,
         bodyHtml: await renderMarkdown(content),
       };
     }),
@@ -96,6 +97,7 @@ async function generateContentModule() {
 export type GeneratedArticleSource = {
   sourcePath: string;
   frontmatter: ArticleFrontmatter;
+  bodyMarkdown: string;
   bodyHtml: string;
 };
 

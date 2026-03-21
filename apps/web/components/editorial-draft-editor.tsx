@@ -151,7 +151,7 @@ export function EditorialDraftEditor({
 
   const currentBottleneck = (() => {
     if (!hasWhyNow) {
-      return "원본 제안의 why now가 비어 있어 판단문을 더 세우기 어렵습니다";
+      return "원본 제안의 왜 지금이 비어 있어 판단문을 더 세우기 어렵습니다";
     }
 
     if (!hasExcerpt) {
@@ -163,7 +163,7 @@ export function EditorialDraftEditor({
     }
 
     if (!hasBody) {
-      return "본문 초안이 비어 있어 publication snapshot으로 넘길 수 없습니다";
+      return "본문 초안이 비어 있어 발행 준비본으로 넘길 수 없습니다";
     }
 
     return "발행 준비본으로 넘길 수 있는 최소 구성은 갖춰졌습니다";

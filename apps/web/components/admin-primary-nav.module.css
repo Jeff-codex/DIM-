@@ -1,0 +1,107 @@
+.sidebar {
+  display: grid;
+  gap: 24px;
+  align-content: start;
+  position: sticky;
+  top: 28px;
+}
+
+.brandBlock,
+.group {
+  padding: 22px 20px;
+  border: 1px solid rgba(143, 162, 217, 0.12);
+  background:
+    linear-gradient(180deg, rgba(12, 15, 25, 0.96), rgba(7, 10, 17, 0.94)),
+    linear-gradient(135deg, rgba(86, 106, 255, 0.06), transparent 54%);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.eyebrow,
+.groupLabel {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(152, 237, 255, 0.74);
+}
+
+.title {
+  margin: 12px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+  color: #fbfdff;
+  word-break: keep-all;
+  text-wrap: balance;
+}
+
+.description,
+.groupDescription {
+  margin: 10px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: rgba(192, 203, 228, 0.66);
+}
+
+.nav {
+  display: grid;
+  gap: 14px;
+}
+
+.group {
+  display: grid;
+  gap: 14px;
+}
+
+.groupHeader {
+  display: grid;
+  gap: 8px;
+}
+
+.links {
+  display: grid;
+  gap: 8px;
+}
+
+.link,
+.linkActive,
+.linkDisabled {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 14px;
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.link {
+  border: 1px solid rgba(132, 151, 206, 0.12);
+  background: rgba(19, 24, 37, 0.78);
+  color: rgba(225, 232, 246, 0.78);
+}
+
+.linkActive {
+  border: 1px solid rgba(82, 221, 255, 0.18);
+  background: linear-gradient(135deg, rgba(89, 102, 255, 0.96), rgba(33, 208, 255, 0.92));
+  color: #f7fbff;
+  box-shadow: 0 14px 34px rgba(84, 102, 255, 0.22);
+}
+
+.linkDisabled {
+  border: 1px dashed rgba(132, 151, 206, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(206, 214, 231, 0.32);
+  cursor: not-allowed;
+}
+
+@media (max-width: 1080px) {
+  .sidebar {
+    position: static;
+  }
+}

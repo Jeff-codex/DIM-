@@ -13,6 +13,17 @@
   padding: 44px 0 96px;
 }
 
+.layoutFrame {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.contentColumn {
+  min-width: 0;
+}
+
 .page {
   display: grid;
   gap: 28px;
@@ -191,6 +202,7 @@
 }
 
 .filterBar,
+.searchBar,
 .workflowNav,
 .signalRow {
   display: flex;
@@ -202,8 +214,14 @@
   margin-top: 2px;
 }
 
+.searchBar {
+  align-items: stretch;
+}
+
 .filterLink,
 .filterLinkActive,
+.searchInput,
+.searchButton,
 .workflowNavLink,
 .workflowNavActive,
 .workflowNavDisabled,
@@ -221,6 +239,7 @@
 
 .filterLink,
 .filterLinkActive,
+.searchButton,
 .workflowNavLink,
 .workflowNavActive,
 .workflowNavDisabled {
@@ -230,6 +249,21 @@
   border: 1px solid rgba(132, 149, 203, 0.16);
   font-size: 0.88rem;
   color: inherit;
+}
+
+.searchInput {
+  min-width: min(100%, 320px);
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(132, 149, 203, 0.16);
+  background: rgba(20, 25, 37, 0.72);
+  color: #f4f7ff;
+}
+
+.searchButton {
+  background: rgba(20, 25, 37, 0.72);
+  color: rgba(220, 228, 244, 0.86);
+  cursor: pointer;
 }
 
 .filterLink,
@@ -629,6 +663,40 @@
   line-height: 1.74;
 }
 
+.articleBody {
+  display: grid;
+  gap: 18px;
+  color: rgba(214, 221, 239, 0.82);
+}
+
+.articleBody :global(h1),
+.articleBody :global(h2),
+.articleBody :global(h3),
+.articleBody :global(h4) {
+  margin: 0;
+  font-family: var(--font-display);
+  line-height: 1.24;
+  letter-spacing: -0.03em;
+  color: #f8fbff;
+}
+
+.articleBody :global(p),
+.articleBody :global(li),
+.articleBody :global(blockquote) {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.84;
+  color: rgba(214, 221, 239, 0.78);
+}
+
+.articleBody :global(ul),
+.articleBody :global(ol) {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+}
+
 .railHint {
   margin: 12px 0 0;
   font-size: 0.88rem;
@@ -681,6 +749,7 @@
 }
 
 @media (max-width: 1100px) {
+  .layoutFrame,
   .hero,
   .detailLayout,
   .row,

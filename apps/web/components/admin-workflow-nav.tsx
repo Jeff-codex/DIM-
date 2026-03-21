@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ADMIN_SECTION_LABELS } from "@/lib/admin-labels";
 import styles from "@/app/admin/admin.module.css";
 
 type AdminWorkflowNavProps = {
@@ -14,22 +15,22 @@ const tabs: Array<{
 }> = [
   {
     id: "proposal",
-    label: "제안 검토",
+    label: ADMIN_SECTION_LABELS.proposal,
     href: (proposalId) => `/admin/proposals/${proposalId}`,
   },
   {
     id: "draft",
-    label: "편집",
+    label: ADMIN_SECTION_LABELS.draft,
     href: (proposalId) => `/admin/drafts/${proposalId}`,
   },
   {
     id: "preview",
-    label: "읽기 미리보기",
+    label: ADMIN_SECTION_LABELS.preview,
     href: (proposalId) => `/admin/drafts/${proposalId}/preview`,
   },
   {
     id: "snapshot",
-    label: "발행 준비본",
+    label: ADMIN_SECTION_LABELS.snapshot,
     href: (proposalId) => `/admin/drafts/${proposalId}/snapshot`,
   },
 ];
