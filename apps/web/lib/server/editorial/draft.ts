@@ -723,6 +723,7 @@ async function getEditorialAiConfigSafe(): Promise<EditorialAiConfig> {
       draftModel: "gpt-5.4",
       generatorUrl: undefined,
       generatorSecretPresent: false,
+      externalGeneratorConfigured: false,
     };
   }
 }

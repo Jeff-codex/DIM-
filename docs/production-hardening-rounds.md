@@ -155,6 +155,7 @@ Current note:
 - Set DIM Cloudflare runtime:
   - `EDITORIAL_DRAFT_GENERATOR_URL`
   - `EDITORIAL_GENERATOR_SHARED_SECRET`
+  - Cloudflare runtime `OPENAI_API_KEY` is optional once the external generator is active
 - Verify:
   - `GET /ready` returns `ready: true`
   - `POST /v1/editorial/draft` returns `generationStatus: "ai"`

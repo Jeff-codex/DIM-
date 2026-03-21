@@ -18,20 +18,26 @@ export type EditorialAiConfig = {
   draftModel: string;
   generatorUrl?: string;
   generatorSecretPresent: boolean;
+  externalGeneratorConfigured: boolean;
 };
 
 export async function getEditorialAiConfig(): Promise<EditorialAiConfig> {
   const { env } = await getCloudflareContext({ async: true });
   const aiEnv = env as EditorialAiEnv;
+  const generatorUrl = aiEnv.EDITORIAL_DRAFT_GENERATOR_URL?.trim() || undefined;
+  const generatorSecretPresent = Boolean(aiEnv.EDITORIAL_GENERATOR_SHARED_SECRET?.trim());
+  const apiKeyPresent = Boolean(aiEnv.OPENAI_API_KEY);
+  const externalGeneratorConfigured = Boolean(generatorUrl) && generatorSecretPresent;
 
   return {
-    enabled: Boolean(aiEnv.OPENAI_API_KEY),
-    apiKeyPresent: Boolean(aiEnv.OPENAI_API_KEY),
+    enabled: apiKeyPresent || externalGeneratorConfigured,
+    apiKeyPresent,
     projectId: aiEnv.OPENAI_PROJECT_ID,
     signalModel: aiEnv.OPENAI_SIGNAL_MODEL || "gpt-5.4-mini",
     draftModel: aiEnv.OPENAI_DRAFT_MODEL || "gpt-5.4",
-    generatorUrl: aiEnv.EDITORIAL_DRAFT_GENERATOR_URL?.trim() || undefined,
-    generatorSecretPresent: Boolean(aiEnv.EDITORIAL_GENERATOR_SHARED_SECRET?.trim()),
+    generatorUrl,
+    generatorSecretPresent,
+    externalGeneratorConfigured,
   };
 }
 
@@ -52,6 +58,9 @@ export async function requireEditorialAiConfig(): Promise<EditorialAiConfig & { 
     draftModel: aiEnv.OPENAI_DRAFT_MODEL || "gpt-5.4",
     generatorUrl: aiEnv.EDITORIAL_DRAFT_GENERATOR_URL?.trim() || undefined,
     generatorSecretPresent: Boolean(aiEnv.EDITORIAL_GENERATOR_SHARED_SECRET?.trim()),
+    externalGeneratorConfigured:
+      Boolean(aiEnv.EDITORIAL_DRAFT_GENERATOR_URL?.trim()) &&
+      Boolean(aiEnv.EDITORIAL_GENERATOR_SHARED_SECRET?.trim()),
   };
 }
 
