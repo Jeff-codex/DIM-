@@ -145,6 +145,7 @@ type DraftGenerationMeta = {
   generationStrategy: "external" | "direct_openai" | "rule_seed";
   signalStrategy: "ai" | "rule";
   generationSummary: string;
+  generationError?: string;
   signalModel?: string;
   draftModel?: string;
 };
@@ -695,6 +696,8 @@ async function generateAiDraft(input: {
     };
   } catch (error) {
     console.error("DIM editorial draft generation failed, falling back to seeded draft", error);
+    const generationError =
+      error instanceof Error ? error.message.slice(0, 1000) : "unknown_generation_error";
     return {
       draft: fallbackDraft,
       meta: {
@@ -703,6 +706,7 @@ async function generateAiDraft(input: {
         signalStrategy: "rule",
         generationSummary:
           "자동 초안 생성이 끝까지 이어지지 않아 규칙 기반 초안을 먼저 만들었습니다",
+        generationError,
         signalModel: config.signalModel,
         draftModel: config.draftModel,
       },
