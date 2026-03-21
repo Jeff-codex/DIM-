@@ -46,6 +46,34 @@ type EditorialDraftEditorProps = {
     mimeType: string;
     previewUrl: string;
   }>;
+  editorialAssets: Array<{
+    familyId: string;
+    sourceType: "admin_upload" | "proposal_promoted";
+    sourceProposalAssetId: string | null;
+    originalFilename: string | null;
+    createdAt: string;
+    master: {
+      id: string;
+      publicUrl: string;
+      width: number;
+      height: number;
+      mimeType: string;
+    } | null;
+    card: {
+      id: string;
+      publicUrl: string;
+      width: number;
+      height: number;
+      mimeType: string;
+    } | null;
+    detail: {
+      id: string;
+      publicUrl: string;
+      width: number;
+      height: number;
+      mimeType: string;
+    } | null;
+  }>;
   generationState: DraftGenerationViewState;
   generationQuality: DraftGenerationQuality;
   generationSummary?: string | null;
@@ -73,15 +101,19 @@ export function EditorialDraftEditor({
   categories,
   initialDraft,
   sourceAssets,
+  editorialAssets,
   generationState,
   generationQuality,
   generationSummary,
   generationErrorMessage,
 }: EditorialDraftEditorProps) {
   const [draft, setDraft] = useState(initialDraft);
+  const [editorialAssetFamilies, setEditorialAssetFamilies] = useState(editorialAssets);
   const [status, setStatus] = useState("수정한 내용은 저장 전까지 이 화면에서 바로 미리 볼 수 있습니다");
   const [saving, setSaving] = useState(false);
   const [snapshotting, setSnapshotting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [promotingAssetId, setPromotingAssetId] = useState<string | null>(null);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState(() => serializeDraft(initialDraft));
 
   const selectedCategoryName =
@@ -221,6 +253,107 @@ export function EditorialDraftEditor({
       coverImageUrl: previewUrl,
     }));
     setStatus(`${label} 이미지를 커버 미리보기로 반영했습니다`);
+  };
+
+  const mergeEditorialFamily = (family: EditorialDraftEditorProps["editorialAssets"][number]) => {
+    setEditorialAssetFamilies((current) => {
+      const next = current.filter((item) => item.familyId !== family.familyId);
+      return [family, ...next];
+    });
+  };
+
+  const handleUploadEditorialImage = async (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+
+      const response = await fetch(`/api/admin/proposals/${proposalId}/editorial-assets/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { family?: EditorialDraftEditorProps["editorialAssets"][number]; error?: string }
+        | null;
+
+      if (!response.ok || !data?.family) {
+        if (data?.error === "editorial_image_type_invalid") {
+          throw new Error("이미지 형식이 맞지 않습니다. JPG, PNG, WEBP만 올릴 수 있습니다");
+        }
+
+        if (data?.error === "editorial_image_size_invalid") {
+          throw new Error("이미지 용량이 너무 크거나 비어 있습니다");
+        }
+
+        if (data?.error === "image_too_small_for_editorial_master") {
+          throw new Error("이미지가 너무 작습니다. 1600 × 1200px 이상 이미지를 올려 주세요");
+        }
+
+        throw new Error("이미지를 추가하지 못했습니다");
+      }
+
+      mergeEditorialFamily(data.family);
+      setStatus("새 이미지를 추가했습니다. master, 카드, 상세 파생본도 함께 준비했습니다");
+    } catch (error) {
+      setStatus(
+        error instanceof Error ? error.message : "이미지를 추가하지 못했습니다",
+      );
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handlePromoteAssetAsCover = async (assetId: string, label: string) => {
+    setPromotingAssetId(assetId);
+
+    try {
+      const response = await fetch(`/api/admin/proposals/${proposalId}/editorial-assets/promote`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          proposalAssetId: assetId,
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { family?: EditorialDraftEditorProps["editorialAssets"][number]; error?: string }
+        | null;
+
+      if (!response.ok || !data?.family?.master) {
+        if (data?.error === "proposal_asset_not_image") {
+          throw new Error("이미지 첨부만 커버로 승격할 수 있습니다");
+        }
+
+        if (data?.error === "image_too_small_for_editorial_master") {
+          throw new Error("첨부 이미지가 너무 작습니다. 1600 × 1200px 이상 이미지를 써 주세요");
+        }
+
+        throw new Error("첨부 이미지를 편집용 커버로 준비하지 못했습니다");
+      }
+
+      mergeEditorialFamily(data.family);
+      setDraft((current) => ({
+        ...current,
+        coverImageUrl: data.family?.master?.publicUrl,
+      }));
+      setStatus(`${label} 이미지를 커버용 편집 자산으로 준비했습니다`);
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "첨부 이미지를 편집용 커버로 준비하지 못했습니다",
+      );
+    } finally {
+      setPromotingAssetId(null);
+    }
   };
 
   return (
@@ -363,61 +496,158 @@ export function EditorialDraftEditor({
             </div>
           </div>
 
-          {sourceAssets.length > 0 ? (
+          {sourceAssets.length > 0 || editorialAssetFamilies.length > 0 ? (
             <section className={styles.assetShelf}>
               <div className={styles.groupHeader}>
                 <p className={styles.groupLabel}>첨부 자산</p>
                 <p className={styles.groupHint}>
-                  proposal에 첨부된 이미지와 자료를 바로 열어 보고, 이미지 자산은 draft 커버로
-                  즉시 가져올 수 있습니다
+                  proposal 첨부를 그대로 쓰거나, 새 이미지를 추가해 커버로 지정할 수 있습니다.
+                  마스터 이미지는 1600 × 1200px, 4:3 기준으로 정리되고 카드와 상세 파생본이
+                  함께 준비됩니다
                 </p>
               </div>
-              <div className={styles.assetGrid}>
-                {sourceAssets.map((asset) => {
-                  const isCurrentCover = draft.coverImageUrl === asset.previewUrl;
-                  const isImage = asset.kind === "image";
-
-                  return (
-                    <article key={asset.id} className={styles.assetCard}>
-                      {isImage ? (
-                        <a href={asset.previewUrl} target="_blank" rel="noreferrer">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={asset.previewUrl}
-                            alt={asset.label}
-                            className={styles.assetThumb}
-                          />
-                        </a>
-                      ) : (
-                        <div className={styles.assetThumbPlaceholder}>{asset.kind}</div>
-                      )}
-                      <div className={styles.assetCardBody}>
-                        <strong>{asset.label}</strong>
-                        <span>{asset.mimeType}</span>
-                      </div>
-                      <div className={styles.assetCardActions}>
-                        <a
-                          href={asset.previewUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={styles.assetLink}
-                        >
-                          열기
-                        </a>
-                        {isImage ? (
-                          <button
-                            type="button"
-                            className={isCurrentCover ? styles.assetButtonActive : styles.assetButton}
-                            onClick={() => handleUseAssetAsCover(asset.previewUrl, asset.label)}
-                          >
-                            {isCurrentCover ? "현재 커버" : "커버로 쓰기"}
-                          </button>
-                        ) : null}
-                      </div>
-                    </article>
-                  );
-                })}
+              <div className={styles.assetUploadBar}>
+                <label className={styles.assetUploadButton}>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0] ?? null;
+                      void handleUploadEditorialImage(file);
+                      event.currentTarget.value = "";
+                    }}
+                    disabled={uploadingImage}
+                  />
+                  {uploadingImage ? "이미지 올리는 중..." : "새 이미지 추가"}
+                </label>
+                <p className={styles.assetUploadHint}>
+                  권장 규격: <strong>1600 × 1200px 이상, 4:3</strong>
+                </p>
               </div>
+              {editorialAssetFamilies.length > 0 ? (
+                <div className={styles.assetSection}>
+                  <div className={styles.assetSectionHeader}>
+                    <p className={styles.groupLabel}>편집 이미지</p>
+                    <p className={styles.groupHint}>
+                      편집 중 추가했거나 커버용으로 승격한 이미지입니다
+                    </p>
+                  </div>
+                  <div className={styles.assetGrid}>
+                    {editorialAssetFamilies.map((family) => {
+                      const currentMaster = family.master;
+
+                      if (!currentMaster) {
+                        return null;
+                      }
+
+                      const isCurrentCover = draft.coverImageUrl === currentMaster.publicUrl;
+                      const sourceBadge =
+                        family.sourceType === "admin_upload" ? "편집 추가" : "원본 승격";
+
+                      return (
+                        <article key={family.familyId} className={styles.assetCard}>
+                          <a href={currentMaster.publicUrl} target="_blank" rel="noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={currentMaster.publicUrl}
+                              alt={family.originalFilename ?? "편집 이미지"}
+                              className={styles.assetThumb}
+                            />
+                          </a>
+                          <div className={styles.assetCardBody}>
+                            <strong>{family.originalFilename ?? "편집 이미지"}</strong>
+                            <span>{sourceBadge}</span>
+                            <span>
+                              master {currentMaster.width}×{currentMaster.height} · card{" "}
+                              {family.card?.width ?? 1200}×{family.card?.height ?? 900} · detail{" "}
+                              {family.detail?.width ?? 1600}×{family.detail?.height ?? 1000}
+                            </span>
+                          </div>
+                          <div className={styles.assetCardActions}>
+                            <a
+                              href={currentMaster.publicUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={styles.assetLink}
+                            >
+                              열기
+                            </a>
+                            <button
+                              type="button"
+                              className={isCurrentCover ? styles.assetButtonActive : styles.assetButton}
+                              onClick={() =>
+                                handleUseAssetAsCover(
+                                  currentMaster.publicUrl,
+                                  family.originalFilename ?? "편집 이미지",
+                                )
+                              }
+                            >
+                              {isCurrentCover ? "현재 커버" : "커버로 쓰기"}
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+              {sourceAssets.length > 0 ? (
+                <div className={styles.assetSection}>
+                  <div className={styles.assetSectionHeader}>
+                    <p className={styles.groupLabel}>제안 첨부</p>
+                    <p className={styles.groupHint}>
+                      제안자가 보낸 원본 자료입니다. 이미지는 커버용 편집 자산으로 승격해 쓸 수 있습니다
+                    </p>
+                  </div>
+                  <div className={styles.assetGrid}>
+                    {sourceAssets.map((asset) => {
+                      const isImage = asset.kind === "image";
+
+                      return (
+                        <article key={asset.id} className={styles.assetCard}>
+                          {isImage ? (
+                            <a href={asset.previewUrl} target="_blank" rel="noreferrer">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={asset.previewUrl}
+                                alt={asset.label}
+                                className={styles.assetThumb}
+                              />
+                            </a>
+                          ) : (
+                            <div className={styles.assetThumbPlaceholder}>{asset.kind}</div>
+                          )}
+                          <div className={styles.assetCardBody}>
+                            <strong>{asset.label}</strong>
+                            <span>원본 첨부</span>
+                            <span>{asset.mimeType}</span>
+                          </div>
+                          <div className={styles.assetCardActions}>
+                            <a
+                              href={asset.previewUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={styles.assetLink}
+                            >
+                              열기
+                            </a>
+                            {isImage ? (
+                              <button
+                                type="button"
+                                className={styles.assetButton}
+                                disabled={promotingAssetId === asset.id}
+                                onClick={() => void handlePromoteAssetAsCover(asset.id, asset.label)}
+                              >
+                                {promotingAssetId === asset.id ? "준비 중..." : "커버로 쓰기"}
+                              </button>
+                            ) : null}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
             </section>
           ) : null}
 

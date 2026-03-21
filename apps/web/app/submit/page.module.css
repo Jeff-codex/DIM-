@@ -348,6 +348,18 @@
   background: transparent;
 }
 
+.inputHint {
+  margin: -2px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.72;
+}
+
+.inputHint strong {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
 .inputGroup select {
   appearance: none;
   min-height: 48px;

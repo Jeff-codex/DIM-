@@ -217,6 +217,57 @@
   background: rgba(11, 15, 24, 0.82);
 }
 
+.assetUploadBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.assetUploadButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(159, 107, 255, 0.2);
+  background: linear-gradient(135deg, rgba(86, 104, 255, 0.9), rgba(23, 223, 255, 0.88));
+  color: #fbfdff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.assetUploadButton input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.assetUploadHint {
+  margin: 0;
+  color: rgba(188, 198, 223, 0.68);
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+.assetUploadHint strong {
+  color: #f4f8ff;
+  font-weight: 700;
+}
+
+.assetSection {
+  display: grid;
+  gap: 12px;
+}
+
+.assetSectionHeader {
+  display: grid;
+  gap: 4px;
+}
+
 .assetGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

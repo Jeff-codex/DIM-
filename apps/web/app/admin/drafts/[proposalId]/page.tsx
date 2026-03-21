@@ -2,6 +2,7 @@ import { categories } from "@/content/categories";
 import { EditorialDraftEditor } from "@/components/editorial-draft-editor";
 import { resolveDraftGenerationState } from "@/lib/editorial-draft-generation";
 import { getProposalDetail, requireAdminIdentity } from "@/lib/server/editorial/admin";
+import { listEditorialAssetFamilies } from "@/lib/server/editorial/assets";
 import { ensureEditorialDraftForProposal } from "@/lib/server/editorial/draft";
 import { AdminAccessRequired } from "../../access-required";
 import styles from "../../admin.module.css";
@@ -49,6 +50,7 @@ export default async function EditorialDraftPage({
   }
 
   const proposal = await getProposalDetail(proposalId);
+  const editorialAssets = await listEditorialAssetFamilies(proposalId);
   const sourceAssets =
     proposal?.assets.map((asset) => ({
       id: asset.id,
@@ -75,6 +77,7 @@ export default async function EditorialDraftPage({
       }))}
       initialDraft={draft.draft}
       sourceAssets={sourceAssets}
+      editorialAssets={editorialAssets}
       generationState={draftGeneration.state}
       generationQuality={draftGeneration.quality}
       generationSummary={draftGeneration.summary}

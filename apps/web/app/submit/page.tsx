@@ -356,6 +356,11 @@ export default function SubmitPage() {
                         accept="image/*,.pdf,.doc,.docx,.csv,.xlsx,.zip"
                         multiple
                       />
+                      <p className={styles.inputHint}>
+                        이미지 권장 규격은 <strong>1600 × 1200px 이상, 4:3</strong>
+                        입니다. JPG, PNG, WEBP 형식을 권장하며, 대표 이미지는
+                        여백 없이 선명한 가로형으로 준비해 주세요.
+                      </p>
                     </label>
                   </div>
                 </fieldset>

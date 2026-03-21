@@ -1,5 +1,6 @@
 import http from "node:http";
 import { z } from "zod";
+import sharp from "sharp";
 
 const port = Number(process.env.PORT || 8788);
 const sharedSecret = process.env.DIM_GENERATOR_SHARED_SECRET?.trim();
@@ -82,6 +83,18 @@ const draftSchema = z.object({
   bodyMarkdown: z.string().trim().min(1).max(24000),
   generationSummary: z.string().trim().min(1).max(220),
 });
+
+const imageVariantRequestSchema = z.object({
+  filename: z.string().trim().min(1).max(260),
+  mimeType: z.string().trim().min(1).max(120),
+  contentBase64: z.string().min(1),
+});
+
+const editorialImageTargets = {
+  master: { width: 1600, height: 1200 },
+  card: { width: 1200, height: 900 },
+  detail: { width: 1600, height: 1000 },
+};
 
 const generateDraftRequestSchema = z.object({
   proposalId: z.string().trim().min(1),
@@ -421,6 +434,57 @@ async function handleGenerateDraft(payload) {
   }
 }
 
+async function createJpegVariant(sourceBuffer, target) {
+  const output = await sharp(sourceBuffer)
+    .rotate()
+    .resize(target.width, target.height, {
+      fit: "cover",
+      position: sharp.strategy.attention,
+      withoutEnlargement: false,
+    })
+    .jpeg({
+      quality: 88,
+      mozjpeg: true,
+    })
+    .toBuffer({ resolveWithObject: true });
+
+  return {
+    mimeType: "image/jpeg",
+    width: output.info.width,
+    height: output.info.height,
+    sizeBytes: output.data.byteLength,
+    contentBase64: output.data.toString("base64"),
+  };
+}
+
+async function handleGenerateImageVariants(payload) {
+  const input = imageVariantRequestSchema.parse(payload);
+  const sourceBuffer = Buffer.from(input.contentBase64, "base64");
+  const source = sharp(sourceBuffer).rotate();
+  const metadata = await source.metadata();
+
+  if (!metadata.width || !metadata.height) {
+    throw new Error("image_metadata_missing");
+  }
+
+  if (metadata.width < editorialImageTargets.master.width || metadata.height < editorialImageTargets.master.height) {
+    throw new Error("image_too_small_for_editorial_master");
+  }
+
+  const master = await createJpegVariant(sourceBuffer, editorialImageTargets.master);
+  const card = await createJpegVariant(sourceBuffer, editorialImageTargets.card);
+  const detail = await createJpegVariant(sourceBuffer, editorialImageTargets.detail);
+
+  return {
+    ok: true,
+    image: {
+      master,
+      card,
+      detail,
+    },
+  };
+}
+
 async function readJsonBody(request) {
   const chunks = [];
   for await (const chunk of request) {
@@ -472,6 +536,20 @@ const server = http.createServer(async (request, response) => {
 
       const body = await readJsonBody(request);
       const result = await handleGenerateDraft(body);
+      response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify(result));
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/v1/editorial/image-variants") {
+      if (!isAuthorized(request)) {
+        response.writeHead(401, { "Content-Type": "application/json; charset=utf-8" });
+        response.end(JSON.stringify({ ok: false, error: "unauthorized" }));
+        return;
+      }
+
+      const body = await readJsonBody(request);
+      const result = await handleGenerateImageVariants(body);
       response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
       response.end(JSON.stringify(result));
       return;
