@@ -63,6 +63,10 @@
   - publication snapshot
 - Real domain `depthintelligence.kr` is now serving the current production runtime and passes production smoke.
 - DIM의 해석 철학은 `본찰력`으로 고정됐다. 이후 편집 판단과 자동 초안 생성은 모두 `무엇이 나왔나`보다 `무엇이 바뀌나`, 기능보다 구조 변화와 운영 맥락을 먼저 읽는 기준을 따른다.
+- 공개 페이지와 편집 시스템은 같은 정보를 다뤄도 서로 다른 문법으로 설계한다.
+- AI 초안은 실제 전문 에디터가 1차 편집을 마친 듯한 품질을 목표로 한다.
+- 소비자용 제출 문구를 초안 본문에 기계적으로 복사하지 않는다.
+- `무엇이 바뀌었나`, `어떤 구조를 봐야 하나`, `왜 지금 중요한가`, `누구에게 먼저 보이는가`는 생성 규칙이지, 그대로 제목이나 섹션명이 아니다.
 - `apps/editorial-generator` 외부 서비스가 추가됐고, 로컬에서 실제 OpenAI 호출과 본찰력 초안 생성 응답을 확인했다.
 - 외부 generator는 `/ready`, `/v1/editorial/draft`, `railway.json`, `render.yaml`, `npm run smoke`까지 준비됐고, 남은 것은 외부 호스팅 URL과 shared secret를 Cloudflare runtime에 연결하는 단계다.
 - Cloudflare runtime direct OpenAI path는 region restriction으로 fallback되므로, 실사용 고품질 초안 생성은 외부 generator 경유 구성을 기준으로 진행한다.
