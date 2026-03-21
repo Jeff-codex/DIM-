@@ -7,6 +7,7 @@ const apiKey = process.env.OPENAI_API_KEY?.trim();
 const projectId = process.env.OPENAI_PROJECT_ID?.trim();
 const signalModel = process.env.OPENAI_SIGNAL_MODEL?.trim() || "gpt-5.4-mini";
 const draftModel = process.env.OPENAI_DRAFT_MODEL?.trim() || "gpt-5.4";
+const generatorVersion = process.env.DIM_GENERATOR_VERSION?.trim() || "0.2.0";
 
 const dimFrameLabels = [
   "launch-structure",
@@ -145,6 +146,11 @@ const draftOutputSchema = {
     generationSummary: { type: "string" },
   },
 };
+
+const readyChecklist = [
+  { key: "OPENAI_API_KEY", ok: Boolean(apiKey) },
+  { key: "DIM_GENERATOR_SHARED_SECRET", ok: Boolean(sharedSecret) },
+];
 
 function json(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -436,19 +442,28 @@ function isAuthorized(request) {
 
 const server = http.createServer(async (request, response) => {
   try {
-    if (request.method === "GET" && request.url === "/health") {
+    if (request.method === "GET" && (request.url === "/health" || request.url === "/ready")) {
       response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
       response.end(
         JSON.stringify({
           ok: true,
           service: "dim-editorial-generator",
+          version: generatorVersion,
+          projectIdConfigured: Boolean(projectId),
           openaiConfigured: Boolean(apiKey),
+          signalModel,
+          draftModel,
+          ready: readyChecklist.every((item) => item.ok),
+          checks: readyChecklist,
         }),
       );
       return;
     }
 
-    if (request.method === "POST" && request.url === "/generate-draft") {
+    if (
+      request.method === "POST" &&
+      (request.url === "/generate-draft" || request.url === "/v1/editorial/draft")
+    ) {
       if (!isAuthorized(request)) {
         response.writeHead(401, { "Content-Type": "application/json; charset=utf-8" });
         response.end(JSON.stringify({ ok: false, error: "unauthorized" }));

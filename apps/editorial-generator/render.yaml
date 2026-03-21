@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: dim-editorial-generator
+    runtime: node
+    rootDir: apps/editorial-generator
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /ready
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_PROJECT_ID
+        sync: false
+      - key: DIM_GENERATOR_SHARED_SECRET
+        sync: false
+      - key: OPENAI_SIGNAL_MODEL
+        value: gpt-5.4-mini
+      - key: OPENAI_DRAFT_MODEL
+        value: gpt-5.4
+      - key: DIM_GENERATOR_VERSION
+        value: 0.2.0

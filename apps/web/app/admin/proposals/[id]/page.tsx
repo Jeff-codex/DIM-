@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
+import { DraftGenerationPanel } from "@/components/draft-generation-panel";
 import { ProposalProcessingActions } from "@/components/proposal-processing-actions";
 import { ProposalTriageActions } from "@/components/proposal-triage-actions";
+import { resolveDraftGenerationState } from "@/lib/editorial-draft-generation";
 import {
   requireAdminIdentity,
   getProposalDetail,
@@ -138,6 +140,14 @@ export default async function ProposalDetailPage({
     notFound();
   }
 
+  const draftGeneration = resolveDraftGenerationState({
+    hasDraft: proposal.hasDraft,
+    proposalStatus: proposal.status,
+    proposalUpdatedAt: proposal.updatedAt,
+    draftSourceProposalUpdatedAt: proposal.draftSourceProposalUpdatedAt,
+    processingJobs: proposal.processingJobs,
+  });
+
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
@@ -223,6 +233,18 @@ export default async function ProposalDetailPage({
           </div>
         </dl>
       </section>
+
+      {proposal.status === "in_review" ? (
+        <DraftGenerationPanel
+          proposalId={proposal.id}
+          scope="proposal"
+          state={draftGeneration.state}
+          quality={draftGeneration.quality}
+          summary={draftGeneration.summary}
+          errorMessage={draftGeneration.errorMessage}
+          hasDraft={proposal.hasDraft}
+        />
+      ) : null}
 
       <div className={styles.detailLayout}>
         <section className={styles.detailMain}>

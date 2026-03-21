@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
+import { DraftGenerationPanel } from "@/components/draft-generation-panel";
 import { EditorialDraftPreview } from "@/components/editorial-draft-preview";
+import type { DraftGenerationQuality, DraftGenerationViewState } from "@/lib/editorial-draft-generation";
 import styles from "./editorial-draft-editor.module.css";
 
 type DraftCategoryOption = {
@@ -44,6 +46,10 @@ type EditorialDraftEditorProps = {
     mimeType: string;
     previewUrl: string;
   }>;
+  generationState: DraftGenerationViewState;
+  generationQuality: DraftGenerationQuality;
+  generationSummary?: string | null;
+  generationErrorMessage?: string | null;
 };
 
 function serializeDraft(record: EditorialDraftRecord) {
@@ -67,6 +73,10 @@ export function EditorialDraftEditor({
   categories,
   initialDraft,
   sourceAssets,
+  generationState,
+  generationQuality,
+  generationSummary,
+  generationErrorMessage,
 }: EditorialDraftEditorProps) {
   const [draft, setDraft] = useState(initialDraft);
   const [status, setStatus] = useState("수정한 내용은 저장 전까지 이 화면에서 바로 미리 볼 수 있습니다");
@@ -249,6 +259,16 @@ export function EditorialDraftEditor({
       </header>
 
       <AdminWorkflowNav proposalId={proposalId} active="draft" />
+
+      <DraftGenerationPanel
+        proposalId={proposalId}
+        scope="draft"
+        state={generationState}
+        quality={generationQuality}
+        summary={generationSummary}
+        errorMessage={generationErrorMessage}
+        hasDraft
+      />
 
       <section className={styles.statusRail}>
         <article className={styles.statusCard}>

@@ -156,7 +156,8 @@ Current note:
   - `EDITORIAL_DRAFT_GENERATOR_URL`
   - `EDITORIAL_GENERATOR_SHARED_SECRET`
 - Verify:
-  - `POST /generate-draft` returns `generationStatus: "ai"`
+  - `GET /ready` returns `ready: true`
+  - `POST /v1/editorial/draft` returns `generationStatus: "ai"`
   - `/api/admin/proposals/[id]/triage` seeds draft through the external service
   - generated draft is not falling back to the rule-based seed
 

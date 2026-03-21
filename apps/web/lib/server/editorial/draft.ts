@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
+import { draftGenerationTaskType } from "@/lib/editorial-draft-generation";
 import {
   requestEditorialStructuredJson,
   getEditorialAiConfig,
@@ -137,6 +138,15 @@ type StyleExample = {
   interpretiveFrame: string;
   categoryId: string;
   tagIds: string[];
+};
+
+type DraftGenerationMeta = {
+  generationStatus: "succeeded" | "fallback_succeeded";
+  generationStrategy: "external" | "direct_openai" | "rule_seed";
+  signalStrategy: "ai" | "rule";
+  generationSummary: string;
+  signalModel?: string;
+  draftModel?: string;
 };
 
 type ExternalDraftGeneratorResponse = {
@@ -523,7 +533,7 @@ async function requestExternalDraftGeneration(input: {
     return null;
   }
 
-  const response = await fetch(`${generatorUrl}/generate-draft`, {
+  const response = await fetch(`${generatorUrl}/v1/editorial/draft`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -568,7 +578,7 @@ async function generateAiDraft(input: {
   links: ProposalLinkRecord[];
   assets: ProposalAssetRecord[];
   editorEmail: string;
-}) {
+}): Promise<{ draft: EditorialDraftRecord; meta: DraftGenerationMeta }> {
   const config = await getEditorialAiConfigSafe();
   const coverImageUrl = firstImageAssetUrl(input.proposalId, input.assets);
   const fallbackDraft = buildSeedDraft(
@@ -579,7 +589,15 @@ async function generateAiDraft(input: {
   );
 
   if (!config.enabled) {
-    return fallbackDraft;
+    return {
+      draft: fallbackDraft,
+      meta: {
+        generationStatus: "fallback_succeeded",
+        generationStrategy: "rule_seed",
+        signalStrategy: "rule",
+        generationSummary: "OpenAI 설정이 없어 규칙 기반 초안을 먼저 만들었습니다",
+      },
+    };
   }
 
   try {
@@ -611,15 +629,26 @@ async function generateAiDraft(input: {
       const parsed = aiDraftOutputSchema.parse(external.draft);
 
       return {
-        ...fallbackDraft,
-        title: parsed.title,
-        displayTitleLines: parsed.displayTitleLines,
-        excerpt: parsed.excerpt,
-        interpretiveFrame: parsed.interpretiveFrame,
-        categoryId: parsed.categoryId,
-        coverImageUrl: parsed.coverImageUrl || coverImageUrl,
-        bodyMarkdown: parsed.bodyMarkdown,
-      } satisfies EditorialDraftRecord;
+        draft: {
+          ...fallbackDraft,
+          title: parsed.title,
+          displayTitleLines: parsed.displayTitleLines,
+          excerpt: parsed.excerpt,
+          interpretiveFrame: parsed.interpretiveFrame,
+          categoryId: parsed.categoryId,
+          coverImageUrl: parsed.coverImageUrl || coverImageUrl,
+          bodyMarkdown: parsed.bodyMarkdown,
+        } satisfies EditorialDraftRecord,
+        meta: {
+          generationStatus:
+            external.generationStatus === "ai" ? "succeeded" : "fallback_succeeded",
+          generationStrategy: "external",
+          signalStrategy: "ai",
+          generationSummary: parsed.generationSummary,
+          signalModel: config.signalModel,
+          draftModel: config.draftModel,
+        },
+      };
     }
 
     const response = await requestEditorialStructuredJson<AiDraftOutput>({
@@ -645,18 +674,39 @@ async function generateAiDraft(input: {
     const parsed = aiDraftOutputSchema.parse(response);
 
     return {
-      ...fallbackDraft,
-      title: parsed.title,
-      displayTitleLines: parsed.displayTitleLines,
-      excerpt: parsed.excerpt,
-      interpretiveFrame: parsed.interpretiveFrame,
-      categoryId: parsed.categoryId,
-      coverImageUrl: parsed.coverImageUrl || coverImageUrl,
-      bodyMarkdown: parsed.bodyMarkdown,
-    } satisfies EditorialDraftRecord;
+      draft: {
+        ...fallbackDraft,
+        title: parsed.title,
+        displayTitleLines: parsed.displayTitleLines,
+        excerpt: parsed.excerpt,
+        interpretiveFrame: parsed.interpretiveFrame,
+        categoryId: parsed.categoryId,
+        coverImageUrl: parsed.coverImageUrl || coverImageUrl,
+        bodyMarkdown: parsed.bodyMarkdown,
+      } satisfies EditorialDraftRecord,
+      meta: {
+        generationStatus: "succeeded",
+        generationStrategy: "direct_openai",
+        signalStrategy: "ai",
+        generationSummary: parsed.generationSummary,
+        signalModel: config.signalModel,
+        draftModel: config.draftModel,
+      },
+    };
   } catch (error) {
     console.error("DIM editorial draft generation failed, falling back to seeded draft", error);
-    return fallbackDraft;
+    return {
+      draft: fallbackDraft,
+      meta: {
+        generationStatus: "fallback_succeeded",
+        generationStrategy: "rule_seed",
+        signalStrategy: "rule",
+        generationSummary:
+          "자동 초안 생성이 끝까지 이어지지 않아 규칙 기반 초안을 먼저 만들었습니다",
+        signalModel: config.signalModel,
+        draftModel: config.draftModel,
+      },
+    };
   }
 }
 
@@ -823,11 +873,115 @@ async function getExistingEditorialDraft(
   return existing ? mapDraftRecord(existing) : null;
 }
 
+async function upsertDraftGenerationJob(
+  env: Awaited<ReturnType<typeof getEditorialEnv>>,
+  proposalId: string,
+  status: "processing" | "completed" | "failed",
+  timestamp: string,
+  payload: Record<string, unknown>,
+  errorMessage?: string | null,
+) {
+  await env.EDITORIAL_DB.prepare(
+    `INSERT INTO proposal_processing_job (
+       id,
+       proposal_id,
+       task_type,
+       status,
+       payload_json,
+       error_message,
+       created_at,
+       updated_at,
+       completed_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(proposal_id, task_type)
+     DO UPDATE SET
+       status = excluded.status,
+       payload_json = excluded.payload_json,
+       error_message = excluded.error_message,
+       updated_at = excluded.updated_at,
+       completed_at = excluded.completed_at`,
+  )
+    .bind(
+      crypto.randomUUID(),
+      proposalId,
+      draftGenerationTaskType,
+      status,
+      JSON.stringify(payload),
+      errorMessage ?? null,
+      timestamp,
+      timestamp,
+      status === "completed" ? timestamp : null,
+    )
+    .run();
+}
+
+async function saveEditorialDraftRecord(
+  env: Awaited<ReturnType<typeof getEditorialEnv>>,
+  proposalId: string,
+  draft: EditorialDraftRecord,
+  editorEmail: string,
+) {
+  await env.EDITORIAL_DB.prepare(
+    `INSERT INTO editorial_draft (
+       id,
+       proposal_id,
+       title,
+       display_title_lines_json,
+       excerpt,
+       interpretive_frame,
+       category_id,
+       cover_image_url,
+       body_markdown,
+       status,
+       editor_email,
+       draft_generated_at,
+       source_proposal_updated_at,
+       source_snapshot_json,
+       created_at,
+       updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(proposal_id)
+     DO UPDATE SET
+       title = excluded.title,
+       display_title_lines_json = excluded.display_title_lines_json,
+       excerpt = excluded.excerpt,
+       interpretive_frame = excluded.interpretive_frame,
+       category_id = excluded.category_id,
+       cover_image_url = excluded.cover_image_url,
+       body_markdown = excluded.body_markdown,
+       status = 'draft',
+       editor_email = excluded.editor_email,
+       draft_generated_at = excluded.draft_generated_at,
+       source_proposal_updated_at = excluded.source_proposal_updated_at,
+       source_snapshot_json = excluded.source_snapshot_json,
+       updated_at = excluded.updated_at`,
+  )
+    .bind(
+      draft.id,
+      proposalId,
+      draft.title,
+      JSON.stringify(draft.displayTitleLines),
+      draft.excerpt,
+      draft.interpretiveFrame,
+      draft.categoryId,
+      draft.coverImageUrl ?? null,
+      draft.bodyMarkdown,
+      editorEmail,
+      draft.draftGeneratedAt,
+      draft.sourceProposalUpdatedAt,
+      JSON.stringify(draft.sourceSnapshot),
+      draft.createdAt,
+      draft.updatedAt,
+    )
+    .run();
+}
+
 export async function ensureEditorialDraftForProposal(
   proposalId: string,
   editorEmail: string,
   options?: {
     skipStatusCheck?: boolean;
+    forceRegenerate?: boolean;
   },
 ): Promise<EditorialDraftAccessResult> {
   const env = await getEditorialEnv({
@@ -836,7 +990,7 @@ export async function ensureEditorialDraftForProposal(
   });
   const existing = await getExistingEditorialDraft(proposalId, env);
 
-  if (existing) {
+  if (existing && !options?.forceRegenerate) {
     return {
       kind: "ready",
       draft: existing,
@@ -879,6 +1033,21 @@ export async function ensureEditorialDraftForProposal(
       status: proposal.status,
     };
   }
+
+  const generationStartedAt = new Date().toISOString();
+  await upsertDraftGenerationJob(
+    env,
+    proposalId,
+    "processing",
+    generationStartedAt,
+    {
+      generationStatus: "started",
+      requestedBy: editorEmail,
+      proposalStatus: proposal.status,
+    },
+    null,
+  );
+
   const [linksResult, assetsResult] = await Promise.all([
     env.EDITORIAL_DB.prepare(
       `SELECT url, label, link_type AS linkType
@@ -903,57 +1072,58 @@ export async function ensureEditorialDraftForProposal(
       .all<ProposalAssetRecord>(),
   ]);
 
-  const seeded = await generateAiDraft({
-    proposalId,
-    proposal,
-    links: linksResult.results ?? [],
-    assets: assetsResult.results ?? [],
-    editorEmail,
-  });
-
-  await env.EDITORIAL_DB.prepare(
-    `INSERT INTO editorial_draft (
-       id,
-       proposal_id,
-       title,
-       display_title_lines_json,
-       excerpt,
-       interpretive_frame,
-       category_id,
-       cover_image_url,
-       body_markdown,
-       status,
-       editor_email,
-       draft_generated_at,
-       source_proposal_updated_at,
-       source_snapshot_json,
-       created_at,
-       updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?)`,
-  )
-    .bind(
-      seeded.id,
+  try {
+    const generated = await generateAiDraft({
       proposalId,
-      seeded.title,
-      JSON.stringify(seeded.displayTitleLines),
-      seeded.excerpt,
-      seeded.interpretiveFrame,
-      seeded.categoryId,
-      seeded.coverImageUrl ?? null,
-      seeded.bodyMarkdown,
+      proposal,
+      links: linksResult.results ?? [],
+      assets: assetsResult.results ?? [],
       editorEmail,
-      seeded.draftGeneratedAt,
-      seeded.sourceProposalUpdatedAt,
-      JSON.stringify(seeded.sourceSnapshot),
-      seeded.createdAt,
-      seeded.updatedAt,
-    )
-    .run();
+    });
 
-  return {
-    kind: "ready",
-    draft: seeded,
-  };
+    await saveEditorialDraftRecord(env, proposalId, generated.draft, editorEmail);
+
+    await upsertDraftGenerationJob(
+      env,
+      proposalId,
+      "completed",
+      generated.draft.updatedAt,
+      generated.meta,
+      null,
+    );
+
+    return {
+      kind: "ready",
+      draft: generated.draft,
+    };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Draft generation failed unexpectedly";
+
+    await upsertDraftGenerationJob(
+      env,
+      proposalId,
+      "failed",
+      new Date().toISOString(),
+      {
+        generationStatus: "failed",
+        requestedBy: editorEmail,
+      },
+      errorMessage,
+    );
+
+    throw error;
+  }
+}
+
+export async function regenerateEditorialDraftForProposal(
+  proposalId: string,
+  editorEmail: string,
+) {
+  return ensureEditorialDraftForProposal(proposalId, editorEmail, {
+    skipStatusCheck: true,
+    forceRegenerate: true,
+  });
 }
 
 export async function updateEditorialDraft(

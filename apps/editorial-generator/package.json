@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "node ./src/server.mjs",
-    "dev": "node --watch ./src/server.mjs"
+    "dev": "node --watch ./src/server.mjs",
+    "smoke": "node ./scripts/smoke-generator.mjs"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "zod": "^4.3.6"

@@ -102,6 +102,8 @@ export type ProposalDetail = {
   rawPayloadJson: string;
   hasDraft: boolean;
   hasSnapshot: boolean;
+  draftSourceProposalUpdatedAt: string | null;
+  draftGeneratedAt: string | null;
   links: Array<{
     id: string;
     url: string;
@@ -130,6 +132,7 @@ export type ProposalDetail = {
     id: string;
     taskType: string;
     status: string;
+    payloadJson: string | null;
     errorMessage: string | null;
     updatedAt: string;
     completedAt: string | null;
@@ -320,6 +323,18 @@ export async function getProposalDetail(id: string): Promise<ProposalDetail | nu
         FROM editorial_draft ed
         WHERE ed.proposal_id = proposal.id
       ) AS hasDraft,
+      (
+        SELECT ed.source_proposal_updated_at
+        FROM editorial_draft ed
+        WHERE ed.proposal_id = proposal.id
+        LIMIT 1
+      ) AS draftSourceProposalUpdatedAt,
+      (
+        SELECT ed.draft_generated_at
+        FROM editorial_draft ed
+        WHERE ed.proposal_id = proposal.id
+        LIMIT 1
+      ) AS draftGeneratedAt,
       EXISTS(
         SELECT 1
         FROM publication_snapshot ps
@@ -379,6 +394,7 @@ export async function getProposalDetail(id: string): Promise<ProposalDetail | nu
          id,
          task_type AS taskType,
          status,
+         payload_json AS payloadJson,
          error_message AS errorMessage,
          updated_at AS updatedAt,
          completed_at AS completedAt

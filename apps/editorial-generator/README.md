@@ -7,7 +7,9 @@ Cloudflare Workers가 직접 OpenAI API를 호출할 수 없는 환경 제약을
 ## Endpoints
 
 - `GET /health`
-- `POST /generate-draft`
+- `GET /ready`
+- `POST /v1/editorial/draft`
+- `POST /generate-draft` (legacy alias)
 
 ## Required env
 
@@ -17,6 +19,34 @@ Cloudflare Workers가 직접 OpenAI API를 호출할 수 없는 환경 제약을
 - `OPENAI_SIGNAL_MODEL` (default `gpt-5.4-mini`)
 - `OPENAI_DRAFT_MODEL` (default `gpt-5.4`)
 - `PORT` (default `8788`)
+- `DIM_GENERATOR_VERSION` (optional)
+- `DIM_GENERATOR_SHARED_SECRET`
+
+## Deployment notes
+
+### Railway
+
+- Root directory: `apps/editorial-generator`
+- Start command: `npm start`
+- Health check path: `/ready`
+
+### Render
+
+- Root directory: `apps/editorial-generator`
+- Build command: `npm install`
+- Start command: `npm start`
+- Health check path: `/ready`
+
+## Local smoke
+
+`apps/web/.env.local`에 preview 키를 넣은 상태라면 아래처럼 실행할 수 있습니다.
+
+```powershell
+cd C:\Users\DIM(depthintelligencemagazine)\apps\editorial-generator
+npm run smoke -- --base-url=http://127.0.0.1:8788
+```
+
+이 스크립트는 generator의 `/health`와 `/ready`를 먼저 확인한 뒤, `EveryonePR`와 비슷한 구조의 샘플 proposal로 초안 생성 응답을 점검합니다.
 
 ## Recommended deploy target
 

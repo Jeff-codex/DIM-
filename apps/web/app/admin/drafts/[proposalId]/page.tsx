@@ -1,5 +1,6 @@
 import { categories } from "@/content/categories";
 import { EditorialDraftEditor } from "@/components/editorial-draft-editor";
+import { resolveDraftGenerationState } from "@/lib/editorial-draft-generation";
 import { getProposalDetail, requireAdminIdentity } from "@/lib/server/editorial/admin";
 import { ensureEditorialDraftForProposal } from "@/lib/server/editorial/draft";
 import { AdminAccessRequired } from "../../access-required";
@@ -56,6 +57,14 @@ export default async function EditorialDraftPage({
       mimeType: asset.mimeType,
       previewUrl: `/api/admin/proposals/${proposalId}/assets/${asset.id}`,
     })) ?? [];
+  const draftGeneration = resolveDraftGenerationState({
+    hasDraft: proposal?.hasDraft ?? true,
+    proposalStatus: proposal?.status ?? "in_review",
+    proposalUpdatedAt: proposal?.updatedAt ?? draft.draft.updatedAt,
+    draftSourceProposalUpdatedAt:
+      proposal?.draftSourceProposalUpdatedAt ?? draft.draft.sourceProposalUpdatedAt,
+    processingJobs: proposal?.processingJobs ?? [],
+  });
 
   return (
     <EditorialDraftEditor
@@ -66,6 +75,10 @@ export default async function EditorialDraftPage({
       }))}
       initialDraft={draft.draft}
       sourceAssets={sourceAssets}
+      generationState={draftGeneration.state}
+      generationQuality={draftGeneration.quality}
+      generationSummary={draftGeneration.summary}
+      generationErrorMessage={draftGeneration.errorMessage}
     />
   );
 }
