@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { listPublishedFeaturesForAdminV2 } from "@/lib/server/editorial-v2/published";
 import { listInboxProposals, requireAdminIdentity } from "@/lib/server/editorial/admin";
-import { AdminAccessRequired } from "./access-required";
 import styles from "./admin.module.css";
 
 export const runtime = "nodejs";
@@ -11,7 +11,7 @@ export default async function AdminIndexPage() {
   const identity = await requireAdminIdentity();
 
   if (!identity) {
-    return <AdminAccessRequired />;
+    redirect("/admin/inbox");
   }
 
   const [proposals, published] = await Promise.all([
