@@ -329,6 +329,57 @@ async function getLatestDraftRevisionByProposalId(proposalId: string) {
     .first<FeatureRevisionRow & { slug: string }>();
 }
 
+async function getDraftRevisionById(revisionId: string) {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+
+  return env.EDITORIAL_DB.prepare(
+    `SELECT
+       fr.id,
+       fr.feature_entry_id AS featureEntryId,
+       fr.proposal_id AS proposalId,
+       fr.status,
+       fr.revision_number AS revisionNumber,
+       fr.title,
+       fr.display_title_lines_json AS displayTitleLinesJson,
+       fr.dek,
+       fr.verdict,
+       fr.category_id AS categoryId,
+       fr.author_id AS authorId,
+       fr.tag_ids_json AS tagIdsJson,
+       fr.cover_asset_family_id AS coverAssetFamilyId,
+       fr.body_markdown AS bodyMarkdown,
+       fr.source_snapshot_hash AS sourceSnapshotHash,
+       fr.source_snapshot_json AS sourceSnapshotJson,
+       fr.created_at AS createdAt,
+       fr.updated_at AS updatedAt,
+       fe.slug
+     FROM feature_revision fr
+     JOIN feature_entry fe
+       ON fe.id = fr.feature_entry_id
+     WHERE fr.id = ?
+       AND fr.status IN ('draft_generating', 'draft_ready', 'editing', 'ready_to_publish')
+     LIMIT 1`,
+  )
+    .bind(revisionId)
+    .first<FeatureRevisionRow & { slug: string }>();
+}
+
+async function getDraftRevisionContextById(revisionId: string) {
+  const revision = await getDraftRevisionById(revisionId);
+
+  if (!revision) {
+    return null;
+  }
+
+  return {
+    revision,
+    proposalId: revision.proposalId?.trim() || null,
+  };
+}
+
 function mapRevisionToDraftView(input: {
   revision: FeatureRevisionRow;
   articleSlug: string;
@@ -767,6 +818,24 @@ export async function getEditorialV2DraftByProposalId(proposalId: string) {
   return getCanonicalDraftViewByProposalId(proposalId);
 }
 
+export async function getEditorialV2DraftByRevisionId(revisionId: string) {
+  const revision = await getDraftRevisionById(revisionId);
+
+  if (!revision) {
+    return null;
+  }
+
+  const coverImageUrl = await resolveCoverImageUrlForRevision(
+    revision.coverAssetFamilyId,
+  );
+
+  return mapRevisionToDraftView({
+    revision,
+    articleSlug: revision.slug,
+    coverImageUrl,
+  });
+}
+
 export async function getEditorialV2DraftGenerationState(input: {
   proposal: ProposalDetail;
   draft: EditorialV2DraftRecord | null;
@@ -903,6 +972,70 @@ export async function updateEditorialV2Draft(
   return getCanonicalDraftViewByProposalId(proposalId);
 }
 
+export async function updateEditorialV2DraftByRevisionId(
+  revisionId: string,
+  input: EditorialV2DraftInput,
+  editorEmail: string,
+) {
+  const parsed = editorialV2DraftInputSchema.parse(input);
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+  const context = await getDraftRevisionContextById(revisionId);
+
+  if (!context) {
+    return null;
+  }
+
+  let sourceSnapshotJson = context.revision.sourceSnapshotJson;
+  let sourceSnapshotHash = context.revision.sourceSnapshotHash;
+
+  if (context.proposalId) {
+    const proposal = await getProposalDetail(context.proposalId);
+
+    if (proposal) {
+      const sourceSnapshot = buildProposalSourceSnapshot(proposal);
+      sourceSnapshotJson = JSON.stringify(sourceSnapshot);
+      sourceSnapshotHash = buildSourceSnapshotHash(sourceSnapshot);
+    }
+  }
+
+  const now = new Date().toISOString();
+
+  await env.EDITORIAL_DB.prepare(
+    `UPDATE feature_revision
+     SET status = 'editing',
+         title = ?,
+         display_title_lines_json = ?,
+         dek = ?,
+         verdict = ?,
+         category_id = ?,
+         body_markdown = ?,
+         source_snapshot_hash = ?,
+         source_snapshot_json = ?,
+         updated_by = ?,
+         updated_at = ?
+     WHERE id = ?`,
+  )
+    .bind(
+      parsed.title,
+      JSON.stringify(parsed.displayTitleLines),
+      parsed.excerpt,
+      parsed.interpretiveFrame,
+      parsed.categoryId,
+      parsed.bodyMarkdown,
+      sourceSnapshotHash,
+      sourceSnapshotJson,
+      editorEmail,
+      now,
+      context.revision.id,
+    )
+    .run();
+
+  return getEditorialV2DraftByRevisionId(revisionId);
+}
+
 export async function prepareEditorialV2RevisionForPublish(
   proposalId: string,
   editorEmail: string,
@@ -953,6 +1086,59 @@ export async function prepareEditorialV2RevisionForPublish(
   ]);
 
   return getCanonicalDraftViewByProposalId(proposalId);
+}
+
+export async function prepareEditorialV2RevisionForPublishByRevisionId(
+  revisionId: string,
+  editorEmail: string,
+) {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+  const revision = await getDraftRevisionById(revisionId);
+
+  if (!revision) {
+    return null;
+  }
+
+  const now = new Date().toISOString();
+
+  await env.EDITORIAL_DB.batch([
+    env.EDITORIAL_DB.prepare(
+      `UPDATE feature_revision
+       SET status = 'ready_to_publish',
+           updated_by = ?,
+           updated_at = ?
+       WHERE id = ?`,
+    ).bind(editorEmail, now, revision.id),
+    env.EDITORIAL_DB.prepare(
+      `INSERT INTO publish_event (
+         id,
+         feature_entry_id,
+         feature_revision_id,
+         event_type,
+         actor_email,
+         note,
+         metadata_json,
+         created_at
+       ) VALUES (?, ?, ?, 'prepared', ?, ?, ?, ?)`,
+    ).bind(
+      crypto.randomUUID(),
+      revision.featureEntryId,
+      revision.id,
+      editorEmail,
+      "v2 발행실에서 공개 준비 상태로 올렸습니다",
+      JSON.stringify({
+        proposalId: revision.proposalId,
+        articleSlug: revision.slug,
+        revisionId: revision.id,
+      }),
+      now,
+    ),
+  ]);
+
+  return getEditorialV2DraftByRevisionId(revisionId);
 }
 
 async function findReusableCanonicalAssetFamily(input: {
@@ -1182,6 +1368,50 @@ export async function setEditorialV2CoverAssetFamily(
   return getCanonicalDraftViewByProposalId(proposalId);
 }
 
+export async function setEditorialV2CoverAssetFamilyByRevisionId(
+  revisionId: string,
+  familyId: string,
+  editorEmail: string,
+) {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+  const context = await getDraftRevisionContextById(revisionId);
+
+  if (!context) {
+    return null;
+  }
+
+  const now = new Date().toISOString();
+
+  await env.EDITORIAL_DB.batch([
+    env.EDITORIAL_DB.prepare(
+      `UPDATE feature_revision
+       SET cover_asset_family_id = ?,
+           updated_by = ?,
+           updated_at = ?
+       WHERE id = ?`,
+    ).bind(familyId, editorEmail, now, context.revision.id),
+    env.EDITORIAL_DB.prepare(
+      `UPDATE asset_family
+       SET proposal_id = COALESCE(proposal_id, ?),
+           feature_entry_id = COALESCE(feature_entry_id, ?),
+           feature_revision_id = COALESCE(feature_revision_id, ?),
+           updated_at = ?
+       WHERE id = ?`,
+    ).bind(
+      context.proposalId,
+      context.revision.featureEntryId,
+      context.revision.id,
+      now,
+      familyId,
+    ),
+  ]);
+
+  return getEditorialV2DraftByRevisionId(revisionId);
+}
+
 export async function uploadEditorialV2ImageForProposal(
   proposalId: string,
   file: File,
@@ -1229,6 +1459,50 @@ export async function uploadEditorialV2ImageForProposal(
   };
 }
 
+export async function uploadEditorialV2ImageForRevision(
+  revisionId: string,
+  file: File,
+  editorEmail: string,
+) {
+  const context = await getDraftRevisionContextById(revisionId);
+
+  if (!context) {
+    throw new Error("feature_revision_not_found");
+  }
+
+  if (!context.proposalId) {
+    throw new Error("feature_revision_has_no_proposal");
+  }
+
+  const legacyFamily = await uploadEditorialImageForProposal(
+    context.proposalId,
+    file,
+    editorEmail,
+  );
+
+  if (!legacyFamily?.familyId) {
+    throw new Error("legacy_editorial_asset_family_not_found");
+  }
+
+  const bundle = await upsertCanonicalAssetFamilyFromLegacyFamily({
+    proposalId: context.proposalId,
+    legacyFamilyId: legacyFamily.familyId,
+    featureEntryId: context.revision.featureEntryId,
+    featureRevisionId: context.revision.id,
+  });
+
+  const draft = await setEditorialV2CoverAssetFamilyByRevisionId(
+    context.revision.id,
+    bundle.id,
+    editorEmail,
+  );
+
+  return {
+    family: mapAssetBundleToEditorFamily(bundle),
+    draft,
+  };
+}
+
 export async function promoteProposalAssetToEditorialV2(
   proposalId: string,
   proposalAssetId: string,
@@ -1265,6 +1539,49 @@ export async function promoteProposalAssetToEditorialV2(
   });
   const draft = await setEditorialV2CoverAssetFamily(
     proposalId,
+    bundle.id,
+    editorEmail,
+  );
+
+  return {
+    family: mapAssetBundleToEditorFamily(bundle),
+    draft,
+  };
+}
+
+export async function promoteProposalAssetToEditorialV2ByRevisionId(
+  revisionId: string,
+  proposalAssetId: string,
+  editorEmail: string,
+) {
+  const context = await getDraftRevisionContextById(revisionId);
+
+  if (!context) {
+    throw new Error("feature_revision_not_found");
+  }
+
+  if (!context.proposalId) {
+    throw new Error("feature_revision_has_no_proposal");
+  }
+
+  const legacyFamily = await promoteProposalAssetForProposal(
+    context.proposalId,
+    proposalAssetId,
+    editorEmail,
+  );
+
+  if (!legacyFamily?.familyId) {
+    throw new Error("legacy_editorial_asset_family_not_found");
+  }
+
+  const bundle = await upsertCanonicalAssetFamilyFromLegacyFamily({
+    proposalId: context.proposalId,
+    legacyFamilyId: legacyFamily.familyId,
+    featureEntryId: context.revision.featureEntryId,
+    featureRevisionId: context.revision.id,
+  });
+  const draft = await setEditorialV2CoverAssetFamilyByRevisionId(
+    context.revision.id,
     bundle.id,
     editorEmail,
   );

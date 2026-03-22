@@ -4,13 +4,15 @@ import styles from "@/app/admin/admin.module.css";
 
 type LegacyWorkflowStep = "proposal" | "draft" | "preview" | "snapshot";
 type V2WorkflowStep = "review" | "editor" | "publish";
+type WorkflowStep = LegacyWorkflowStep | V2WorkflowStep;
 
 type AdminWorkflowNavProps = {
   proposalId: string;
-  active: LegacyWorkflowStep | V2WorkflowStep;
+  active: WorkflowStep;
   availability?: Partial<Record<"draft" | "preview" | "snapshot", boolean>>;
   mode?: "legacy" | "v2";
   basePath?: string;
+  customLinks?: Partial<Record<WorkflowStep, string | null>>;
 };
 
 const legacyTabs: Array<{
@@ -68,18 +70,20 @@ export function AdminWorkflowNav({
   availability,
   mode = "legacy",
   basePath = "/admin",
+  customLinks,
 }: AdminWorkflowNavProps) {
   const tabs = mode === "v2" ? v2Tabs : legacyTabs;
 
   return (
     <nav className={styles.workflowNav} aria-label="편집 워크플로">
       {tabs.map((tab) => {
+        const customHref = customLinks?.[tab.id];
         const isAvailable =
           mode === "v2" ||
           tab.id === "proposal" ||
           availability?.[tab.id as "draft" | "preview" | "snapshot"] !== false;
 
-        if (!isAvailable) {
+        if (!isAvailable || customHref === null) {
           return (
             <span
               key={tab.id}
@@ -94,7 +98,7 @@ export function AdminWorkflowNav({
         return (
           <Link
             key={tab.id}
-            href={tab.href(basePath, proposalId)}
+            href={customHref ?? tab.href(basePath, proposalId)}
             className={tab.id === active ? styles.workflowNavActive : styles.workflowNavLink}
           >
             {tab.label}

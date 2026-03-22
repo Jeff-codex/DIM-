@@ -92,9 +92,17 @@ type EditorialDraftEditorProps = {
   generationVisibility: DraftVisibilityMetadata | null;
   proposalSourceSnapshot: DraftSourceSnapshot | null;
   actionBasePath?: string;
+  draftActionPath?: string;
+  draftSnapshotActionPath?: string;
+  draftCoverActionPath?: string;
+  editorialAssetUploadActionPath?: string;
+  editorialAssetPromoteActionPath?: string;
   workflowBasePath?: string;
   workflowMode?: "legacy" | "v2";
   workflowActive?: "draft" | "editor";
+  workflowLinks?: Partial<
+    Record<"proposal" | "draft" | "preview" | "snapshot" | "review" | "editor" | "publish", string | null>
+  >;
   showDetachedPreviewLinks?: boolean;
   detachedPreviewHref?: string;
   publishRoomHref?: string;
@@ -135,9 +143,15 @@ export function EditorialDraftEditor({
   generationVisibility,
   proposalSourceSnapshot,
   actionBasePath = "/admin/actions",
+  draftActionPath,
+  draftSnapshotActionPath,
+  draftCoverActionPath,
+  editorialAssetUploadActionPath,
+  editorialAssetPromoteActionPath,
   workflowBasePath = "/admin",
   workflowMode = "legacy",
   workflowActive = "draft",
+  workflowLinks,
   showDetachedPreviewLinks = true,
   detachedPreviewHref,
   publishRoomHref,
@@ -151,6 +165,17 @@ export function EditorialDraftEditor({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [promotingAssetId, setPromotingAssetId] = useState<string | null>(null);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState(() => serializeDraft(initialDraft));
+  const resolvedDraftActionPath = draftActionPath ?? `${actionBasePath}/drafts/${proposalId}`;
+  const resolvedDraftSnapshotActionPath =
+    draftSnapshotActionPath ?? `${resolvedDraftActionPath}/snapshot`;
+  const resolvedDraftCoverActionPath =
+    draftCoverActionPath ?? `${resolvedDraftActionPath}/cover`;
+  const resolvedEditorialAssetUploadActionPath =
+    editorialAssetUploadActionPath ??
+    `${actionBasePath}/proposals/${proposalId}/editorial-assets/upload`;
+  const resolvedEditorialAssetPromoteActionPath =
+    editorialAssetPromoteActionPath ??
+    `${actionBasePath}/proposals/${proposalId}/editorial-assets/promote`;
 
   const selectedCategoryName =
     categories.find((category) => category.id === draft.categoryId)?.name ?? "산업 해석";
@@ -229,7 +254,7 @@ export function EditorialDraftEditor({
     setDraft(nextDraft);
 
     try {
-      const response = await fetch(`${actionBasePath}/drafts/${proposalId}`, {
+      const response = await fetch(resolvedDraftActionPath, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -279,7 +304,7 @@ export function EditorialDraftEditor({
     setSaving(true);
 
     try {
-      const response = await fetch(`${actionBasePath}/drafts/${proposalId}`, {
+      const response = await fetch(resolvedDraftActionPath, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -313,7 +338,7 @@ export function EditorialDraftEditor({
     setSnapshotting(true);
 
     try {
-      const saveResponse = await fetch(`${actionBasePath}/drafts/${proposalId}`, {
+      const saveResponse = await fetch(resolvedDraftActionPath, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -335,7 +360,7 @@ export function EditorialDraftEditor({
         setLastSavedSnapshot(serializeDraft(saveData.draft));
       }
 
-      const snapshotResponse = await fetch(`${actionBasePath}/drafts/${proposalId}/snapshot`, {
+      const snapshotResponse = await fetch(resolvedDraftSnapshotActionPath, {
         method: "POST",
       });
       ensureAdminActionResponse(snapshotResponse);
@@ -366,7 +391,7 @@ export function EditorialDraftEditor({
 
       try {
         const response = await fetch(
-          `${actionBasePath}/drafts/${proposalId}/cover`,
+          resolvedDraftCoverActionPath,
           {
             method: "POST",
             headers: {
@@ -439,7 +464,7 @@ export function EditorialDraftEditor({
       const formData = new FormData();
       formData.set("file", file);
 
-      const response = await fetch(`${actionBasePath}/proposals/${proposalId}/editorial-assets/upload`, {
+      const response = await fetch(resolvedEditorialAssetUploadActionPath, {
         method: "POST",
         body: formData,
       });
@@ -523,7 +548,7 @@ export function EditorialDraftEditor({
     setPromotingAssetId(assetId);
 
     try {
-      const response = await fetch(`${actionBasePath}/proposals/${proposalId}/editorial-assets/promote`, {
+      const response = await fetch(resolvedEditorialAssetPromoteActionPath, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -648,6 +673,7 @@ export function EditorialDraftEditor({
         active={workflowActive}
         mode={workflowMode}
         basePath={workflowBasePath}
+        customLinks={workflowLinks}
       />
 
       <DraftGenerationPanel

@@ -8,6 +8,8 @@ type PublishRoomActionsProps = {
   proposalId: string;
   hasSnapshot: boolean;
   actionBasePath?: string;
+  prepareActionPath?: string;
+  publishActionPath?: string;
   snapshotHref?: string;
   publishedHref?: string;
 };
@@ -16,6 +18,8 @@ export function PublishRoomActions({
   proposalId,
   hasSnapshot,
   actionBasePath = "/admin/v2/actions",
+  prepareActionPath,
+  publishActionPath,
   snapshotHref = `/admin/v2/publish/${proposalId}`,
   publishedHref = "/admin/v2/published",
 }: PublishRoomActionsProps) {
@@ -31,9 +35,12 @@ export function PublishRoomActions({
     setSubmitting(true);
 
     try {
-      const response = await fetch(`${actionBasePath}/publish/${proposalId}`, {
+      const response = await fetch(
+        publishActionPath ?? `${actionBasePath}/publish/${proposalId}`,
+        {
         method: "POST",
-      });
+        },
+      );
       const contentType = response.headers.get("content-type") ?? "";
 
       if (response.redirected || contentType.includes("text/html")) {
@@ -73,9 +80,12 @@ export function PublishRoomActions({
     setSubmitting(true);
 
     try {
-      const response = await fetch(`${actionBasePath}/drafts/${proposalId}/snapshot`, {
+      const response = await fetch(
+        prepareActionPath ?? `${actionBasePath}/drafts/${proposalId}/snapshot`,
+        {
         method: "POST",
-      });
+        },
+      );
       const contentType = response.headers.get("content-type") ?? "";
 
       if (response.redirected || contentType.includes("text/html")) {

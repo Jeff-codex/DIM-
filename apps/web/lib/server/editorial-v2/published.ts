@@ -73,13 +73,9 @@ function buildWorkingRevisionState(
     hasDraft: true,
     hasSnapshot: row.status === "ready_to_publish",
     reviewHref: row.proposalId ? `/admin/v2/review/${row.proposalId}` : null,
-    editorHref: row.proposalId
-      ? `/admin/v2/editor/${row.proposalId}`
-      : null,
-    previewHref: row.proposalId ? `/admin/v2/editor/${row.proposalId}` : null,
-    publishHref: row.proposalId
-      ? `/admin/v2/publish/${row.proposalId}`
-      : null,
+    editorHref: `/admin/v2/editor/revisions/${row.id}`,
+    previewHref: `/admin/v2/editor/revisions/${row.id}`,
+    publishHref: `/admin/v2/publish/revisions/${row.id}`,
   };
 }
 
@@ -269,19 +265,11 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
   const existing = await getLatestWorkingRevisionByFeatureEntryId(featureEntry.id);
 
   if (existing) {
-    if (!existing.proposalId) {
-      throw new Error("feature_revision_has_no_proposal");
-    }
-
     return {
       revisionId: existing.id,
       proposalId: existing.proposalId,
-      draftHref: existing.proposalId
-        ? `/admin/v2/editor/${existing.proposalId}`
-        : `/admin/v2/editor/revisions/${existing.id}`,
-      publishHref: existing.proposalId
-        ? `/admin/v2/publish/${existing.proposalId}`
-        : `/admin/v2/publish/revisions/${existing.id}`,
+      draftHref: `/admin/v2/editor/revisions/${existing.id}`,
+      publishHref: `/admin/v2/publish/revisions/${existing.id}`,
     };
   }
 
@@ -392,8 +380,8 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
   return {
     revisionId,
     proposalId: currentPublishedRevision.proposalId,
-    draftHref: `/admin/v2/editor/${currentPublishedRevision.proposalId}`,
-    publishHref: `/admin/v2/publish/${currentPublishedRevision.proposalId}`,
+    draftHref: `/admin/v2/editor/revisions/${revisionId}`,
+    publishHref: `/admin/v2/publish/revisions/${revisionId}`,
   };
 }
 
@@ -472,6 +460,110 @@ export async function publishFeatureRevisionFromProposal(
       JSON.stringify({
         proposalId,
        previousRevisionId: currentPublishedRevisionId,
+      }),
+      now,
+    ),
+  ];
+
+  if (currentPublishedRevisionId && currentPublishedRevisionId !== revision.id) {
+    statements.unshift(
+      env.EDITORIAL_DB.prepare(
+        `UPDATE feature_revision
+         SET status = 'archived',
+             updated_by = ?,
+             updated_at = ?
+         WHERE id = ?`,
+      ).bind(editorEmail, now, currentPublishedRevisionId),
+    );
+  }
+
+  await env.EDITORIAL_DB.batch(statements);
+
+  const published = await getCmsPublishedArticleBySlug(featureEntryRow.slug);
+
+  return {
+    revisionId: revision.id,
+    featureEntryId: revision.featureEntryId,
+    slug: featureEntryRow.slug,
+    liveHref: published ? `/articles/${published.slug}` : null,
+  };
+}
+
+export async function publishFeatureRevisionById(
+  revisionId: string,
+  editorEmail: string,
+) {
+  const revision = await getFeatureRevisionById(revisionId);
+
+  if (!revision) {
+    return null;
+  }
+
+  if (revision.status !== "ready_to_publish") {
+    throw new Error(`feature_revision_not_ready:${revision.status}`);
+  }
+
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+  const featureEntryRow = await env.EDITORIAL_DB.prepare(
+    `SELECT
+       id,
+       slug,
+       current_published_revision_id AS currentPublishedRevisionId
+     FROM feature_entry
+     WHERE id = ?
+     LIMIT 1`,
+  )
+    .bind(revision.featureEntryId)
+    .first<{
+      id: string;
+      slug: string;
+      currentPublishedRevisionId: string | null;
+    }>();
+
+  if (!featureEntryRow) {
+    throw new Error("feature_entry_not_found");
+  }
+
+  const now = new Date().toISOString();
+  const currentPublishedRevisionId = featureEntryRow.currentPublishedRevisionId ?? null;
+  const statements = [
+    env.EDITORIAL_DB.prepare(
+      `UPDATE feature_revision
+       SET status = 'published',
+           published_at = ?,
+           updated_by = ?,
+           updated_at = ?
+       WHERE id = ?`,
+    ).bind(now, editorEmail, now, revision.id),
+    env.EDITORIAL_DB.prepare(
+      `UPDATE feature_entry
+       SET current_published_revision_id = ?,
+           updated_at = ?
+       WHERE id = ?`,
+    ).bind(revision.id, now, revision.featureEntryId),
+    env.EDITORIAL_DB.prepare(
+      `INSERT INTO publish_event (
+         id,
+         feature_entry_id,
+         feature_revision_id,
+         event_type,
+         actor_email,
+         note,
+         metadata_json,
+         created_at
+       ) VALUES (?, ?, ?, 'published', ?, ?, ?, ?)`,
+    ).bind(
+      crypto.randomUUID(),
+      revision.featureEntryId,
+      revision.id,
+      editorEmail,
+      "v2 발행실에서 수동 발행했습니다",
+      JSON.stringify({
+        proposalId: revision.proposalId,
+        previousRevisionId: currentPublishedRevisionId,
       }),
       now,
     ),
