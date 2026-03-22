@@ -53,75 +53,46 @@ export function AdminV2PrimaryNav() {
   const pathname = usePathname();
   const { activeId, workflow } = getContext(pathname);
 
-  const groups = [
-    {
-      id: "intake",
-      label: "접수 관리",
-      description: "제안함과 검토실을 분리해 외부 제안을 먼저 정리합니다",
-      items: [
-        { id: "inbox" as const, label: "제안함", href: "/admin/inbox" },
-        { id: "review" as const, label: "검토실", href: workflow.review },
-      ],
-    },
-    {
-      id: "editing",
-      label: "편집 진행",
-      description: "원고실과 발행실에서 초안 생성, 편집, 발행 준비를 다룹니다",
-      items: [
-        { id: "editor" as const, label: "원고실", href: workflow.editor },
-        { id: "publish" as const, label: "발행실", href: workflow.publish },
-      ],
-    },
-    {
-      id: "publication",
-      label: "발행 관리",
-      description: "이미 공개된 피처와 개정 흐름을 따로 관리합니다",
-      items: [
-        { id: "published" as const, label: "발행 관리", href: "/admin/published" },
-      ],
-    },
+  const items = [
+    { id: "inbox" as const, label: "제안함", href: "/admin/inbox" },
+    { id: "review" as const, label: "검토", href: workflow.review },
+    { id: "editor" as const, label: "원고실", href: workflow.editor },
+    { id: "publish" as const, label: "발행실", href: workflow.publish },
+    { id: "published" as const, label: "발행 관리", href: "/admin/published" },
   ];
 
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.brandBlock}>
+      <Link href="/admin" className={styles.brandBlock}>
         <p className={styles.eyebrow}>편집 시스템</p>
         <h2 className={styles.title}>DIM 편집 시스템</h2>
-        <p className={styles.description}>
-          외부 제안 검토부터 원고 편집과 발행 관리까지 하나의 흐름으로 이어지는 편집면입니다
-        </p>
-      </div>
+        <p className={styles.description}>제안 확인부터 발행 관리까지 /admin 안에서만 이어집니다</p>
+      </Link>
 
       <nav className={styles.nav} aria-label="편집 카테고리">
-        {groups.map((group) => (
-          <section key={group.id} className={styles.group}>
-            <div className={styles.groupHeader}>
-              <p className={styles.groupLabel}>{group.label}</p>
-              <p className={styles.groupDescription}>{group.description}</p>
-            </div>
-            <div className={styles.links}>
-              {group.items.map((item) => {
-                if (!item.href) {
-                  return (
-                    <span key={item.id} className={styles.linkDisabled}>
-                      {item.label}
-                    </span>
-                  );
-                }
-
+        <section className={styles.group}>
+          <div className={styles.links}>
+            {items.map((item) => {
+              if (!item.href) {
                 return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    className={activeId === item.id ? styles.linkActive : styles.link}
-                  >
+                  <span key={item.id} className={styles.linkDisabled}>
                     {item.label}
-                  </Link>
+                  </span>
                 );
-              })}
-            </div>
-          </section>
-        ))}
+              }
+
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={activeId === item.id ? styles.linkActive : styles.link}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       </nav>
     </aside>
   );

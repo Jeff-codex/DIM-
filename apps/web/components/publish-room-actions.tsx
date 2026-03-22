@@ -27,8 +27,8 @@ export function PublishRoomActions({
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState(
     hasSnapshot
-      ? "이미 발행 준비본이 있습니다. 필요하면 최신 draft 기준으로 다시 만들 수 있습니다"
-      : "현재 draft를 기준으로 발행 준비본을 만들 수 있습니다",
+      ? "발행 준비본이 있습니다. 최종 확인 뒤 바로 발행할 수 있습니다"
+      : "먼저 발행 준비본을 만들면 공개 직전 상태를 확인할 수 있습니다",
   );
 
   const handlePublish = async () => {
@@ -141,7 +141,7 @@ export function PublishRoomActions({
             disabled={submitting}
             onClick={() => void handlePublish()}
           >
-            {submitting ? "발행 중..." : "지금 발행"}
+            {submitting ? "발행 중..." : "바로 발행"}
           </button>
         ) : null}
       </div>

@@ -185,8 +185,6 @@ export function EditorialDraftEditor({
     [draft.displayTitleLines],
   );
   const hasWhyNow = isFilled(draft.sourceSnapshot?.whyNow);
-  const hasSummary = isFilled(draft.sourceSnapshot?.summary);
-  const hasMarket = isFilled(draft.sourceSnapshot?.market);
   const hasTitle = isFilled(draft.title);
   const hasExcerpt = isFilled(draft.excerpt);
   const hasVerdict = isFilled(draft.interpretiveFrame);
@@ -203,11 +201,6 @@ export function EditorialDraftEditor({
       : isDirty
         ? "변경됨"
         : "저장됨";
-  const saveStateTone = saving || snapshotting
-    ? styles.signalAccent
-    : isDirty
-      ? styles.signalWarning
-      : styles.signalPositive;
 
   const currentBottleneck = (() => {
     if (!hasWhyNow) {
@@ -232,6 +225,8 @@ export function EditorialDraftEditor({
   const nextStepHint = hasSnapshotReady
     ? "저장 후 발행 준비본을 만들어 canonical/slug 후보를 확인하면 됩니다"
     : "제목, 핵심 답변, 핵심 판단, 본문 순서로 먼저 채우는 게 가장 빠릅니다";
+  const showGenerationPanel =
+    generationState !== "generated" || Boolean(generationErrorMessage) || hasSourceMismatch;
 
   const ensureAdminActionResponse = (response: Response) => {
     const contentType = response.headers.get("content-type") ?? "";
@@ -635,18 +630,21 @@ export function EditorialDraftEditor({
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>Draft Editor</p>
-          <h1 className={styles.title}>발행 전 미리보기와 함께 편집합니다</h1>
+          <p className={styles.eyebrow}>원고실</p>
+          <h1 className={styles.title}>{(draft.sourceSnapshot?.projectName ?? draft.title) || "원고 편집"}</h1>
           <p className={styles.description}>
-            proposal 원문에서 초안을 만들고, 오른쪽 preview에서 실제 피처처럼 보이는지 바로 확인합니다
+            제목, 핵심 답변, 핵심 판단, 커버 이미지를 정리한 뒤 발행실로 넘기는 화면입니다.
           </p>
         </div>
-        <div className={styles.heroMeta}>
-          <p className={styles.metaLabel}>proposal</p>
-          <p className={styles.metaValue}>{proposalId}</p>
-          <p className={styles.metaSubtle}>초안 생성 {draft.draftGeneratedAt}</p>
-          <p className={styles.metaSubtle}>마지막 저장 {draft.updatedAt}</p>
-          <p className={styles.metaSubtle}>오른쪽 proof pane은 현재 편집 상태를 바로 반영합니다</p>
+        <div className={styles.metaPanel}>
+          <p className={styles.metaLabel}>현재 상태</p>
+          <p className={styles.metaValue}>{saveStateLabel}</p>
+          <p className={styles.metaSubtle}>
+            {hasSourceMismatch ? "원본 제안이 바뀌어 다시 확인이 필요합니다" : "저장 상태와 원본 기준이 일치합니다"}
+          </p>
+          <p className={styles.metaSubtle}>
+            {hasSnapshotReady ? "발행실로 넘길 준비가 되어 있습니다" : "제목, 답변, 판단, 본문을 먼저 정리하세요"}
+          </p>
           {showDetachedPreviewLinks ? (
             <a
               href={detachedPreviewHref ?? `${workflowBasePath}/drafts/${proposalId}/preview`}
@@ -663,7 +661,7 @@ export function EditorialDraftEditor({
             rel="noreferrer"
             className={styles.previewLink}
           >
-            발행 준비본 보기
+            발행실 열기
           </a>
         </div>
       </header>
@@ -676,98 +674,32 @@ export function EditorialDraftEditor({
         customLinks={workflowLinks}
       />
 
-      <DraftGenerationPanel
-        proposalId={proposalId}
-        scope="draft"
-        state={generationState}
-        quality={generationQuality}
-        summary={generationSummary}
-        errorMessage={generationErrorMessage}
-        hasDraft
-        actionBasePath={actionBasePath}
-        draftHrefBase={
-          workflowMode === "v2" ? `${workflowBasePath}/editor` : `${workflowBasePath}/drafts`
-        }
-        proposalHrefBase={
-          workflowMode === "v2" ? `${workflowBasePath}/review` : `${workflowBasePath}/proposals`
-        }
-        previewHrefBase={showDetachedPreviewLinks ? `${workflowBasePath}/drafts` : null}
-      />
-
-      <VisibilityReadinessPanel metadata={generationVisibility} scope="draft" />
-
-      <section className={styles.statusRail}>
-        <article className={styles.statusCard}>
-          <p className={styles.sectionLabel}>저장 상태</p>
-          <div className={styles.signalRow}>
-            <span className={saveStateTone}>{saveStateLabel}</span>
-            <span className={hasSourceMismatch ? styles.signalChipDanger : styles.signalNeutral}>
-              {hasSourceMismatch ? "원본 변경 감지" : "원본 일치"}
-            </span>
-            <span className={hasSnapshotReady ? styles.signalAccent : styles.signalNeutral}>
-              {hasSnapshotReady ? "snapshot 준비 가능" : "snapshot 대기"}
-            </span>
-          </div>
-          <p className={styles.workspaceCopy}>
-            {hasSourceMismatch
-              ? "제안 원문이 draft 저장 시점 이후에 바뀌었습니다. 먼저 저장 상태와 원본 차이를 다시 확인하세요"
-              : isDirty
-                ? "현재 화면의 수정은 아직 저장되지 않았습니다"
-                : "현재 편집 상태가 저장본과 일치합니다"}
-          </p>
-        </article>
-      </section>
-
-      <section className={styles.workspaceStrip}>
-        <article className={styles.workspaceCard}>
-          <p className={styles.sectionLabel}>진행 가능 여부</p>
-          <div className={styles.signalRow}>
-            <span className={hasWhyNow ? styles.signalPositive : styles.signalWarning}>
-              {hasWhyNow ? "why now 있음" : "why now 부족"}
-            </span>
-            <span className={hasSummary ? styles.signalPositive : styles.signalWarning}>
-              {hasSummary ? "한 줄 소개 있음" : "한 줄 소개 부족"}
-            </span>
-            <span className={hasMarket ? styles.signalPositive : styles.signalNeutral}>
-              {hasMarket ? "시장 정보 있음" : "시장 정보 없음"}
-            </span>
-          </div>
-          <p className={styles.workspaceCopy}>
-            원본 제안의 기준 정보가 보일수록 편집 초안을 더 빠르게 세울 수 있습니다
-          </p>
-        </article>
-        <article className={styles.workspaceCard}>
-          <p className={styles.sectionLabel}>현재 병목</p>
-          <h2 className={styles.workspaceTitle}>{currentBottleneck}</h2>
-          <p className={styles.workspaceCopy}>{nextStepHint}</p>
-        </article>
-        <article className={styles.workspaceCard}>
-          <p className={styles.sectionLabel}>다음 단계</p>
-          <div className={styles.signalRow}>
-            <span className={hasTitle ? styles.signalPositive : styles.signalWarning}>
-              {hasTitle ? "제목 준비" : "제목 필요"}
-            </span>
-            <span className={hasExcerpt ? styles.signalPositive : styles.signalWarning}>
-              {hasExcerpt ? "핵심 답변 준비" : "핵심 답변 필요"}
-            </span>
-            <span className={hasVerdict ? styles.signalPositive : styles.signalWarning}>
-              {hasVerdict ? "핵심 판단 준비" : "핵심 판단 필요"}
-            </span>
-            <span className={hasSnapshotReady ? styles.signalAccent : styles.signalNeutral}>
-              {hasSnapshotReady ? "snapshot 가능" : "snapshot 대기"}
-            </span>
-          </div>
-        </article>
-      </section>
+      {showGenerationPanel ? (
+        <DraftGenerationPanel
+          proposalId={proposalId}
+          scope="draft"
+          state={generationState}
+          quality={generationQuality}
+          summary={generationSummary}
+          errorMessage={generationErrorMessage}
+          hasDraft
+          actionBasePath={actionBasePath}
+          draftHrefBase={
+            workflowMode === "v2" ? `${workflowBasePath}/editor` : `${workflowBasePath}/drafts`
+          }
+          proposalHrefBase={
+            workflowMode === "v2" ? `${workflowBasePath}/review` : `${workflowBasePath}/proposals`
+          }
+          previewHrefBase={showDetachedPreviewLinks ? `${workflowBasePath}/drafts` : null}
+        />
+      ) : null}
 
       <div className={styles.layout}>
         <section className={styles.editorSurface}>
           <div className={styles.editorHeader}>
-            <p className={styles.sectionLabel}>편집 입력</p>
-            <p className={styles.sectionHint}>
-              지금 필요한 건 더 많은 정보가 아니라, 읽는 첫 문장과 핵심 판단을 먼저 세우는 것입니다
-            </p>
-            <p className={styles.proofHint}>저장하지 않아도 오른쪽 읽기 proof는 현재 입력값 기준으로 즉시 바뀝니다</p>
+            <p className={styles.sectionLabel}>지금 할 일</p>
+            <h2 className={styles.actionTitle}>{currentBottleneck}</h2>
+            <p className={styles.proofHint}>{nextStepHint}</p>
           </div>
 
           <div className={styles.sourceSummary}>
@@ -1011,8 +943,7 @@ export function EditorialDraftEditor({
                   <div className={styles.field}>
                     <span>커버 이미지</span>
                     <p className={styles.fieldHint}>
-                      원고실 v2에서는 커버를 URL 문자열로 저장하지 않습니다. 아래 첨부 자산에서
-                      이미지를 선택해 적용합니다.
+                      아래 이미지 카드에서 커버로 쓸 이미지를 선택하면 바로 반영됩니다.
                     </p>
                   </div>
                 ) : (
@@ -1090,11 +1021,6 @@ export function EditorialDraftEditor({
           </div>
 
           <div className={styles.footer}>
-            <div className={styles.actionSequence}>
-              <span className={styles.signalNeutral}>1. 초안 저장</span>
-              <span className={styles.signalNeutral}>2. 읽기 확인</span>
-              <span className={styles.signalAccent}>3. 발행 준비본 만들기</span>
-            </div>
             <div className={styles.footerActions}>
               <button
                 type="button"
@@ -1115,6 +1041,9 @@ export function EditorialDraftEditor({
             </div>
             <p className={styles.status}>{status}</p>
           </div>
+          {generationVisibility ? (
+            <VisibilityReadinessPanel metadata={generationVisibility} scope="draft" />
+          ) : null}
         </section>
 
         <EditorialDraftPreview

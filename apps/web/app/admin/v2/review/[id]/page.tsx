@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { DraftGenerationPanel } from "@/components/draft-generation-panel";
-import { ProposalProcessingActions } from "@/components/proposal-processing-actions";
 import { ProposalTriageActions } from "@/components/proposal-triage-actions";
 import { VisibilityReadinessPanel } from "@/components/visibility-readiness-panel";
 import { getProposalDetail, requireAdminIdentity } from "@/lib/server/editorial/admin";
@@ -40,33 +39,33 @@ function getCurrentBottleneck(
   isReadyToPublish: boolean,
 ) {
   if (proposal.processingJobs.some((job) => job.status === "failed")) {
-    return "자동 처리 실패를 먼저 정리해야 다음 편집 단계로 안정적으로 넘어갈 수 있습니다";
+    return "자동 처리 오류를 먼저 정리해야 합니다";
   }
   if (!hasOfficialLink(proposal)) {
-    return "공식 링크가 없어 사실 확인의 기준점이 부족합니다";
+    return "공식 링크가 없어 사실 확인 기준이 부족합니다";
   }
   if (!proposal.whyNow?.trim()) {
-    return "왜 지금 중요한지 설명이 부족해 편집 판단이 느려집니다";
+    return "왜 지금 중요한지 설명이 부족합니다";
   }
   if (proposal.status === "needs_info") {
-    return "부족한 정보를 먼저 다시 받아야 검토를 이어갈 수 있습니다";
+    return "먼저 부족한 정보를 다시 받아야 합니다";
   }
   if (proposal.status === "received") {
-    return "담당을 정하고 검토 메모를 남길 차례입니다";
+    return "검토를 시작할 차례입니다";
   }
   if (proposal.status === "assigned") {
-    return "원고실로 넘길지 여부를 지금 결정해야 합니다";
+    return "지금 AI 초안을 만들지 결정해야 합니다";
   }
   if (!hasCanonicalDraft && proposal.status === "in_review") {
-    return "원고실로 넘길 준비는 끝났지만 아직 초안 생성은 시작되지 않았습니다";
+    return "원고를 만들 준비는 됐지만 아직 초안은 없습니다";
   }
   if (hasCanonicalDraft && !isReadyToPublish) {
-    return "초안은 있지만 아직 발행 준비본이 없습니다";
+    return "초안은 있지만 아직 발행 준비 전입니다";
   }
   if (isReadyToPublish) {
-    return "발행 준비본이 있어 발행실에서 마지막 점검으로 넘어갈 수 있습니다";
+    return "발행실에서 마지막 점검만 남았습니다";
   }
-  return "현재 상태와 자료는 다음 단계로 넘길 준비가 되어 있습니다";
+  return "다음 단계로 넘길 준비가 됐습니다";
 }
 
 export default async function AdminV2ReviewDetailPage({
@@ -96,6 +95,7 @@ export default async function AdminV2ReviewDetailPage({
   });
   const hasCanonicalDraft = Boolean(canonicalDraft);
   const isReadyToPublish = canonicalDraft?.status === "ready_to_publish";
+  const failedJobs = proposal.processingJobs.filter((job) => job.status === "failed");
 
   return (
     <div className={styles.page}>
@@ -104,73 +104,24 @@ export default async function AdminV2ReviewDetailPage({
           <p className={styles.eyebrow}>검토실</p>
           <h1 className={styles.title}>{proposal.projectName}</h1>
           <p className={styles.description}>
-            제안을 읽고 초안을 만들 가치가 있는지, 추가 정보가 필요한지, 여기서 결정합니다.
+            {proposal.summary?.trim() || "이 제안을 원고로 만들지, 정보 보강이 필요한지 여기서만 결정합니다."}
           </p>
         </div>
         <div className={styles.metaPanel}>
-          <p className={styles.metaLabel}>현재 상태</p>
+          <p className={styles.metaLabel}>검토 상태</p>
           <p className={styles.metaValue}>{proposal.status}</p>
           <p className={styles.metaSubtle}>담당 {proposal.assigneeEmail ?? "-"}</p>
-          <p className={styles.metaSubtle}>검토가 끝나면 원고실로 바로 이어집니다</p>
+          <p className={styles.metaSubtle}>제안 접수 {toDateLabel(proposal.submittedAt)}</p>
         </div>
       </header>
 
       <AdminWorkflowNav proposalId={proposal.id} active="review" mode="v2" basePath="/admin" />
 
-      <section className={styles.actionBar}>
-        <div className={styles.actionLead}>
-          <p className={styles.sectionLabel}>현재 병목</p>
-          <h2 className={styles.actionTitle}>
-            {getCurrentBottleneck(proposal, hasCanonicalDraft, isReadyToPublish)}
-          </h2>
-          <p className={styles.actionCopy}>이 단계에서는 제안을 정리하고, 원고를 만들지 추가 정보를 받을지 하나의 결정을 내립니다.</p>
-        </div>
-        <dl className={styles.actionMeta}>
-          <div>
-            <dt>공식 링크</dt>
-            <dd>{hasOfficialLink(proposal) ? "있음" : "없음"}</dd>
-          </div>
-          <div>
-            <dt>첨부</dt>
-            <dd>{proposal.assets.length > 0 ? `${proposal.assets.length}개` : "없음"}</dd>
-          </div>
-          <div>
-            <dt>자동 처리</dt>
-            <dd>{proposal.processingJobs.some((job) => job.status === "failed") ? "실패 있음" : "정상"}</dd>
-          </div>
-          <div>
-            <dt>원고실</dt>
-            <dd>{hasCanonicalDraft ? "초안 있음" : "대기"}</dd>
-          </div>
-        </dl>
-      </section>
-
-      {proposal.status === "in_review" ? (
-        <DraftGenerationPanel
-          proposalId={proposal.id}
-          scope="proposal"
-          state={draftGeneration.state}
-          quality={draftGeneration.quality}
-          summary={draftGeneration.summary}
-          errorMessage={draftGeneration.errorMessage}
-          hasDraft={hasCanonicalDraft}
-          actionBasePath="/admin/actions"
-          draftHrefBase="/admin/editor"
-          proposalHrefBase="/admin/review"
-          previewHrefBase={null}
-          allowGenerateFromIdle
-        />
-      ) : null}
-
-      {proposal.status === "in_review" ? (
-        <VisibilityReadinessPanel metadata={draftGeneration.visibility} scope="proposal" />
-      ) : null}
-
       <div className={styles.detailLayout}>
         <section className={styles.detailMain}>
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>검토 요약</p>
+              <p className={styles.sectionLabel}>제안 한눈에 보기</p>
               <Link href="/admin/inbox" className={styles.backLink}>
                 제안함으로 돌아가기
               </Link>
@@ -232,7 +183,7 @@ export default async function AdminV2ReviewDetailPage({
                         <a href={link.url} target="_blank" rel="noreferrer" className={styles.inlineLink}>
                           {link.url}
                         </a>
-                        <span className={styles.listMeta}>{link.linkType}</span>
+                        <span className={styles.listMeta}> {link.linkType}</span>
                       </li>
                     ))}
                   </ul>
@@ -270,8 +221,12 @@ export default async function AdminV2ReviewDetailPage({
         <aside className={styles.detailRail}>
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>검토 액션</p>
+              <p className={styles.sectionLabel}>지금 할 일</p>
             </div>
+            <h2 className={styles.actionTitle}>
+              {getCurrentBottleneck(proposal, hasCanonicalDraft, isReadyToPublish)}
+            </h2>
+            <p className={styles.actionCopy}>반려, 정보 보강, AI 초안 생성 중 하나만 선택하면 다음 단계로 넘어갑니다.</p>
             <ProposalTriageActions
               proposalId={proposal.id}
               currentStatus={proposal.status}
@@ -279,17 +234,48 @@ export default async function AdminV2ReviewDetailPage({
               draftHrefBase="/admin/editor"
             />
           </div>
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>자동 처리</p>
+
+          {proposal.status === "in_review" ? (
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <p className={styles.sectionLabel}>AI 초안 상태</p>
+              </div>
+              <DraftGenerationPanel
+                proposalId={proposal.id}
+                scope="proposal"
+                state={draftGeneration.state}
+                quality={draftGeneration.quality}
+                summary={draftGeneration.summary}
+                errorMessage={draftGeneration.errorMessage}
+                hasDraft={hasCanonicalDraft}
+                actionBasePath="/admin/actions"
+                draftHrefBase="/admin/editor"
+                proposalHrefBase="/admin/review"
+                previewHrefBase={null}
+                allowGenerateFromIdle
+              />
             </div>
-            <ProposalProcessingActions
-              proposalId={proposal.id}
-              failedJobCount={proposal.processingJobs.filter((job) => job.status === "failed").length}
-              actionBasePath="/admin/actions"
-            />
-            <p className={styles.longText}>마지막 업데이트 {toDateLabel(proposal.updatedAt)}</p>
-          </div>
+          ) : null}
+
+          {proposal.status === "in_review" && draftGeneration.visibility ? (
+            <VisibilityReadinessPanel metadata={draftGeneration.visibility} scope="proposal" />
+          ) : null}
+
+          {failedJobs.length > 0 ? (
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <p className={styles.sectionLabel}>자동 처리 오류</p>
+              </div>
+              <ul className={styles.simpleList}>
+                {failedJobs.map((job) => (
+                  <li key={job.id}>
+                    {job.taskType}
+                    <span className={styles.listMeta}> {job.errorMessage ?? "오류 원인 미기록"}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </aside>
       </div>
     </div>

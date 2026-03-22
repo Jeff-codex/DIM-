@@ -56,7 +56,7 @@ export default async function AdminV2PublishPage({
       <section className={styles.blocked}>
         <p className={styles.eyebrow}>발행실</p>
         <h1 className={styles.title}>아직 발행실을 열 수 없는 상태입니다</h1>
-        <p className={styles.description}>원고실에서 draft를 먼저 만든 뒤 발행실로 넘어올 수 있습니다.</p>
+        <p className={styles.description}>원고실에서 초안을 먼저 만든 뒤 발행실로 넘어올 수 있습니다.</p>
       </section>
     );
   }
@@ -70,20 +70,18 @@ export default async function AdminV2PublishPage({
       <header className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>발행실</p>
-          <h1 className={styles.title}>
-            {isReadyToPublish ? "발행 준비 상태를 점검합니다" : "draft를 발행 준비 상태로 올립니다"}
-          </h1>
+          <h1 className={styles.title}>{draft.title || proposal.projectName}</h1>
           <p className={styles.description}>
-            발행실은 공개 반영 전의 마지막 정리 단계입니다. 현재 draft를 기준으로 발행 준비 상태를 만들고, canonical과 slug를 점검합니다.
+            {isReadyToPublish
+              ? "이제 최종 미리보기만 확인하고 바로 발행하면 됩니다."
+              : "먼저 발행 준비본을 만들고, 그 다음 공개 직전 상태를 확인합니다."}
           </p>
         </div>
         <div className={styles.metaPanel}>
-          <p className={styles.metaLabel}>현재 상태</p>
+          <p className={styles.metaLabel}>발행 상태</p>
           <p className={styles.metaValue}>{draft.status}</p>
-          <p className={styles.metaSubtle}>draft 업데이트 {toDateLabel(draft.updatedAt)}</p>
-          {isReadyToPublish ? (
-            <p className={styles.metaSubtle}>발행 준비 상태 {toDateLabel(draft.updatedAt)}</p>
-          ) : null}
+          <p className={styles.metaSubtle}>마지막 수정 {toDateLabel(draft.updatedAt)}</p>
+          <p className={styles.metaSubtle}>slug {draft.articleSlug ?? "-"}</p>
         </div>
       </header>
 
@@ -105,8 +103,16 @@ export default async function AdminV2PublishPage({
         <aside className={styles.detailRail}>
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>발행실 액션</p>
+              <p className={styles.sectionLabel}>지금 할 일</p>
             </div>
+            <h2 className={styles.actionTitle}>
+              {isReadyToPublish ? "최종 확인 뒤 발행하면 됩니다" : "먼저 발행 준비본을 만드세요"}
+            </h2>
+            <p className={styles.actionCopy}>
+              {isReadyToPublish
+                ? "제목, 커버, 본문이 괜찮다면 바로 공개 발행으로 넘기면 됩니다."
+                : "발행 준비본을 만든 뒤 canonical과 공개 미리보기를 다시 확인합니다."}
+            </p>
             <PublishRoomActions
               proposalId={proposalId}
               hasSnapshot={isReadyToPublish}
@@ -117,24 +123,32 @@ export default async function AdminV2PublishPage({
 
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>현재 기준</p>
+              <p className={styles.sectionLabel}>최종 체크</p>
             </div>
             <dl className={styles.summaryGrid}>
               <div>
-                <dt>proposal 상태</dt>
+                <dt>검토 상태</dt>
                 <dd>{proposal.status}</dd>
               </div>
               <div>
-                <dt>draft 생성</dt>
+                <dt>초안 생성</dt>
                 <dd>{toDateLabel(draft.draftGeneratedAt)}</dd>
               </div>
               <div>
-                <dt>준비본</dt>
+                <dt>발행 준비본</dt>
                 <dd>{isReadyToPublish ? "있음" : "아직 없음"}</dd>
               </div>
               <div>
                 <dt>slug</dt>
                 <dd>{draft.articleSlug ?? "-"}</dd>
+              </div>
+              <div>
+                <dt>카테고리</dt>
+                <dd>{categoryName}</dd>
+              </div>
+              <div>
+                <dt>커버</dt>
+                <dd>{draft.coverImageUrl ? "있음" : "없음"}</dd>
               </div>
             </dl>
           </div>

@@ -18,10 +18,10 @@ type ProposalTriageActionsProps = {
 type ActionType = "assign" | "needs_info" | "in_review" | "reject";
 
 const actionLabels: Record<ActionType, string> = {
-  assign: "내가 검토 시작",
-  in_review: "편집 검토로 넘기기",
-  needs_info: "추가 정보 요청",
-  reject: "보류 / 반려",
+  assign: "검토 시작",
+  in_review: "AI 초안 만들기",
+  needs_info: "정보 보강 요청",
+  reject: "반려",
 };
 
 const actionOrderByStatus: Record<string, ActionType[]> = {
@@ -42,7 +42,7 @@ export function ProposalTriageActions({
 }: ProposalTriageActionsProps) {
   const router = useRouter();
   const [note, setNote] = useState(currentNote);
-  const [status, setStatus] = useState("이 제안을 어떤 단계로 넘길지 먼저 정합니다");
+  const [status, setStatus] = useState("지금 필요한 다음 단계 하나만 선택하면 됩니다");
   const [submitting, setSubmitting] = useState<ActionType | null>(null);
   const [deleting, setDeleting] = useState(false);
   const actionOrder = actionOrderByStatus[currentStatus] ?? [
