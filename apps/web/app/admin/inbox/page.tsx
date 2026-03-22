@@ -92,39 +92,20 @@ export default async function AdminInboxPage({
           <p className={styles.eyebrow}>제안함</p>
           <h1 className={styles.title}>외부 제안만 먼저 간단히 정리합니다</h1>
           <p className={styles.description}>
-            여기서는 무엇이 들어왔는지만 빠르게 보고, 상세 판단은 검토 화면에서만 이어갑니다.
+            들어온 제안을 보고 검토로 넘길지 정하는 곳입니다.
           </p>
         </div>
         <div className={styles.metaPanel}>
           <p className={styles.metaLabel}>접속 계정</p>
           <p className={styles.metaValue}>{identity.email}</p>
-          <p className={styles.metaSubtle}>제안 확인과 검토 진입에 필요한 정보만 남겼습니다</p>
+          <p className={styles.metaSubtle}>여기서는 제안 확인과 검토 진입만 다룹니다</p>
         </div>
       </header>
-
-      <section className={styles.stats}>
-        <article className={styles.statCard}>
-          <p className={styles.statValue}>{proposals.length}</p>
-          <p className={styles.statLabel}>현재 제안</p>
-        </article>
-        <article className={styles.statCard}>
-          <p className={styles.statValue}>{links[1].count}</p>
-          <p className={styles.statLabel}>검토 시작 필요</p>
-        </article>
-        <article className={styles.statCard}>
-          <p className={styles.statValue}>{links[3].count}</p>
-          <p className={styles.statLabel}>원고 진행 중</p>
-        </article>
-        <article className={styles.statCard}>
-          <p className={styles.statValue}>{links[4].count}</p>
-          <p className={styles.statLabel}>발행 준비</p>
-        </article>
-      </section>
 
       <section className={styles.listSection}>
         <div className={styles.listHeader}>
           <p className={styles.sectionLabel}>제안 목록</p>
-          <p className={styles.sectionHint}>상세 판단은 검토 화면에서만 합니다</p>
+          <p className={styles.sectionHint}>필터를 고르고 검토만 시작하면 됩니다</p>
         </div>
         <nav className={styles.filterBar} aria-label="제안 필터">
           {links.map((view) => (

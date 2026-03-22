@@ -204,27 +204,27 @@ export function EditorialDraftEditor({
 
   const currentBottleneck = (() => {
     if (!hasWhyNow) {
-      return "원본 제안의 왜 지금이 비어 있어 판단문을 더 세우기 어렵습니다";
+      return "왜 지금 중요한지 한 줄 더 보강해야 합니다";
     }
 
     if (!hasExcerpt) {
-      return "핵심 답변이 비어 있어 읽는 첫 문장이 아직 안 잡혔습니다";
+      return "핵심 답변이 아직 비어 있습니다";
     }
 
     if (!hasVerdict) {
-      return "핵심 판단이 비어 있어 DIM다운 해석축이 부족합니다";
+      return "핵심 판단이 아직 비어 있습니다";
     }
 
     if (!hasBody) {
-      return "본문 초안이 비어 있어 발행 준비본으로 넘길 수 없습니다";
+      return "본문 초안이 아직 부족합니다";
     }
 
-    return "발행 준비본으로 넘길 수 있는 최소 구성은 갖춰졌습니다";
+    return "발행실로 넘길 최소 구성은 갖춰졌습니다";
   })();
 
   const nextStepHint = hasSnapshotReady
-    ? "저장 후 발행 준비본을 만들어 canonical/slug 후보를 확인하면 됩니다"
-    : "제목, 핵심 답변, 핵심 판단, 본문 순서로 먼저 채우는 게 가장 빠릅니다";
+    ? "저장한 뒤 발행실로 넘기면 됩니다"
+    : "제목, 핵심 답변, 핵심 판단, 본문 순서로만 채우면 됩니다";
   const showGenerationPanel =
     generationState !== "generated" || Boolean(generationErrorMessage) || hasSourceMismatch;
   const showVisibilityPanel = Boolean(generationVisibility);
@@ -866,7 +866,7 @@ export function EditorialDraftEditor({
               <div className={styles.groupHeader}>
                 <p className={styles.groupLabel}>제목과 분류</p>
                 <p className={styles.groupHint}>
-                  제목만 또렷하면 나머지는 발행실에서 다시 점검할 수 있습니다.
+                  제목과 분류만 먼저 또렷하게 잡습니다.
                 </p>
               </div>
 
@@ -949,7 +949,7 @@ export function EditorialDraftEditor({
               <div className={styles.groupHeader}>
                 <p className={styles.groupLabel}>핵심 답변과 판단</p>
                 <p className={styles.groupHint}>
-                  첫 답변과 DIM 판단문만 분명하게 잡으면 원고 축이 바로 섭니다.
+                  첫 답변과 DIM 판단문만 분명하면 충분합니다.
                 </p>
               </div>
 
@@ -983,7 +983,7 @@ export function EditorialDraftEditor({
               <div className={styles.groupHeader}>
                 <p className={styles.groupLabel}>본문 초안</p>
                 <p className={styles.groupHint}>
-                  원문을 옮기지 말고, 구조 변화와 근거가 먼저 읽히게 정리합니다.
+                  원문을 옮기지 말고, 구조 변화와 근거만 먼저 정리합니다.
                 </p>
               </div>
 

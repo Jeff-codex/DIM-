@@ -104,7 +104,7 @@ export default async function AdminV2ReviewDetailPage({
           <p className={styles.eyebrow}>검토실</p>
           <h1 className={styles.title}>{proposal.projectName}</h1>
           <p className={styles.description}>
-            {proposal.summary?.trim() || "이 제안을 원고로 만들지, 정보 보강이 필요한지 여기서만 결정합니다."}
+            {proposal.summary?.trim() || "이 제안을 원고로 넘길지 여기서만 결정합니다."}
           </p>
         </div>
         <div className={styles.metaPanel}>
@@ -121,7 +121,7 @@ export default async function AdminV2ReviewDetailPage({
         <section className={styles.detailMain}>
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>제안 한눈에 보기</p>
+              <p className={styles.sectionLabel}>제안 요약</p>
               <Link href="/admin/inbox" className={styles.backLink}>
                 제안함으로 돌아가기
               </Link>
@@ -147,29 +147,13 @@ export default async function AdminV2ReviewDetailPage({
                 <dt>이메일</dt>
                 <dd>{proposal.email ?? "-"}</dd>
               </div>
-              <div>
-                <dt>웹사이트</dt>
-                <dd>
-                  {proposal.websiteUrl ? (
-                    <a href={proposal.websiteUrl} target="_blank" rel="noreferrer" className={styles.inlineLink}>
-                      {proposal.websiteUrl}
-                    </a>
-                  ) : "-"}
-                </dd>
-              </div>
             </dl>
-          </div>
-
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>원문 설명</p>
-            </div>
             <p className={styles.longText}>{proposal.productDescription ?? "-"}</p>
           </div>
 
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>링크와 원본 첨부</p>
+              <p className={styles.sectionLabel}>링크와 첨부</p>
             </div>
             <div className={styles.assetGrid}>
               <div>

@@ -74,7 +74,7 @@ export default async function AdminV2PublishPage({
           <p className={styles.description}>
             {isReadyToPublish
               ? "이제 마지막 확인 뒤 발행하면 됩니다."
-              : "먼저 발행 준비본을 만들면 공개 직전 상태를 확인할 수 있습니다."}
+              : "준비본을 만든 뒤 최종 확인을 이어갑니다."}
           </p>
         </div>
         <div className={styles.metaPanel}>
@@ -119,23 +119,17 @@ export default async function AdminV2PublishPage({
               snapshotHref={`/admin/publish/${proposalId}`}
               publishedHref="/admin/published"
             />
-          </div>
-
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>최종 체크</p>
-            </div>
             <dl className={styles.summaryGrid}>
               <div>
-                <dt>검토 상태</dt>
+                <dt>검토</dt>
                 <dd>{proposal.status}</dd>
               </div>
               <div>
-                <dt>초안 생성</dt>
+                <dt>초안</dt>
                 <dd>{toDateLabel(draft.draftGeneratedAt)}</dd>
               </div>
               <div>
-                <dt>발행 준비본</dt>
+                <dt>준비본</dt>
                 <dd>{isReadyToPublish ? "있음" : "아직 없음"}</dd>
               </div>
               <div>

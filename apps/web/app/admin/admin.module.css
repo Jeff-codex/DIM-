@@ -57,11 +57,11 @@
 
 .title {
   margin: 0;
-  max-width: 12ch;
+  max-width: 15ch;
   font-family: var(--font-display);
-  font-size: clamp(2rem, 3.2vw, 3rem);
+  font-size: clamp(1.45rem, 2.1vw, 2.2rem);
   font-weight: 500;
-  line-height: 1.14;
+  line-height: 1.2;
   letter-spacing: -0.035em;
   color: #f8fbff;
   word-break: keep-all;
@@ -69,10 +69,10 @@
 }
 
 .description {
-  margin: 18px 0 0;
+  margin: 14px 0 0;
   max-width: 62ch;
-  font-size: 0.98rem;
-  line-height: 1.8;
+  font-size: 0.94rem;
+  line-height: 1.72;
   color: rgba(214, 221, 239, 0.74);
 }
 

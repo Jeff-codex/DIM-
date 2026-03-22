@@ -85,8 +85,8 @@
   max-width: 14ch;
   margin: 0;
   color: #fbfdff;
-  font-size: clamp(2rem, 3vw, 3.1rem);
-  line-height: 1.12;
+  font-size: clamp(1.45rem, 2vw, 2.15rem);
+  line-height: 1.2;
   letter-spacing: -0.035em;
   word-break: keep-all;
   text-wrap: balance;
