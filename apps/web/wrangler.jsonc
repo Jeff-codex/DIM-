@@ -19,7 +19,8 @@
     {
       "binding": "EDITORIAL_DB",
       "database_name": "dim-editorial-prod",
-      "database_id": "525a6139-746c-40b2-be57-c4e12574f6d8"
+      "database_id": "525a6139-746c-40b2-be57-c4e12574f6d8",
+      "migrations_dir": "db/migrations"
     }
   ],
   "r2_buckets": [
@@ -69,7 +70,8 @@
         {
           "binding": "EDITORIAL_DB",
           "database_name": "dim-editorial-preview",
-          "database_id": "3ff20a8d-4e74-4d94-a5c7-a306f8c2b773"
+          "database_id": "3ff20a8d-4e74-4d94-a5c7-a306f8c2b773",
+          "migrations_dir": "db/migrations"
         }
       ],
       "r2_buckets": [
@@ -103,7 +105,8 @@
         {
           "binding": "EDITORIAL_DB",
           "database_name": "dim-editorial-candidate",
-          "database_id": "cb1047f3-d686-49d6-a257-0da8a92f1399"
+          "database_id": "cb1047f3-d686-49d6-a257-0da8a92f1399",
+          "migrations_dir": "db/migrations"
         }
       ],
       "r2_buckets": [
