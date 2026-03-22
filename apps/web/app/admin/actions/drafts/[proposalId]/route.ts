@@ -1,2 +1,2 @@
 export const runtime = "nodejs";
-export { GET, POST, PUT } from "../../../../api/admin/drafts/[proposalId]/route";
+export { GET, POST, PUT } from "@/app/admin/v2/actions/drafts/[proposalId]/route";

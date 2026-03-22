@@ -119,11 +119,11 @@ export default async function AdminV2PublishRevisionPage({
         proposalId={proposal.id}
         active="publish"
         mode="v2"
-        basePath="/admin/v2"
+        basePath="/admin"
         customLinks={{
-          review: `/admin/v2/review/${proposal.id}`,
-          editor: `/admin/v2/editor/revisions/${revision.id}`,
-          publish: `/admin/v2/publish/revisions/${revision.id}`,
+          review: `/admin/review/${proposal.id}`,
+          editor: `/admin/editor/revisions/${revision.id}`,
+          publish: `/admin/publish/revisions/${revision.id}`,
         }}
       />
 
@@ -148,9 +148,10 @@ export default async function AdminV2PublishRevisionPage({
             <PublishRoomActions
               proposalId={proposal.id}
               hasSnapshot={isReadyToPublish}
-              prepareActionPath={`/admin/v2/actions/drafts/revisions/${revision.id}/snapshot`}
-              publishActionPath={`/admin/v2/actions/publish/revisions/${revision.id}`}
-              snapshotHref={`/admin/v2/publish/revisions/${revision.id}`}
+              prepareActionPath={`/admin/actions/drafts/revisions/${revision.id}/snapshot`}
+              publishActionPath={`/admin/actions/publish/revisions/${revision.id}`}
+              snapshotHref={`/admin/publish/revisions/${revision.id}`}
+              publishedHref="/admin/published"
             />
           </div>
 

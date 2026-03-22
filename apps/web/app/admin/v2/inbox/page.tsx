@@ -133,13 +133,13 @@ export default async function AdminV2InboxPage({
           <p className={styles.eyebrow}>제안함</p>
           <h1 className={styles.title}>외부 제안을 먼저 정리합니다</h1>
           <p className={styles.description}>
-            v2에서는 제안함이 intake 큐만 담당합니다. 검토와 원고 작성은 각각 검토실과 원고실로 넘깁니다.
+            외부에서 들어온 제안을 먼저 읽고, 검토가 필요한 건 검토실로 넘깁니다.
           </p>
         </div>
         <div className={styles.metaPanel}>
           <p className={styles.metaLabel}>접속 계정</p>
           <p className={styles.metaValue}>{identity.email}</p>
-          <p className={styles.metaSubtle}>browser write는 모두 /admin/v2/actions 아래에서만 처리합니다</p>
+          <p className={styles.metaSubtle}>제안 정리와 검토 이동은 이 화면에서 바로 이어집니다</p>
         </div>
       </header>
 
@@ -147,7 +147,7 @@ export default async function AdminV2InboxPage({
         <article className={styles.queueCard}>
           <p className={styles.sectionLabel}>먼저 볼 것</p>
           <p className={styles.queueValue}>{queueCounts.urgent}</p>
-          <p className={styles.queueCopy}>공식 링크 부족, why now 부족, queue 실패를 먼저 정리합니다</p>
+          <p className={styles.queueCopy}>공식 링크 부족, why now 부족, 자동 처리 실패를 먼저 정리합니다</p>
         </article>
         <article className={styles.queueCard}>
           <p className={styles.sectionLabel}>검토실로 바로 이동 가능</p>
@@ -170,7 +170,7 @@ export default async function AdminV2InboxPage({
           {viewLinks.map((view) => (
             <Link
               key={view.id}
-              href={view.id === "all" ? "/admin/v2/inbox" : `/admin/v2/inbox?view=${view.id}`}
+              href={view.id === "all" ? "/admin/inbox" : `/admin/inbox?view=${view.id}`}
               className={view.id === currentView ? styles.filterLinkActive : styles.filterLink}
             >
               <span>{view.label}</span>
@@ -193,7 +193,7 @@ export default async function AdminV2InboxPage({
                     <span className={styles.rowDate}>{toDateLabel(proposal.submittedAt)}</span>
                   </div>
                   <h2 className={styles.rowTitle}>
-                    <Link href={`/admin/v2/review/${proposal.id}`} className={styles.rowLink}>
+                    <Link href={`/admin/review/${proposal.id}`} className={styles.rowLink}>
                       {proposal.projectName}
                     </Link>
                   </h2>
@@ -206,7 +206,7 @@ export default async function AdminV2InboxPage({
                     <span className={isPresent(proposal.hasWhyNow) ? styles.signalChipPositive : styles.signalChipWarning}>
                       {isPresent(proposal.hasWhyNow) ? "why now 있음" : "why now 부족"}
                     </span>
-                    {proposal.failedJobCount > 0 ? <span className={styles.signalChipDanger}>queue 실패</span> : null}
+                    {proposal.failedJobCount > 0 ? <span className={styles.signalChipDanger}>자동 처리 실패</span> : null}
                     {isPresent(proposal.hasDraft) ? <span className={styles.signalChip}>원고 있음</span> : null}
                     {isPresent(proposal.hasSnapshot) ? <span className={styles.signalChipPositive}>발행 준비본 있음</span> : null}
                   </div>
@@ -231,7 +231,7 @@ export default async function AdminV2InboxPage({
                     currentStatus={proposal.status}
                     hasOfficialLink={proposal.hasOfficialLink}
                     hasWhyNow={proposal.hasWhyNow}
-                    actionBasePath="/admin/v2/actions"
+                    actionBasePath="/admin/actions"
                   />
                 </div>
               </article>

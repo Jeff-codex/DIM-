@@ -77,7 +77,7 @@ export default async function AdminV2PublishedDetailPage({
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <p className={styles.sectionLabel}>현재 공개 기준</p>
-              <Link href="/admin/v2/published" className={styles.backLink}>
+              <Link href="/admin/published" className={styles.backLink}>
                 발행 관리로 돌아가기
               </Link>
             </div>
@@ -111,7 +111,7 @@ export default async function AdminV2PublishedDetailPage({
                 <dd>{revisionStatusLabel}</dd>
               </div>
               <div>
-                <dt>revision</dt>
+                <dt>개정본</dt>
                 <dd>{feature.revisionDetail?.revisionId ?? "-"}</dd>
               </div>
               <div>
@@ -141,7 +141,7 @@ export default async function AdminV2PublishedDetailPage({
             <PublishedFeatureActions
               slug={feature.slug}
               revision={feature.revision}
-              actionBasePath="/admin/v2/actions"
+              actionBasePath="/admin/actions"
             />
           </div>
 

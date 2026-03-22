@@ -82,7 +82,7 @@ export default async function AdminV2EditorRevisionPage({
             <p className={styles.eyebrow}>원고실</p>
             <h1 className={styles.title}>{proposal.projectName}</h1>
             <p className={styles.description}>
-              revision entrypoint에서는 read와 write를 분리합니다. 초안 생성은 action route로만 시작합니다.
+              이 개정 원고를 바로 이어서 편집할 수 있습니다.
             </p>
           </div>
           <div className={styles.metaPanel}>
@@ -100,9 +100,9 @@ export default async function AdminV2EditorRevisionPage({
           summary={draftGeneration.summary}
           errorMessage={draftGeneration.errorMessage}
           hasDraft={false}
-          actionBasePath="/admin/v2/actions"
-          draftHrefBase="/admin/v2/editor"
-          proposalHrefBase="/admin/v2/review"
+          actionBasePath="/admin/actions"
+          draftHrefBase="/admin/editor"
+          proposalHrefBase="/admin/review"
           previewHrefBase={null}
           allowGenerateFromIdle
         />
@@ -129,7 +129,7 @@ export default async function AdminV2EditorRevisionPage({
       label: asset.originalFilename ?? asset.r2Key,
       kind: asset.kind,
       mimeType: asset.mimeType,
-      previewUrl: `/admin/v2/proposals/${proposal.id}/assets/${asset.id}`,
+      previewUrl: `/admin/proposals/${proposal.id}/assets/${asset.id}`,
     })) ?? [];
 
   return (
@@ -148,22 +148,22 @@ export default async function AdminV2EditorRevisionPage({
       generationErrorMessage={draftGeneration.errorMessage}
       generationVisibility={draftGeneration.visibility}
       proposalSourceSnapshot={proposalSourceSnapshot}
-      actionBasePath="/admin/v2/actions"
-      draftActionPath={`/admin/v2/actions/drafts/revisions/${revision.id}`}
-      draftSnapshotActionPath={`/admin/v2/actions/drafts/revisions/${revision.id}/snapshot`}
-      draftCoverActionPath={`/admin/v2/actions/drafts/revisions/${revision.id}/cover`}
-      editorialAssetUploadActionPath={`/admin/v2/actions/drafts/revisions/${revision.id}/editorial-assets/upload`}
-      editorialAssetPromoteActionPath={`/admin/v2/actions/drafts/revisions/${revision.id}/editorial-assets/promote`}
-      workflowBasePath="/admin/v2"
+      actionBasePath="/admin/actions"
+      draftActionPath={`/admin/actions/drafts/revisions/${revision.id}`}
+      draftSnapshotActionPath={`/admin/actions/drafts/revisions/${revision.id}/snapshot`}
+      draftCoverActionPath={`/admin/actions/drafts/revisions/${revision.id}/cover`}
+      editorialAssetUploadActionPath={`/admin/actions/drafts/revisions/${revision.id}/editorial-assets/upload`}
+      editorialAssetPromoteActionPath={`/admin/actions/drafts/revisions/${revision.id}/editorial-assets/promote`}
+      workflowBasePath="/admin"
       workflowMode="v2"
       workflowActive="editor"
       workflowLinks={{
-        review: `/admin/v2/review/${proposal.id}`,
-        editor: `/admin/v2/editor/revisions/${revision.id}`,
-        publish: `/admin/v2/publish/revisions/${revision.id}`,
+        review: `/admin/review/${proposal.id}`,
+        editor: `/admin/editor/revisions/${revision.id}`,
+        publish: `/admin/publish/revisions/${revision.id}`,
       }}
       showDetachedPreviewLinks={false}
-      publishRoomHref={`/admin/v2/publish/revisions/${revision.id}`}
+      publishRoomHref={`/admin/publish/revisions/${revision.id}`}
     />
   );
 }

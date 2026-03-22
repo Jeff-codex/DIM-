@@ -50,7 +50,7 @@ export function ProposalQueueActions({
   const disabledReason = !hasOfficialLink
     ? "공식 링크가 먼저 있어야 검토로 넘길 수 있습니다"
     : !hasWhyNow
-      ? "why now가 먼저 있어야 검토 판단이 빨라집니다"
+      ? "왜 지금 중요한지 설명이 있어야 검토 판단이 빨라집니다"
       : null;
 
   const handleAction = async (action: QueueAction) => {
@@ -89,7 +89,7 @@ export function ProposalQueueActions({
       setStatusMessage(
         error instanceof Error && error.message === "proposal-queue-access-expired"
           ? "편집 권한 또는 Access 세션이 끊겨 상태를 바꾸지 못했습니다. 다시 로그인한 뒤 시도해 주세요"
-          : "상태를 바꾸지 못했습니다. Access와 runtime 연결을 확인해 주세요",
+          : "상태를 바꾸지 못했습니다. 권한과 연결 상태를 다시 확인해 주세요",
       );
     } finally {
       setSubmitting(null);
@@ -98,7 +98,7 @@ export function ProposalQueueActions({
 
   return (
     <div className={styles.panel}>
-      <p className={styles.label}>quick triage</p>
+      <p className={styles.label}>빠른 처리</p>
       <div className={styles.actions}>
         {actions.map((action, index) => {
           const isPrimary = index === 0;

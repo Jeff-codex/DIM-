@@ -87,7 +87,7 @@ export default async function AdminV2PublishPage({
         </div>
       </header>
 
-      <AdminWorkflowNav proposalId={proposalId} active="publish" mode="v2" basePath="/admin/v2" />
+      <AdminWorkflowNav proposalId={proposalId} active="publish" mode="v2" basePath="/admin" />
 
       <div className={styles.detailLayout}>
         <section className={styles.detailMain}>
@@ -107,7 +107,12 @@ export default async function AdminV2PublishPage({
             <div className={styles.cardHeader}>
               <p className={styles.sectionLabel}>발행실 액션</p>
             </div>
-            <PublishRoomActions proposalId={proposalId} hasSnapshot={isReadyToPublish} />
+            <PublishRoomActions
+              proposalId={proposalId}
+              hasSnapshot={isReadyToPublish}
+              snapshotHref={`/admin/publish/${proposalId}`}
+              publishedHref="/admin/published"
+            />
           </div>
 
           <div className={styles.card}>

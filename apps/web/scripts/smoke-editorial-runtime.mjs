@@ -57,7 +57,7 @@ if (!proposalId) {
 await expectStatus(`${baseUrl}/admin/inbox`, 200);
 
 const triageResponse = await expectStatus(
-  `${baseUrl}/api/admin/proposals/${proposalId}/triage`,
+  `${baseUrl}/admin/actions/proposals/${proposalId}/triage`,
   200,
   {
     method: "POST",
@@ -72,10 +72,10 @@ const triageResponse = await expectStatus(
 );
 const triageJson = await readJson(triageResponse);
 
-await expectStatus(`${baseUrl}/admin/drafts/${proposalId}/preview`, 200);
+await expectStatus(`${baseUrl}/admin/preview/${proposalId}`, 200);
 
 const snapshotCreateResponse = await expectStatus(
-  `${baseUrl}/api/admin/drafts/${proposalId}/snapshot`,
+  `${baseUrl}/admin/actions/drafts/${proposalId}/snapshot`,
   200,
   {
     method: "POST",
@@ -83,7 +83,7 @@ const snapshotCreateResponse = await expectStatus(
 );
 const snapshotJson = await readJson(snapshotCreateResponse);
 
-await expectStatus(`${baseUrl}/admin/drafts/${proposalId}/snapshot`, 200);
+await expectStatus(`${baseUrl}/admin/publish/${proposalId}`, 200);
 
 console.log(
   JSON.stringify(

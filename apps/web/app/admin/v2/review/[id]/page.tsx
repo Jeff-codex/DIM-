@@ -31,7 +31,7 @@ function hasOfficialLink(proposal: Awaited<ReturnType<typeof getProposalDetail>>
 }
 
 function getAssetPreviewUrl(proposalId: string, assetId: string) {
-  return `/admin/v2/proposals/${proposalId}/assets/${assetId}`;
+  return `/admin/proposals/${proposalId}/assets/${assetId}`;
 }
 
 function getCurrentBottleneck(
@@ -40,7 +40,7 @@ function getCurrentBottleneck(
   isReadyToPublish: boolean,
 ) {
   if (proposal.processingJobs.some((job) => job.status === "failed")) {
-    return "queue 실패를 먼저 정리해야 다음 편집 단계로 안정적으로 넘어갈 수 있습니다";
+    return "자동 처리 실패를 먼저 정리해야 다음 편집 단계로 안정적으로 넘어갈 수 있습니다";
   }
   if (!hasOfficialLink(proposal)) {
     return "공식 링크가 없어 사실 확인의 기준점이 부족합니다";
@@ -104,20 +104,18 @@ export default async function AdminV2ReviewDetailPage({
           <p className={styles.eyebrow}>검토실</p>
           <h1 className={styles.title}>{proposal.projectName}</h1>
           <p className={styles.description}>
-            검토실은 제안 원문을 보존한 채 상태만 바꾸고, 원고실로 넘길 기준을 결정하는 단계입니다.
+            제안을 읽고 초안을 만들 가치가 있는지, 추가 정보가 필요한지, 여기서 결정합니다.
           </p>
         </div>
         <div className={styles.metaPanel}>
           <p className={styles.metaLabel}>현재 상태</p>
           <p className={styles.metaValue}>{proposal.status}</p>
           <p className={styles.metaSubtle}>담당 {proposal.assigneeEmail ?? "-"}</p>
-          <p className={styles.metaSubtle}>
-            원고실은 draft_generating 또는 draft_ready 이후에 바로 이어집니다
-          </p>
+          <p className={styles.metaSubtle}>검토가 끝나면 원고실로 바로 이어집니다</p>
         </div>
       </header>
 
-      <AdminWorkflowNav proposalId={proposal.id} active="review" mode="v2" basePath="/admin/v2" />
+      <AdminWorkflowNav proposalId={proposal.id} active="review" mode="v2" basePath="/admin" />
 
       <section className={styles.actionBar}>
         <div className={styles.actionLead}>
@@ -125,7 +123,7 @@ export default async function AdminV2ReviewDetailPage({
           <h2 className={styles.actionTitle}>
             {getCurrentBottleneck(proposal, hasCanonicalDraft, isReadyToPublish)}
           </h2>
-          <p className={styles.actionCopy}>검토실에서는 GET 요청으로 draft를 만들지 않습니다. 상태 전이와 생성은 action route만 수행합니다.</p>
+          <p className={styles.actionCopy}>이 단계에서는 제안을 정리하고, 원고를 만들지 추가 정보를 받을지 하나의 결정을 내립니다.</p>
         </div>
         <dl className={styles.actionMeta}>
           <div>
@@ -137,12 +135,12 @@ export default async function AdminV2ReviewDetailPage({
             <dd>{proposal.assets.length > 0 ? `${proposal.assets.length}개` : "없음"}</dd>
           </div>
           <div>
-            <dt>queue</dt>
+            <dt>자동 처리</dt>
             <dd>{proposal.processingJobs.some((job) => job.status === "failed") ? "실패 있음" : "정상"}</dd>
           </div>
           <div>
             <dt>원고실</dt>
-            <dd>{hasCanonicalDraft ? "draft_ready" : "대기"}</dd>
+            <dd>{hasCanonicalDraft ? "초안 있음" : "대기"}</dd>
           </div>
         </dl>
       </section>
@@ -156,9 +154,9 @@ export default async function AdminV2ReviewDetailPage({
           summary={draftGeneration.summary}
           errorMessage={draftGeneration.errorMessage}
           hasDraft={hasCanonicalDraft}
-          actionBasePath="/admin/v2/actions"
-          draftHrefBase="/admin/v2/editor"
-          proposalHrefBase="/admin/v2/review"
+          actionBasePath="/admin/actions"
+          draftHrefBase="/admin/editor"
+          proposalHrefBase="/admin/review"
           previewHrefBase={null}
           allowGenerateFromIdle
         />
@@ -173,7 +171,7 @@ export default async function AdminV2ReviewDetailPage({
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <p className={styles.sectionLabel}>검토 요약</p>
-              <Link href="/admin/v2/inbox" className={styles.backLink}>
+              <Link href="/admin/inbox" className={styles.backLink}>
                 제안함으로 돌아가기
               </Link>
             </div>
@@ -277,8 +275,8 @@ export default async function AdminV2ReviewDetailPage({
             <ProposalTriageActions
               proposalId={proposal.id}
               currentStatus={proposal.status}
-              actionBasePath="/admin/v2/actions"
-              draftHrefBase="/admin/v2/editor"
+              actionBasePath="/admin/actions"
+              draftHrefBase="/admin/editor"
             />
           </div>
           <div className={styles.card}>
@@ -288,7 +286,7 @@ export default async function AdminV2ReviewDetailPage({
             <ProposalProcessingActions
               proposalId={proposal.id}
               failedJobCount={proposal.processingJobs.filter((job) => job.status === "failed").length}
-              actionBasePath="/admin/v2/actions"
+              actionBasePath="/admin/actions"
             />
             <p className={styles.longText}>마지막 업데이트 {toDateLabel(proposal.updatedAt)}</p>
           </div>

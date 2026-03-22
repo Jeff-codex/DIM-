@@ -1,2 +1,2 @@
 export const runtime = "nodejs";
-export { POST } from "../../../../../api/admin/published/[slug]/revision/route";
+export { POST } from "@/app/admin/v2/actions/published/[slug]/revision/route";

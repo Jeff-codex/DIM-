@@ -16,27 +16,31 @@ function resolveWorkflow(proposalId: string | null) {
   }
 
   return {
-    review: `/admin/v2/review/${proposalId}`,
-    editor: `/admin/v2/editor/${proposalId}`,
-    publish: `/admin/v2/publish/${proposalId}`,
+    review: `/admin/review/${proposalId}`,
+    editor: `/admin/editor/${proposalId}`,
+    publish: `/admin/publish/${proposalId}`,
   };
 }
 
 function getContext(pathname: string) {
   const segments = pathname.split("/").filter(Boolean);
   const proposalId =
-    segments[0] === "admin" &&
-    segments[1] === "v2" &&
-    (segments[2] === "review" || segments[2] === "editor" || segments[2] === "publish") &&
-    segments[3]
-      ? segments[3]
-      : null;
+    segments[0] !== "admin" ? null
+    : segments[1] === "v2"
+      ? (segments[2] === "review" || segments[2] === "editor" || segments[2] === "publish") &&
+          segments[3] !== "revisions"
+        ? segments[3] ?? null
+        : null
+      : (segments[1] === "review" || segments[1] === "editor" || segments[1] === "publish") &&
+          segments[2] !== "revisions"
+        ? segments[2] ?? null
+        : null;
 
   const activeId: V2NavItemId =
-    pathname.startsWith("/admin/v2/published") ? "published"
-    : pathname.startsWith("/admin/v2/publish") ? "publish"
-    : pathname.startsWith("/admin/v2/editor") ? "editor"
-    : pathname.startsWith("/admin/v2/review") ? "review"
+    pathname.startsWith("/admin/published") || pathname.startsWith("/admin/v2/published") ? "published"
+    : pathname.startsWith("/admin/publish") || pathname.startsWith("/admin/v2/publish") ? "publish"
+    : pathname.startsWith("/admin/editor") || pathname.startsWith("/admin/v2/editor") ? "editor"
+    : pathname.startsWith("/admin/review") || pathname.startsWith("/admin/v2/review") ? "review"
     : "inbox";
 
   return {
@@ -55,7 +59,7 @@ export function AdminV2PrimaryNav() {
       label: "접수 관리",
       description: "제안함과 검토실을 분리해 외부 제안을 먼저 정리합니다",
       items: [
-        { id: "inbox" as const, label: "제안함", href: "/admin/v2/inbox" },
+        { id: "inbox" as const, label: "제안함", href: "/admin/inbox" },
         { id: "review" as const, label: "검토실", href: workflow.review },
       ],
     },
@@ -73,7 +77,7 @@ export function AdminV2PrimaryNav() {
       label: "발행 관리",
       description: "이미 공개된 피처와 개정 흐름을 따로 관리합니다",
       items: [
-        { id: "published" as const, label: "발행 관리", href: "/admin/v2/published" },
+        { id: "published" as const, label: "발행 관리", href: "/admin/published" },
       ],
     },
   ];
@@ -81,14 +85,14 @@ export function AdminV2PrimaryNav() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brandBlock}>
-        <p className={styles.eyebrow}>admin v2</p>
+        <p className={styles.eyebrow}>편집 시스템</p>
         <h2 className={styles.title}>DIM 편집 시스템</h2>
         <p className={styles.description}>
-          제안 접수부터 원고 편집, 발행 관리까지 단일 흐름으로 다시 정리한 편집면입니다
+          외부 제안 검토부터 원고 편집과 발행 관리까지 하나의 흐름으로 이어지는 편집면입니다
         </p>
       </div>
 
-      <nav className={styles.nav} aria-label="관리자 v2 카테고리">
+      <nav className={styles.nav} aria-label="편집 카테고리">
         {groups.map((group) => (
           <section key={group.id} className={styles.group}>
             <div className={styles.groupHeader}>

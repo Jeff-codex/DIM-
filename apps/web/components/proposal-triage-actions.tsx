@@ -12,6 +12,7 @@ type ProposalTriageActionsProps = {
   redirectToDraftOnReview?: boolean;
   actionBasePath?: string;
   draftHrefBase?: string;
+  inboxHref?: string;
 };
 
 type ActionType = "assign" | "needs_info" | "in_review" | "reject";
@@ -36,12 +37,14 @@ export function ProposalTriageActions({
   currentNote = "",
   redirectToDraftOnReview = true,
   actionBasePath = "/admin/actions",
-  draftHrefBase = "/admin/drafts",
+  draftHrefBase = "/admin/editor",
+  inboxHref = "/admin/inbox",
 }: ProposalTriageActionsProps) {
   const router = useRouter();
   const [note, setNote] = useState(currentNote);
   const [status, setStatus] = useState("이 제안을 어떤 단계로 넘길지 먼저 정합니다");
   const [submitting, setSubmitting] = useState<ActionType | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const actionOrder = actionOrderByStatus[currentStatus] ?? [
     "assign",
     "in_review",
@@ -122,10 +125,62 @@ export function ProposalTriageActions({
     }
   };
 
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      "반려된 제안을 완전히 삭제합니다. 연결된 편집 산출물이 있으면 삭제되지 않습니다. 계속할까요?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const response = await fetch(`${actionBasePath}/proposals/${proposalId}/delete`, {
+        method: "POST",
+      });
+      const contentType = response.headers.get("content-type") ?? "";
+
+      if (response.redirected || contentType.includes("text/html")) {
+        throw new Error("편집 권한 또는 Access 세션이 끊겨 삭제하지 못했습니다. 다시 로그인한 뒤 시도해 주세요");
+      }
+
+      const data = (await response.json().catch(() => null)) as
+        | {
+            ok?: boolean;
+            detail?: string;
+            rawDetail?: string | null;
+          }
+        | null;
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(
+          data?.detail ??
+            humanizeDraftGenerationErrorMessage(data?.rawDetail ?? null) ??
+            "반려된 제안을 삭제하지 못했습니다.",
+        );
+      }
+
+      setStatus("반려된 제안을 삭제했습니다");
+      router.push(inboxHref);
+      router.refresh();
+    } catch (error) {
+      setStatus(
+        error instanceof Error && error.message
+          ? error.message
+          : "반려된 제안을 삭제하지 못했습니다.",
+      );
+      router.refresh();
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <section className={styles.panel}>
       <div className={styles.header}>
-        <p className={styles.eyebrow}>Triage</p>
+        <p className={styles.eyebrow}>검토 결정</p>
         <h2 className={styles.title}>지금 이 제안을 어디로 넘길지 결정합니다</h2>
         <p className={styles.current}>현재 상태: {currentStatus}</p>
       </div>
@@ -148,12 +203,22 @@ export function ProposalTriageActions({
             className={
               action === "reject" || action === "assign" ? styles.secondary : styles.primary
             }
-            disabled={submitting !== null}
+            disabled={submitting !== null || deleting}
             onClick={() => handleAction(action)}
           >
             {submitting === action ? "처리 중..." : actionLabels[action]}
           </button>
         ))}
+        {currentStatus === "rejected" ? (
+          <button
+            type="button"
+            className={styles.secondary}
+            disabled={submitting !== null || deleting}
+            onClick={() => void handleDelete()}
+          >
+            {deleting ? "삭제 중..." : "반려 후 삭제"}
+          </button>
+        ) : null}
       </div>
 
       <p className={styles.status}>{status}</p>

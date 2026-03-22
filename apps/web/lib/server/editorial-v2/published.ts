@@ -72,10 +72,10 @@ function buildWorkingRevisionState(
     assigneeEmail: row.assigneeEmail,
     hasDraft: true,
     hasSnapshot: row.status === "ready_to_publish",
-    reviewHref: row.proposalId ? `/admin/v2/review/${row.proposalId}` : null,
-    editorHref: `/admin/v2/editor/revisions/${row.id}`,
-    previewHref: `/admin/v2/editor/revisions/${row.id}`,
-    publishHref: `/admin/v2/publish/revisions/${row.id}`,
+    reviewHref: row.proposalId ? `/admin/review/${row.proposalId}` : null,
+    editorHref: `/admin/editor/revisions/${row.id}`,
+    previewHref: `/admin/editor/revisions/${row.id}`,
+    publishHref: `/admin/publish/revisions/${row.id}`,
   };
 }
 
@@ -268,8 +268,8 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
     return {
       revisionId: existing.id,
       proposalId: existing.proposalId,
-      draftHref: `/admin/v2/editor/revisions/${existing.id}`,
-      publishHref: `/admin/v2/publish/revisions/${existing.id}`,
+      draftHref: `/admin/editor/revisions/${existing.id}`,
+      publishHref: `/admin/publish/revisions/${existing.id}`,
     };
   }
 
@@ -380,8 +380,8 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
   return {
     revisionId,
     proposalId: currentPublishedRevision.proposalId,
-    draftHref: `/admin/v2/editor/revisions/${revisionId}`,
-    publishHref: `/admin/v2/publish/revisions/${revisionId}`,
+    draftHref: `/admin/editor/revisions/${revisionId}`,
+    publishHref: `/admin/publish/revisions/${revisionId}`,
   };
 }
 
@@ -456,7 +456,7 @@ export async function publishFeatureRevisionFromProposal(
       revision.featureEntryId,
       revision.id,
       editorEmail,
-      "v2 발행실에서 수동 발행했습니다",
+      "발행실에서 수동 발행했습니다",
       JSON.stringify({
         proposalId,
        previousRevisionId: currentPublishedRevisionId,
@@ -560,7 +560,7 @@ export async function publishFeatureRevisionById(
       revision.featureEntryId,
       revision.id,
       editorEmail,
-      "v2 발행실에서 수동 발행했습니다",
+      "발행실에서 수동 발행했습니다",
       JSON.stringify({
         proposalId: revision.proposalId,
         previousRevisionId: currentPublishedRevisionId,

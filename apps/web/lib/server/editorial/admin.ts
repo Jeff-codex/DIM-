@@ -535,3 +535,126 @@ export async function updateProposalTriage(
     draftGenerationError,
   };
 }
+
+export async function deleteRejectedProposal(
+  proposalId: string,
+  _identity: AdminIdentity,
+) {
+  void _identity;
+  const env = await getEditorialEnv({
+    requireBucket: true,
+    requireQueue: false,
+  });
+
+  const proposal = await env.EDITORIAL_DB.prepare(
+    `SELECT id, status, source
+     FROM proposal
+     WHERE id = ?
+     LIMIT 1`,
+  )
+    .bind(proposalId)
+    .first<{
+      id: string;
+      status: string;
+      source: string | null;
+    }>();
+
+  if (!proposal) {
+    return null;
+  }
+
+  if (proposal.source === "admin_published_revision") {
+    throw new Error("proposal_delete_forbidden_source");
+  }
+
+  if (proposal.status !== "rejected") {
+    throw new Error("proposal_delete_requires_rejected");
+  }
+
+  const blockers = await env.EDITORIAL_DB.prepare(
+    `SELECT
+       EXISTS(SELECT 1 FROM feature_revision WHERE proposal_id = ? LIMIT 1) AS hasFeatureRevision,
+       EXISTS(SELECT 1 FROM asset_family WHERE proposal_id = ? LIMIT 1) AS hasAssetFamily,
+       EXISTS(
+         SELECT 1
+         FROM asset_family
+         WHERE source_proposal_asset_id IN (
+           SELECT id
+           FROM proposal_asset
+           WHERE proposal_id = ?
+         )
+         LIMIT 1
+       ) AS hasPromotedProposalAsset,
+       EXISTS(SELECT 1 FROM draft_generation_run WHERE proposal_id = ? LIMIT 1) AS hasDraftGenerationRun,
+       EXISTS(SELECT 1 FROM publication_snapshot WHERE proposal_id = ? LIMIT 1) AS hasPublicationSnapshot`,
+  )
+    .bind(proposalId, proposalId, proposalId, proposalId, proposalId)
+    .first<{
+      hasFeatureRevision: number;
+      hasAssetFamily: number;
+      hasPromotedProposalAsset: number;
+      hasDraftGenerationRun: number;
+      hasPublicationSnapshot: number;
+    }>();
+
+  if (
+    blockers?.hasFeatureRevision ||
+    blockers?.hasAssetFamily ||
+    blockers?.hasPromotedProposalAsset ||
+    blockers?.hasDraftGenerationRun ||
+    blockers?.hasPublicationSnapshot
+  ) {
+    throw new Error("proposal_delete_has_editorial_artifacts");
+  }
+
+  const [proposalAssetsResult, editorialAssetsResult] = await Promise.all([
+    env.EDITORIAL_DB.prepare(
+      `SELECT r2_key AS r2Key
+       FROM proposal_asset
+       WHERE proposal_id = ?`,
+    )
+      .bind(proposalId)
+      .all<{ r2Key: string }>(),
+    env.EDITORIAL_DB.prepare(
+      `SELECT r2_key AS r2Key
+       FROM editorial_asset
+       WHERE proposal_id = ?`,
+    )
+      .bind(proposalId)
+      .all<{ r2Key: string }>(),
+  ]);
+
+  const keysToDelete = [
+    ...(proposalAssetsResult.results ?? []).map((row) => row.r2Key),
+    ...(editorialAssetsResult.results ?? []).map((row) => row.r2Key),
+  ].filter(Boolean);
+
+  await env.EDITORIAL_DB.batch([
+    env.EDITORIAL_DB.prepare(
+      `DELETE FROM workflow_event
+       WHERE subject_type = 'proposal' AND subject_id = ?`,
+    ).bind(proposalId),
+    env.EDITORIAL_DB.prepare(
+      `DELETE FROM proposal_processing_job
+       WHERE proposal_id = ?`,
+    ).bind(proposalId),
+    env.EDITORIAL_DB.prepare(
+      `DELETE FROM publication_snapshot
+       WHERE proposal_id = ?`,
+    ).bind(proposalId),
+    env.EDITORIAL_DB.prepare(
+      `DELETE FROM proposal
+       WHERE id = ?`,
+    ).bind(proposalId),
+  ]);
+
+  if (keysToDelete.length > 0) {
+    await Promise.allSettled(keysToDelete.map((key) => env.INTAKE_BUCKET.delete(key)));
+  }
+
+  return {
+    proposalId,
+    deleted: true,
+    deletedObjectCount: keysToDelete.length,
+  };
+}

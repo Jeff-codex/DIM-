@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { AdminPrimaryNav } from "@/components/admin-primary-nav";
+import { AdminV2PrimaryNav } from "@/components/admin-v2-primary-nav";
 import { ADMIN_PRODUCT_NAME } from "@/lib/admin-labels";
 import styles from "./admin.module.css";
 
@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <div className={styles.shell}>
       <div className={`container ${styles.container}`}>
         <div className={styles.layoutFrame}>
-          <AdminPrimaryNav />
+          <AdminV2PrimaryNav />
           <div className={styles.contentColumn}>{children}</div>
         </div>
       </div>

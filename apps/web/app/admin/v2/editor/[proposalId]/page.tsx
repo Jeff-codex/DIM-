@@ -76,7 +76,7 @@ export default async function AdminV2EditorPage({
             <p className={styles.eyebrow}>원고실</p>
             <h1 className={styles.title}>{proposal.projectName}</h1>
             <p className={styles.description}>
-              원고실은 GET 요청으로 draft를 만들지 않습니다. 초안 생성은 action route로만 시작합니다.
+              초안이 아직 없으면 검토실에서 초안 만들기를 먼저 눌러야 합니다.
             </p>
           </div>
           <div className={styles.metaPanel}>
@@ -86,7 +86,7 @@ export default async function AdminV2EditorPage({
           </div>
         </header>
 
-        <AdminWorkflowNav proposalId={proposalId} active="editor" mode="v2" basePath="/admin/v2" />
+        <AdminWorkflowNav proposalId={proposalId} active="editor" mode="v2" basePath="/admin" />
 
         <DraftGenerationPanel
           proposalId={proposalId}
@@ -96,9 +96,9 @@ export default async function AdminV2EditorPage({
           summary={draftGeneration.summary}
           errorMessage={draftGeneration.errorMessage}
           hasDraft={false}
-          actionBasePath="/admin/v2/actions"
-          draftHrefBase="/admin/v2/editor"
-          proposalHrefBase="/admin/v2/review"
+          actionBasePath="/admin/actions"
+          draftHrefBase="/admin/editor"
+          proposalHrefBase="/admin/review"
           previewHrefBase={null}
           allowGenerateFromIdle
         />
@@ -112,7 +112,7 @@ export default async function AdminV2EditorPage({
       label: asset.originalFilename ?? asset.r2Key,
       kind: asset.kind,
       mimeType: asset.mimeType,
-      previewUrl: `/admin/v2/proposals/${proposalId}/assets/${asset.id}`,
+      previewUrl: `/admin/proposals/${proposalId}/assets/${asset.id}`,
     })) ?? [];
 
   return (
@@ -131,12 +131,12 @@ export default async function AdminV2EditorPage({
       generationErrorMessage={draftGeneration.errorMessage}
       generationVisibility={draftGeneration.visibility}
       proposalSourceSnapshot={proposalSourceSnapshot}
-      actionBasePath="/admin/v2/actions"
-      workflowBasePath="/admin/v2"
+      actionBasePath="/admin/actions"
+      workflowBasePath="/admin"
       workflowMode="v2"
       workflowActive="editor"
       showDetachedPreviewLinks={false}
-      publishRoomHref={`/admin/v2/publish/${proposalId}`}
+      publishRoomHref={`/admin/publish/${proposalId}`}
     />
   );
 }

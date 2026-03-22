@@ -17,11 +17,11 @@ type PublishRoomActionsProps = {
 export function PublishRoomActions({
   proposalId,
   hasSnapshot,
-  actionBasePath = "/admin/v2/actions",
+  actionBasePath = "/admin/actions",
   prepareActionPath,
   publishActionPath,
-  snapshotHref = `/admin/v2/publish/${proposalId}`,
-  publishedHref = "/admin/v2/published",
+  snapshotHref = `/admin/publish/${proposalId}`,
+  publishedHref = "/admin/published",
 }: PublishRoomActionsProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);

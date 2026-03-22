@@ -18,6 +18,17 @@ function toDateLabel(value: string) {
   }).format(new Date(value));
 }
 
+function getRevisionStatusLabel(
+  revision: Awaited<ReturnType<typeof listPublishedFeaturesForAdminV2>>[number]["revision"],
+) {
+  if (!revision) return "없음";
+  if (revision.hasSnapshot) return "발행 준비";
+  if (revision.status === "draft_generating") return "초안 생성 중";
+  if (revision.status === "draft_ready") return "초안 준비";
+  if (revision.status === "editing") return "원고 편집 중";
+  return "개정 진행 중";
+}
+
 function filterFeatures(
   features: Awaited<ReturnType<typeof listPublishedFeaturesForAdminV2>>,
   view: PublishedView,
@@ -81,7 +92,7 @@ export default async function AdminV2PublishedPage({
           <p className={styles.eyebrow}>발행 관리</p>
           <h1 className={styles.title}>공개 피처와 개정 흐름을 분리해 관리합니다</h1>
           <p className={styles.description}>
-            v2에서는 이미 공개된 피처를 기준으로 개정 초안을 열고, intake 제안함과 섞이지 않게 관리합니다.
+            이미 공개된 피처를 기준으로 개정 흐름을 열고, 제안함과 섞이지 않게 관리합니다.
           </p>
         </div>
         <div className={styles.metaPanel}>
@@ -94,7 +105,7 @@ export default async function AdminV2PublishedPage({
       <section className={styles.listSection}>
         <div className={styles.listHeader}>
           <p className={styles.sectionLabel}>발행 피처</p>
-          <p className={styles.sectionHint}>개정은 feature 기준으로 열고, proposal queue와 섞지 않습니다</p>
+          <p className={styles.sectionHint}>개정은 발행 피처 기준으로 열고, 제안함과 섞지 않습니다</p>
         </div>
         <nav className={styles.filterBar} aria-label="발행 피처 필터">
           {viewLinks.map((view) => (
@@ -103,9 +114,9 @@ export default async function AdminV2PublishedPage({
               href={
                 view.id === "all"
                   ? query
-                    ? `/admin/v2/published?q=${encodeURIComponent(query)}`
-                    : "/admin/v2/published"
-                  : `/admin/v2/published?view=${view.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`
+                    ? `/admin/published?q=${encodeURIComponent(query)}`
+                    : "/admin/published"
+                  : `/admin/published?view=${view.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`
               }
               className={view.id === currentView ? styles.filterLinkActive : styles.filterLink}
             >
@@ -114,7 +125,7 @@ export default async function AdminV2PublishedPage({
             </Link>
           ))}
         </nav>
-        <form method="GET" action="/admin/v2/published" className={styles.searchBar}>
+        <form method="GET" action="/admin/published" className={styles.searchBar}>
           {currentView !== "all" ? <input type="hidden" name="view" value={currentView} /> : null}
           <input
             type="search"
@@ -132,18 +143,18 @@ export default async function AdminV2PublishedPage({
             <article key={feature.slug} className={styles.row}>
               <div className={styles.rowMain}>
                 <div className={styles.rowTop}>
-                  <span className={styles.statusPill}>published</span>
+                  <span className={styles.statusPill}>공개 중</span>
                   <span className={styles.rowDate}>{toDateLabel(feature.publishedAt)}</span>
                 </div>
                 <h2 className={styles.rowTitle}>
-                  <Link href={`/admin/v2/published/${feature.slug}`} className={styles.rowLink}>
+                  <Link href={`/admin/published/${feature.slug}`} className={styles.rowLink}>
                     {feature.title}
                   </Link>
                 </h2>
                 <p className={styles.rowSummary}>{feature.excerpt}</p>
                 <div className={styles.signalRow}>
                   <span className={styles.signalChipPositive}>{feature.categoryName}</span>
-                  {feature.featured ? <span className={styles.signalChip}>featured</span> : null}
+                  {feature.featured ? <span className={styles.signalChip}>대표</span> : null}
                   {feature.revision?.hasSnapshot ? (
                     <span className={styles.signalChipPositive}>개정 준비본 있음</span>
                   ) : feature.revision?.hasDraft ? (
@@ -159,7 +170,7 @@ export default async function AdminV2PublishedPage({
                 <dl className={styles.rowMeta}>
                   <div>
                     <dt>현재 개정 상태</dt>
-                    <dd>{feature.revision?.status ?? "없음"}</dd>
+                    <dd>{getRevisionStatusLabel(feature.revision)}</dd>
                   </div>
                   <div>
                     <dt>담당</dt>
@@ -173,7 +184,7 @@ export default async function AdminV2PublishedPage({
                 <PublishedFeatureActions
                   slug={feature.slug}
                   revision={feature.revision}
-                  actionBasePath="/admin/v2/actions"
+                  actionBasePath="/admin/actions"
                 />
               </div>
             </article>

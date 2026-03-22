@@ -121,9 +121,9 @@ export function DraftGenerationPanel({
   errorMessage,
   hasDraft,
   actionBasePath = "/admin/actions",
-  draftHrefBase = "/admin/drafts",
-  proposalHrefBase = "/admin/proposals",
-  previewHrefBase = "/admin/drafts",
+  draftHrefBase = "/admin/editor",
+  proposalHrefBase = "/admin/review",
+  previewHrefBase = "/admin/preview",
   allowGenerateFromIdle = false,
 }: DraftGenerationPanelProps) {
   const router = useRouter();
