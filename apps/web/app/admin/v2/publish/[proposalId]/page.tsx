@@ -73,8 +73,8 @@ export default async function AdminV2PublishPage({
           <h1 className={styles.title}>{draft.title || proposal.projectName}</h1>
           <p className={styles.description}>
             {isReadyToPublish
-              ? "이제 최종 미리보기만 확인하고 바로 발행하면 됩니다."
-              : "먼저 발행 준비본을 만들고, 그 다음 공개 직전 상태를 확인합니다."}
+              ? "이제 마지막 확인 뒤 발행하면 됩니다."
+              : "먼저 발행 준비본을 만들면 공개 직전 상태를 확인할 수 있습니다."}
           </p>
         </div>
         <div className={styles.metaPanel}>
@@ -110,8 +110,8 @@ export default async function AdminV2PublishPage({
             </h2>
             <p className={styles.actionCopy}>
               {isReadyToPublish
-                ? "제목, 커버, 본문이 괜찮다면 바로 공개 발행으로 넘기면 됩니다."
-                : "발행 준비본을 만든 뒤 canonical과 공개 미리보기를 다시 확인합니다."}
+                ? "제목, 커버, 본문만 마지막으로 확인하면 됩니다."
+                : "준비본을 만들면 이 화면에서 바로 최종 점검을 이어갈 수 있습니다."}
             </p>
             <PublishRoomActions
               proposalId={proposalId}

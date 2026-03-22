@@ -39,31 +39,31 @@ function getCurrentBottleneck(
   isReadyToPublish: boolean,
 ) {
   if (proposal.processingJobs.some((job) => job.status === "failed")) {
-    return "자동 처리 오류를 먼저 정리해야 합니다";
+    return "자동 처리 오류부터 정리하세요";
   }
   if (!hasOfficialLink(proposal)) {
-    return "공식 링크가 없어 사실 확인 기준이 부족합니다";
+    return "공식 링크를 먼저 확인해야 합니다";
   }
   if (!proposal.whyNow?.trim()) {
-    return "왜 지금 중요한지 설명이 부족합니다";
+    return "왜 지금 중요한지 설명이 더 필요합니다";
   }
   if (proposal.status === "needs_info") {
-    return "먼저 부족한 정보를 다시 받아야 합니다";
+    return "부족한 정보를 다시 받아야 합니다";
   }
   if (proposal.status === "received") {
-    return "검토를 시작할 차례입니다";
+    return "검토를 시작하세요";
   }
   if (proposal.status === "assigned") {
-    return "지금 AI 초안을 만들지 결정해야 합니다";
+    return "이제 AI 초안을 만들 차례입니다";
   }
   if (!hasCanonicalDraft && proposal.status === "in_review") {
-    return "원고를 만들 준비는 됐지만 아직 초안은 없습니다";
+    return "초안은 아직 없습니다";
   }
   if (hasCanonicalDraft && !isReadyToPublish) {
-    return "초안은 있지만 아직 발행 준비 전입니다";
+    return "초안은 있으니 원고실로 넘기면 됩니다";
   }
   if (isReadyToPublish) {
-    return "발행실에서 마지막 점검만 남았습니다";
+    return "발행실에서 마지막 확인만 남았습니다";
   }
   return "다음 단계로 넘길 준비가 됐습니다";
 }
@@ -226,7 +226,7 @@ export default async function AdminV2ReviewDetailPage({
             <h2 className={styles.actionTitle}>
               {getCurrentBottleneck(proposal, hasCanonicalDraft, isReadyToPublish)}
             </h2>
-            <p className={styles.actionCopy}>반려, 정보 보강, AI 초안 생성 중 하나만 선택하면 다음 단계로 넘어갑니다.</p>
+            <p className={styles.actionCopy}>여기서는 다음 단계 하나만 정하면 됩니다.</p>
             <ProposalTriageActions
               proposalId={proposal.id}
               currentStatus={proposal.status}

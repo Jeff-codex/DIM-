@@ -475,6 +475,28 @@
   padding-top: 8px;
 }
 
+.supportPanel {
+  border: 1px solid rgba(145, 163, 217, 0.12);
+  background: rgba(10, 14, 22, 0.82);
+}
+
+.supportSummary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 18px;
+  color: rgba(153, 238, 255, 0.88);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.supportSummary::-webkit-details-marker {
+  display: none;
+}
+
+.supportBody {
+  padding: 0 18px 18px;
+}
+
 .actionSequence {
   display: flex;
   flex-wrap: wrap;

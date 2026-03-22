@@ -159,7 +159,7 @@ export function EditorialDraftEditor({
   const router = useRouter();
   const [draft, setDraft] = useState(initialDraft);
   const [editorialAssetFamilies, setEditorialAssetFamilies] = useState(editorialAssets);
-  const [status, setStatus] = useState("수정한 내용은 저장 전까지 이 화면에서 바로 미리 볼 수 있습니다");
+  const [status, setStatus] = useState("수정 내용은 이 화면과 오른쪽 미리보기에 바로 반영됩니다");
   const [saving, setSaving] = useState(false);
   const [snapshotting, setSnapshotting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -227,6 +227,7 @@ export function EditorialDraftEditor({
     : "제목, 핵심 답변, 핵심 판단, 본문 순서로 먼저 채우는 게 가장 빠릅니다";
   const showGenerationPanel =
     generationState !== "generated" || Boolean(generationErrorMessage) || hasSourceMismatch;
+  const showVisibilityPanel = Boolean(generationVisibility);
 
   const ensureAdminActionResponse = (response: Response) => {
     const contentType = response.headers.get("content-type") ?? "";
@@ -321,9 +322,9 @@ export function EditorialDraftEditor({
         setLastSavedSnapshot(serializeDraft(data.draft));
       }
 
-      setStatus("편집 초안을 저장했습니다");
+      setStatus("저장했습니다");
     } catch {
-      setStatus("편집 초안을 저장하지 못했습니다. 저장 형식과 연결 상태를 다시 확인해 주세요");
+      setStatus("저장하지 못했습니다. 연결 상태와 입력 형식을 다시 확인해 주세요");
     } finally {
       setSaving(false);
     }
@@ -364,9 +365,9 @@ export function EditorialDraftEditor({
         throw new Error("publication-snapshot-failed");
       }
 
-      setStatus("발행 준비본을 만들었습니다");
+      setStatus("발행실로 넘길 준비를 마쳤습니다");
     } catch {
-      setStatus("발행 준비본을 만들지 못했습니다. draft 저장 상태를 먼저 확인해 주세요");
+      setStatus("발행 준비본을 만들지 못했습니다. 저장 상태를 먼저 확인해 주세요");
     } finally {
       setSnapshotting(false);
     }
@@ -633,17 +634,17 @@ export function EditorialDraftEditor({
           <p className={styles.eyebrow}>원고실</p>
           <h1 className={styles.title}>{(draft.sourceSnapshot?.projectName ?? draft.title) || "원고 편집"}</h1>
           <p className={styles.description}>
-            제목, 핵심 답변, 핵심 판단, 커버 이미지를 정리한 뒤 발행실로 넘기는 화면입니다.
+            핵심 답변과 판단, 커버 이미지를 정리한 뒤 발행실로 넘기는 화면입니다.
           </p>
         </div>
         <div className={styles.metaPanel}>
           <p className={styles.metaLabel}>현재 상태</p>
           <p className={styles.metaValue}>{saveStateLabel}</p>
           <p className={styles.metaSubtle}>
-            {hasSourceMismatch ? "원본 제안이 바뀌어 다시 확인이 필요합니다" : "저장 상태와 원본 기준이 일치합니다"}
+            {hasSourceMismatch ? "원본 제안이 바뀌어 초안을 다시 확인해야 합니다" : "원고와 원본 제안이 맞춰져 있습니다"}
           </p>
           <p className={styles.metaSubtle}>
-            {hasSnapshotReady ? "발행실로 넘길 준비가 되어 있습니다" : "제목, 답변, 판단, 본문을 먼저 정리하세요"}
+            {hasSnapshotReady ? "이제 발행실로 넘기면 됩니다" : "제목, 답변, 판단, 본문을 먼저 정리하세요"}
           </p>
           {showDetachedPreviewLinks ? (
             <a
@@ -702,33 +703,12 @@ export function EditorialDraftEditor({
             <p className={styles.proofHint}>{nextStepHint}</p>
           </div>
 
-          <div className={styles.sourceSummary}>
-            <div>
-              <span className={styles.sourceLabel}>원본 제안</span>
-              <strong>{draft.sourceSnapshot?.projectName ?? "-"}</strong>
-            </div>
-            <div>
-              <span className={styles.sourceLabel}>why now</span>
-              <strong>{draft.sourceSnapshot?.whyNow ? "있음" : "없음"}</strong>
-            </div>
-            <div>
-              <span className={styles.sourceLabel}>시장</span>
-              <strong>{draft.sourceSnapshot?.market ? "있음" : "없음"}</strong>
-            </div>
-            <div>
-              <span className={styles.sourceLabel}>기준 proposal</span>
-              <strong>{draft.sourceProposalUpdatedAt ?? "-"}</strong>
-            </div>
-          </div>
-
           {sourceAssets.length > 0 || editorialAssetFamilies.length > 0 ? (
             <section className={styles.assetShelf}>
               <div className={styles.groupHeader}>
-                <p className={styles.groupLabel}>첨부 자산</p>
+                <p className={styles.groupLabel}>커버 이미지</p>
                 <p className={styles.groupHint}>
-                  proposal 첨부를 그대로 쓰거나, 새 이미지를 추가해 커버로 지정할 수 있습니다.
-                  마스터 이미지는 1600 × 1200px, 4:3 기준으로 정리되고 카드와 상세 파생본이
-                  함께 준비됩니다
+                  새 이미지를 올리거나 제안 첨부를 커버로 올릴 수 있습니다. 권장 규격은 1600 × 1200px 이상, 4:3입니다.
                 </p>
               </div>
               <div className={styles.assetUploadBar}>
@@ -752,9 +732,9 @@ export function EditorialDraftEditor({
               {editorialAssetFamilies.length > 0 ? (
                 <div className={styles.assetSection}>
                   <div className={styles.assetSectionHeader}>
-                    <p className={styles.groupLabel}>편집 이미지</p>
+                    <p className={styles.groupLabel}>이미 선택된 이미지</p>
                     <p className={styles.groupHint}>
-                      편집 중 추가했거나 커버용으로 승격한 이미지입니다
+                      지금 원고에서 바로 쓸 수 있는 이미지입니다.
                     </p>
                   </div>
                   <div className={styles.assetGrid}>
@@ -770,7 +750,7 @@ export function EditorialDraftEditor({
                         familyCoverUrl && draft.coverImageUrl === familyCoverUrl,
                       );
                       const sourceBadge =
-                        family.sourceType === "admin_upload" ? "편집 추가" : "원본 승격";
+                        family.sourceType === "admin_upload" ? "새로 올림" : "원본 승격";
 
                       return (
                         <article key={family.familyId} className={styles.assetCard}>
@@ -826,7 +806,7 @@ export function EditorialDraftEditor({
                   <div className={styles.assetSectionHeader}>
                     <p className={styles.groupLabel}>제안 첨부</p>
                     <p className={styles.groupHint}>
-                      제안자가 보낸 원본 자료입니다. 이미지는 커버용 편집 자산으로 승격해 쓸 수 있습니다
+                      제안자가 보낸 원본 자료입니다. 필요한 이미지만 커버로 올리면 됩니다.
                     </p>
                   </div>
                   <div className={styles.assetGrid}>
@@ -886,7 +866,7 @@ export function EditorialDraftEditor({
               <div className={styles.groupHeader}>
                 <p className={styles.groupLabel}>제목과 분류</p>
                 <p className={styles.groupHint}>
-                  제목은 읽는 첫 문장이고, 줄 분할은 실제 발행면 리듬을 결정합니다
+                  제목만 또렷하면 나머지는 발행실에서 다시 점검할 수 있습니다.
                 </p>
               </div>
 
@@ -969,7 +949,7 @@ export function EditorialDraftEditor({
               <div className={styles.groupHeader}>
                 <p className={styles.groupLabel}>핵심 답변과 판단</p>
                 <p className={styles.groupHint}>
-                  excerpt는 첫 답변, interpretive frame은 DIM의 판단문으로 읽혀야 합니다
+                  첫 답변과 DIM 판단문만 분명하게 잡으면 원고 축이 바로 섭니다.
                 </p>
               </div>
 
@@ -1003,7 +983,7 @@ export function EditorialDraftEditor({
               <div className={styles.groupHeader}>
                 <p className={styles.groupLabel}>본문 초안</p>
                 <p className={styles.groupHint}>
-                  제안 원문을 그대로 옮기기보다, 구조 변화의 이유와 근거가 먼저 읽히게 정리합니다
+                  원문을 옮기지 말고, 구조 변화와 근거가 먼저 읽히게 정리합니다.
                 </p>
               </div>
 
@@ -1028,7 +1008,7 @@ export function EditorialDraftEditor({
                 disabled={saving || snapshotting}
                 onClick={handleSave}
               >
-                {saving ? "저장 중..." : "초안 저장"}
+                {saving ? "저장 중..." : "저장"}
               </button>
               <button
                 type="button"
@@ -1036,13 +1016,18 @@ export function EditorialDraftEditor({
                 disabled={saving || snapshotting}
                 onClick={handlePrepareSnapshot}
               >
-                {snapshotting ? "준비 중..." : "발행 준비본 만들기"}
+                {snapshotting ? "준비 중..." : "발행실로 넘기기"}
               </button>
             </div>
             <p className={styles.status}>{status}</p>
           </div>
-          {generationVisibility ? (
-            <VisibilityReadinessPanel metadata={generationVisibility} scope="draft" />
+          {showVisibilityPanel ? (
+            <details className={styles.supportPanel}>
+              <summary className={styles.supportSummary}>SEO / AEO / GEO 준비도 보기</summary>
+              <div className={styles.supportBody}>
+                <VisibilityReadinessPanel metadata={generationVisibility} scope="draft" />
+              </div>
+            </details>
           ) : null}
         </section>
 
