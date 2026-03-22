@@ -49,7 +49,7 @@ export function ProposalTriageActions({
     setSubmitting(action);
 
     try {
-      const response = await fetch(`/api/admin/proposals/${proposalId}/triage`, {
+      const response = await fetch(`/admin/actions/proposals/${proposalId}/triage`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -59,6 +59,12 @@ export function ProposalTriageActions({
           note: note.trim() || undefined,
         }),
       });
+
+      const contentType = response.headers.get("content-type") ?? "";
+
+      if (response.redirected || contentType.includes("text/html")) {
+        throw new Error("편집 권한 또는 Access 세션이 끊겨 상태를 바꾸지 못했습니다. 다시 로그인한 뒤 시도해 주세요");
+      }
 
       const data = (await response.json().catch(() => null)) as
         | {

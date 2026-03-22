@@ -60,13 +60,19 @@ export function ProposalQueueActions({
     setSubmitting(action);
 
     try {
-      const response = await fetch(`/api/admin/proposals/${proposalId}/triage`, {
+      const response = await fetch(`/admin/actions/proposals/${proposalId}/triage`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ action }),
       });
+
+      const contentType = response.headers.get("content-type") ?? "";
+
+      if (response.redirected || contentType.includes("text/html")) {
+        throw new Error("proposal-queue-access-expired");
+      }
 
       if (!response.ok) {
         throw new Error("proposal-queue-triage-failed");
@@ -77,8 +83,12 @@ export function ProposalQueueActions({
         data.toStatus ? `상태를 ${data.toStatus}로 바꿨습니다` : "상태를 업데이트했습니다",
       );
       router.refresh();
-    } catch {
-      setStatusMessage("상태를 바꾸지 못했습니다. Access와 runtime 연결을 확인해 주세요");
+    } catch (error) {
+      setStatusMessage(
+        error instanceof Error && error.message === "proposal-queue-access-expired"
+          ? "편집 권한 또는 Access 세션이 끊겨 상태를 바꾸지 못했습니다. 다시 로그인한 뒤 시도해 주세요"
+          : "상태를 바꾸지 못했습니다. Access와 runtime 연결을 확인해 주세요",
+      );
     } finally {
       setSubmitting(null);
     }

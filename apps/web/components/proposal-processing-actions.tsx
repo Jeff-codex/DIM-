@@ -34,9 +34,15 @@ export function ProposalProcessingActions({
     setSubmitting(true);
 
     try {
-      const response = await fetch(`/api/admin/proposals/${proposalId}/rerun`, {
+      const response = await fetch(`/admin/actions/proposals/${proposalId}/rerun`, {
         method: "POST",
       });
+
+      const contentType = response.headers.get("content-type") ?? "";
+
+      if (response.redirected || contentType.includes("text/html")) {
+        throw new Error("proposal-rerun-access-expired");
+      }
 
       if (!response.ok) {
         throw new Error("proposal-rerun-failed");
@@ -44,8 +50,12 @@ export function ProposalProcessingActions({
 
       setStatus("queue 작업을 다시 큐에 넣었습니다");
       router.refresh();
-    } catch {
-      setStatus("queue 작업을 다시 실행하지 못했습니다. 권한과 연결 상태를 확인해 주세요");
+    } catch (error) {
+      setStatus(
+        error instanceof Error && error.message === "proposal-rerun-access-expired"
+          ? "편집 권한 또는 Access 세션이 끊겨 queue 작업을 다시 실행하지 못했습니다. 다시 로그인한 뒤 시도해 주세요"
+          : "queue 작업을 다시 실행하지 못했습니다. 권한과 연결 상태를 확인해 주세요",
+      );
     } finally {
       setSubmitting(false);
     }

@@ -118,10 +118,22 @@ export function DraftGenerationPanel({
 }: DraftGenerationPanelProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
-  const [status, setStatus] = useState(summary ?? "초안 생성 상태를 이곳에서 확인합니다");
+  const initialStatus =
+    state === "failed"
+      ? errorMessage ?? summary ?? "초안 생성 상태를 이곳에서 확인합니다"
+      : state === "stale"
+        ? "원본 제안이 바뀌어 초안을 다시 맞춰야 합니다"
+        : summary ?? "초안 생성 상태를 이곳에서 확인합니다";
+  const [status, setStatus] = useState(initialStatus);
   const view = getViewCopy(scope, state, quality);
 
   const readResponseDetail = async (response: Response, fallback: string) => {
+    const contentType = response.headers.get("content-type") ?? "";
+
+    if (response.redirected || contentType.includes("text/html")) {
+      return "편집 권한 또는 Access 세션이 끊겨 초안 작업을 이어가지 못했습니다. 다시 로그인한 뒤 시도해 주세요";
+    }
+
     const payload = (await response.json().catch(() => null)) as
       | {
           detail?: string;
@@ -164,7 +176,7 @@ export function DraftGenerationPanel({
     setSubmitting(true);
 
     try {
-      const response = await fetch(`/api/admin/drafts/${proposalId}`, {
+      const response = await fetch(`/admin/actions/drafts/${proposalId}`, {
         method: "PUT",
       });
 

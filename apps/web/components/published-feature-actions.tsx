@@ -47,9 +47,14 @@ export function PublishedFeatureActions({
     setSubmitting(true);
 
     try {
-      const response = await fetch(`/api/admin/published/${slug}/revision`, {
+      const response = await fetch(`/admin/actions/published/${slug}/revision`, {
         method: "POST",
       });
+      const contentType = response.headers.get("content-type") ?? "";
+
+      if (response.redirected || contentType.includes("text/html")) {
+        throw new Error("published-revision-access-expired");
+      }
       const data = (await response.json().catch(() => null)) as
         | {
             draftHref?: string;
@@ -64,8 +69,12 @@ export function PublishedFeatureActions({
       setStatus("개정 초안을 열었습니다");
       router.push(data.draftHref);
       router.refresh();
-    } catch {
-      setStatus("개정 초안을 열지 못했습니다. Access와 연결 상태를 다시 확인해 주세요");
+    } catch (error) {
+      setStatus(
+        error instanceof Error && error.message === "published-revision-access-expired"
+          ? "편집 권한 또는 Access 세션이 끊겨 개정 초안을 열지 못했습니다. 다시 로그인한 뒤 시도해 주세요"
+          : "개정 초안을 열지 못했습니다. Access와 연결 상태를 다시 확인해 주세요",
+      );
     } finally {
       setSubmitting(false);
     }

@@ -194,6 +194,16 @@ export function EditorialDraftEditor({
     ? "저장 후 발행 준비본을 만들어 canonical/slug 후보를 확인하면 됩니다"
     : "제목, 핵심 답변, 핵심 판단, 본문 순서로 먼저 채우는 게 가장 빠릅니다";
 
+  const ensureAdminActionResponse = (response: Response) => {
+    const contentType = response.headers.get("content-type") ?? "";
+
+    if (response.redirected || contentType.includes("text/html")) {
+      throw new Error(
+        "편집 권한 또는 Access 세션이 끊겨 작업을 이어가지 못했습니다. 다시 로그인한 뒤 시도해 주세요",
+      );
+    }
+  };
+
   const persistDraft = async (
     nextDraft: EditorialDraftRecord,
     messages: {
@@ -205,13 +215,14 @@ export function EditorialDraftEditor({
     setDraft(nextDraft);
 
     try {
-      const response = await fetch(`/api/admin/drafts/${proposalId}`, {
+      const response = await fetch(`/admin/actions/drafts/${proposalId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(nextDraft),
       });
+      ensureAdminActionResponse(response);
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as
@@ -254,13 +265,14 @@ export function EditorialDraftEditor({
     setSaving(true);
 
     try {
-      const response = await fetch(`/api/admin/drafts/${proposalId}`, {
+      const response = await fetch(`/admin/actions/drafts/${proposalId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(draft),
       });
+      ensureAdminActionResponse(response);
 
       if (!response.ok) {
         throw new Error("draft-save-failed");
@@ -287,13 +299,14 @@ export function EditorialDraftEditor({
     setSnapshotting(true);
 
     try {
-      const saveResponse = await fetch(`/api/admin/drafts/${proposalId}`, {
+      const saveResponse = await fetch(`/admin/actions/drafts/${proposalId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(draft),
       });
+      ensureAdminActionResponse(saveResponse);
 
       if (!saveResponse.ok) {
         throw new Error("draft-save-before-snapshot-failed");
@@ -308,9 +321,10 @@ export function EditorialDraftEditor({
         setLastSavedSnapshot(serializeDraft(saveData.draft));
       }
 
-      const snapshotResponse = await fetch(`/api/admin/drafts/${proposalId}/snapshot`, {
+      const snapshotResponse = await fetch(`/admin/actions/drafts/${proposalId}/snapshot`, {
         method: "POST",
       });
+      ensureAdminActionResponse(snapshotResponse);
 
       if (!snapshotResponse.ok) {
         throw new Error("publication-snapshot-failed");
@@ -354,10 +368,11 @@ export function EditorialDraftEditor({
       const formData = new FormData();
       formData.set("file", file);
 
-      const response = await fetch(`/api/admin/proposals/${proposalId}/editorial-assets/upload`, {
+      const response = await fetch(`/admin/actions/proposals/${proposalId}/editorial-assets/upload`, {
         method: "POST",
         body: formData,
       });
+      ensureAdminActionResponse(response);
 
       const data = (await response.json().catch(() => null)) as
         | {
@@ -431,7 +446,7 @@ export function EditorialDraftEditor({
     setPromotingAssetId(assetId);
 
     try {
-      const response = await fetch(`/api/admin/proposals/${proposalId}/editorial-assets/promote`, {
+      const response = await fetch(`/admin/actions/proposals/${proposalId}/editorial-assets/promote`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -440,6 +455,7 @@ export function EditorialDraftEditor({
           proposalAssetId: assetId,
         }),
       });
+      ensureAdminActionResponse(response);
 
       const data = (await response.json().catch(() => null)) as
         | {
