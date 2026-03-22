@@ -2,10 +2,12 @@ import { categories } from "@/content/categories";
 import { DraftGenerationPanel } from "@/components/draft-generation-panel";
 import { EditorialDraftEditor } from "@/components/editorial-draft-editor";
 import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
-import { draftGenerationTaskType, resolveDraftGenerationState } from "@/lib/editorial-draft-generation";
 import { getProposalDetail, requireAdminIdentity } from "@/lib/server/editorial/admin";
-import { listEditorialAssetFamilies } from "@/lib/server/editorial/assets";
-import { getEditorialDraftByProposalId } from "@/lib/server/editorial/draft";
+import {
+  getEditorialV2DraftByProposalId,
+  getEditorialV2DraftGenerationState,
+  listEditorialV2AssetFamilies,
+} from "@/lib/server/editorial-v2/workflow";
 import { AdminAccessRequired } from "../../../access-required";
 import styles from "../../../admin.module.css";
 
@@ -26,8 +28,8 @@ export default async function AdminV2EditorPage({
   const { proposalId } = await params;
   const [proposal, draft, editorialAssets] = await Promise.all([
     getProposalDetail(proposalId),
-    getEditorialDraftByProposalId(proposalId),
-    listEditorialAssetFamilies(proposalId),
+    getEditorialV2DraftByProposalId(proposalId),
+    listEditorialV2AssetFamilies(proposalId),
   ]);
 
   if (!proposal) {
@@ -61,22 +63,10 @@ export default async function AdminV2EditorPage({
     market: proposal.market,
     updatedAt: proposal.updatedAt,
   };
-  const baseGeneration = resolveDraftGenerationState({
-    hasDraft: proposal.hasDraft,
-    proposalStatus: proposal.status,
-    proposalUpdatedAt: proposal.updatedAt,
-    draftSourceProposalUpdatedAt: proposal.draftSourceProposalUpdatedAt,
-    proposalSourceSnapshot,
-    draftSourceSnapshot: proposal.draftSourceSnapshot,
-    processingJobs: proposal.processingJobs,
+  const draftGeneration = await getEditorialV2DraftGenerationState({
+    proposal,
+    draft,
   });
-  const hasDraftGenerationJob = proposal.processingJobs.some(
-    (job) => job.taskType === draftGenerationTaskType,
-  );
-  const draftGeneration =
-    !proposal.hasDraft && !hasDraftGenerationJob
-      ? { ...baseGeneration, state: "idle" as const }
-      : baseGeneration;
 
   if (!draft) {
     return (

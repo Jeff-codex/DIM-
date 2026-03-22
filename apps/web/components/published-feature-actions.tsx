@@ -7,11 +7,17 @@ import styles from "./published-feature-actions.module.css";
 type PublishedFeatureActionsProps = {
   slug: string;
   revision: {
-    proposalId: string;
+    revisionId?: string;
+    proposalId: string | null;
     status: string;
     updatedAt?: string;
+    assigneeEmail?: string | null;
     hasDraft: boolean;
     hasSnapshot: boolean;
+    reviewHref?: string | null;
+    editorHref?: string | null;
+    previewHref?: string | null;
+    publishHref?: string | null;
   } | null;
   actionBasePath?: string;
   proposalHrefBase?: string;
@@ -44,13 +50,16 @@ export function PublishedFeatureActions({
   );
 
   const handleOpenRevision = async () => {
-    if (revision?.hasSnapshot) {
-      router.push(`${snapshotHrefBase}/${revision.proposalId}/snapshot`);
+    const editorHref = revision?.editorHref ?? (revision?.proposalId ? `${draftHrefBase}/${revision.proposalId}` : null);
+    const publishHref = revision?.publishHref ?? (revision?.proposalId ? `${snapshotHrefBase}/${revision.proposalId}/snapshot` : null);
+
+    if (revision?.hasSnapshot && publishHref) {
+      router.push(publishHref);
       return;
     }
 
-    if (revision?.hasDraft) {
-      router.push(`${draftHrefBase}/${revision.proposalId}`);
+    if (revision?.hasDraft && editorHref) {
+      router.push(editorHref);
       return;
     }
 
@@ -101,35 +110,38 @@ export function PublishedFeatureActions({
         >
           {submitting ? "준비 중..." : primaryLabel}
         </button>
-        {revision ? (
-          <a
-            href={`${proposalHrefBase}/${revision.proposalId}`}
-            className={styles.secondaryLink}
-          >
+        {(() => {
+          const reviewHref = revision?.reviewHref ?? (revision?.proposalId ? `${proposalHrefBase}/${revision.proposalId}` : null);
+          return reviewHref ? (
+          <a href={reviewHref} className={styles.secondaryLink}>
             제안 검토 보기
           </a>
-        ) : null}
-        {revision?.hasDraft ? (
-          <a href={`${draftHrefBase}/${revision.proposalId}`} className={styles.secondaryLink}>
+          ) : null;
+        })()}
+        {(() => {
+          const editorHref = revision?.editorHref ?? (revision?.proposalId ? `${draftHrefBase}/${revision.proposalId}` : null);
+          return revision?.hasDraft && editorHref ? (
+          <a href={editorHref} className={styles.secondaryLink}>
             초안 바로가기
           </a>
-        ) : null}
-        {revision?.hasDraft && previewHrefBase ? (
-          <a
-            href={`${previewHrefBase}/${revision.proposalId}/preview`}
-            className={styles.secondaryLink}
-          >
+          ) : null;
+        })()}
+        {(() => {
+          const previewHref = revision?.previewHref ?? (revision?.proposalId && previewHrefBase ? `${previewHrefBase}/${revision.proposalId}/preview` : null);
+          return revision?.hasDraft && previewHref ? (
+          <a href={previewHref} className={styles.secondaryLink}>
             읽기 점검 보기
           </a>
-        ) : null}
-        {revision?.hasSnapshot ? (
-          <a
-            href={`${snapshotHrefBase}/${revision.proposalId}/snapshot`}
-            className={styles.secondaryLink}
-          >
+          ) : null;
+        })()}
+        {(() => {
+          const publishHref = revision?.publishHref ?? (revision?.proposalId ? `${snapshotHrefBase}/${revision.proposalId}/snapshot` : null);
+          return revision?.hasSnapshot && publishHref ? (
+          <a href={publishHref} className={styles.secondaryLink}>
             발행 준비본 보기
           </a>
-        ) : null}
+          ) : null;
+        })()}
       </div>
       <p className={styles.status}>{status}</p>
     </div>

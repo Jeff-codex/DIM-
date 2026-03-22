@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAdminIdentity } from "@/lib/server/editorial/admin";
-import { createOrOpenFeatureRevisionForPublishedFeature } from "@/lib/server/editorial-v2/published";
+import { publishFeatureRevisionFromProposal } from "@/lib/server/editorial-v2/published";
 
 export const runtime = "nodejs";
 
 export async function POST(
   _request: Request,
-  { params }: { params: Promise<{ slug: string }> },
+  { params }: { params: Promise<{ proposalId: string }> },
 ) {
   const identity = await getAdminIdentity();
 
@@ -21,17 +21,17 @@ export async function POST(
   }
 
   try {
-    const { slug } = await params;
-    const opened = await createOrOpenFeatureRevisionForPublishedFeature(
-      slug,
+    const { proposalId } = await params;
+    const published = await publishFeatureRevisionFromProposal(
+      proposalId,
       identity.email,
     );
 
-    if (!opened) {
+    if (!published) {
       return NextResponse.json(
         {
           ok: false,
-          error: "feature_not_found",
+          error: "feature_revision_not_found",
         },
         { status: 404 },
       );
@@ -39,16 +39,18 @@ export async function POST(
 
     return NextResponse.json({
       ok: true,
-      ...opened,
+      ...published,
     });
   } catch (error) {
     const rawDetail = error instanceof Error ? error.message : null;
-    const detail = "개정 흐름을 열지 못했습니다.";
+    const detail = rawDetail?.startsWith("feature_revision_not_ready:")
+      ? "발행실에서 먼저 발행 준비 상태를 만든 뒤 발행할 수 있습니다."
+      : "공개 발행을 완료하지 못했습니다.";
 
     return NextResponse.json(
       {
         ok: false,
-        error: "feature_revision_open_failed",
+        error: "feature_publish_failed",
         detail,
         rawDetail,
       },

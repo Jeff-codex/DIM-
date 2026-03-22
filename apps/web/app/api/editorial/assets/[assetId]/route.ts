@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
 import { getEditorialAssetById } from "@/lib/server/editorial/assets";
+import { getEditorialV2AssetVariantById } from "@/lib/server/editorial-v2/workflow";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,17 @@ export async function GET(
   { params }: { params: Promise<{ assetId: string }> },
 ) {
   const { assetId } = await params;
-  const asset = await getEditorialAssetById(assetId);
+  const [canonicalAsset, legacyAsset] = await Promise.all([
+    getEditorialV2AssetVariantById(assetId),
+    getEditorialAssetById(assetId),
+  ]);
+  const asset = canonicalAsset
+    ? {
+        r2Key: canonicalAsset.r2Key,
+        mimeType: canonicalAsset.mimeType,
+        originalFilename: canonicalAsset.originalFilename,
+      }
+    : legacyAsset;
 
   if (!asset) {
     return NextResponse.json(

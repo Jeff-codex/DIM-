@@ -313,7 +313,7 @@ export function EditorialDraftEditor({
     setSnapshotting(true);
 
     try {
-      const saveResponse = await fetch(`/admin/actions/drafts/${proposalId}`, {
+      const saveResponse = await fetch(`${actionBasePath}/drafts/${proposalId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -353,6 +353,63 @@ export function EditorialDraftEditor({
   };
 
   const handleUseAssetAsCover = async (previewUrl: string, label: string) => {
+    if (workflowMode === "v2") {
+      const family = editorialAssetFamilies.find((item) => {
+        const familyCoverUrl = resolveEditorialFamilyCoverUrl(item);
+        return familyCoverUrl === previewUrl;
+      });
+
+      if (!family) {
+        setStatus("편집 이미지를 찾지 못했습니다. 자산 목록을 새로고침한 뒤 다시 시도해 주세요");
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${actionBasePath}/drafts/${proposalId}/cover`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              assetFamilyId: family.familyId,
+            }),
+          },
+        );
+        ensureAdminActionResponse(response);
+
+        const data = (await response.json().catch(() => null)) as
+          | {
+              draft?: EditorialDraftRecord;
+              detail?: string;
+              rawDetail?: string | null;
+            }
+          | null;
+
+        if (!response.ok || !data?.draft) {
+          throw new Error(
+            data?.detail ??
+              humanizeDraftGenerationErrorMessage(data?.rawDetail ?? null) ??
+              `${label} 이미지를 커버로 반영하지 못했습니다`,
+          );
+        }
+
+        setDraft(data.draft);
+        setLastSavedSnapshot(serializeDraft(data.draft));
+        setStatus(`${label} 이미지를 커버로 반영하고 저장했습니다`);
+        router.refresh();
+        return;
+      } catch (error) {
+        setStatus(
+          error instanceof Error && error.message
+            ? error.message
+            : `${label} 이미지를 커버로 반영하지 못했습니다`,
+        );
+        return;
+      }
+    }
+
     const nextDraft = {
       ...draft,
       coverImageUrl: previewUrl,
@@ -438,6 +495,12 @@ export function EditorialDraftEditor({
         return;
       }
 
+      if (workflowMode === "v2") {
+        throw new Error(
+          "편집 이미지는 만들어졌지만 원고실 draft 반영이 끝나지 않았습니다. 자산 목록을 새로고침한 뒤 다시 시도해 주세요",
+        );
+      }
+
       const nextDraft = {
         ...draft,
         coverImageUrl: nextCoverUrl,
@@ -515,6 +578,12 @@ export function EditorialDraftEditor({
         setStatus(`${label} 이미지를 커버용 편집 자산으로 준비했습니다`);
         router.refresh();
         return;
+      }
+
+      if (workflowMode === "v2") {
+        throw new Error(
+          "편집 이미지는 준비됐지만 원고실 draft 반영이 끝나지 않았습니다. 자산 목록을 새로고침한 뒤 다시 시도해 주세요",
+        );
       }
 
       const nextDraft = {
@@ -912,20 +981,30 @@ export function EditorialDraftEditor({
                   </select>
                 </label>
 
-                <label className={styles.field}>
-                  <span>커버 이미지 URL</span>
-                  <input
-                    type="text"
-                    value={draft.coverImageUrl ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        coverImageUrl: event.target.value || undefined,
-                      }))
-                    }
-                    placeholder="/covers/example.svg 또는 공개 URL"
-                  />
-                </label>
+                {workflowMode === "v2" ? (
+                  <div className={styles.field}>
+                    <span>커버 이미지</span>
+                    <p className={styles.fieldHint}>
+                      원고실 v2에서는 커버를 URL 문자열로 저장하지 않습니다. 아래 첨부 자산에서
+                      이미지를 선택해 적용합니다.
+                    </p>
+                  </div>
+                ) : (
+                  <label className={styles.field}>
+                    <span>커버 이미지 URL</span>
+                    <input
+                      type="text"
+                      value={draft.coverImageUrl ?? ""}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          coverImageUrl: event.target.value || undefined,
+                        }))
+                      }
+                      placeholder="/covers/example.svg 또는 공개 URL"
+                    />
+                  </label>
+                )}
               </div>
             </section>
 

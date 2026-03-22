@@ -447,6 +447,9 @@ export async function updateProposalTriage(
   proposalId: string,
   input: z.infer<typeof proposalTriageSchema>,
   identity: AdminIdentity,
+  options?: {
+    skipDraftGeneration?: boolean;
+  },
 ) {
   const env = await getEditorialEnv({
     requireBucket: false,
@@ -509,7 +512,7 @@ export async function updateProposalTriage(
   let draftGenerationState: "ready" | "failed" | null = null;
   let draftGenerationError: string | null = null;
 
-  if (nextStatus === "in_review") {
+  if (nextStatus === "in_review" && !options?.skipDraftGeneration) {
     try {
       await ensureEditorialDraftForProposal(proposalId, identity.email, {
         skipStatusCheck: true,

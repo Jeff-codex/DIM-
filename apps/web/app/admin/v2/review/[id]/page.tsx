@@ -5,8 +5,11 @@ import { DraftGenerationPanel } from "@/components/draft-generation-panel";
 import { ProposalProcessingActions } from "@/components/proposal-processing-actions";
 import { ProposalTriageActions } from "@/components/proposal-triage-actions";
 import { VisibilityReadinessPanel } from "@/components/visibility-readiness-panel";
-import { draftGenerationTaskType, resolveDraftGenerationState } from "@/lib/editorial-draft-generation";
 import { getProposalDetail, requireAdminIdentity } from "@/lib/server/editorial/admin";
+import {
+  getEditorialV2DraftByProposalId,
+  getEditorialV2DraftGenerationState,
+} from "@/lib/server/editorial-v2/workflow";
 import { AdminAccessRequired } from "../../../access-required";
 import styles from "../../../admin.module.css";
 
@@ -31,7 +34,11 @@ function getAssetPreviewUrl(proposalId: string, assetId: string) {
   return `/admin/v2/proposals/${proposalId}/assets/${assetId}`;
 }
 
-function getCurrentBottleneck(proposal: NonNullable<Awaited<ReturnType<typeof getProposalDetail>>>) {
+function getCurrentBottleneck(
+  proposal: NonNullable<Awaited<ReturnType<typeof getProposalDetail>>>,
+  hasCanonicalDraft: boolean,
+  isReadyToPublish: boolean,
+) {
   if (proposal.processingJobs.some((job) => job.status === "failed")) {
     return "queue 실패를 먼저 정리해야 다음 편집 단계로 안정적으로 넘어갈 수 있습니다";
   }
@@ -50,13 +57,13 @@ function getCurrentBottleneck(proposal: NonNullable<Awaited<ReturnType<typeof ge
   if (proposal.status === "assigned") {
     return "원고실로 넘길지 여부를 지금 결정해야 합니다";
   }
-  if (!proposal.hasDraft && proposal.status === "in_review") {
+  if (!hasCanonicalDraft && proposal.status === "in_review") {
     return "원고실로 넘길 준비는 끝났지만 아직 초안 생성은 시작되지 않았습니다";
   }
-  if (proposal.hasDraft && !proposal.hasSnapshot) {
+  if (hasCanonicalDraft && !isReadyToPublish) {
     return "초안은 있지만 아직 발행 준비본이 없습니다";
   }
-  if (proposal.hasSnapshot) {
+  if (isReadyToPublish) {
     return "발행 준비본이 있어 발행실에서 마지막 점검으로 넘어갈 수 있습니다";
   }
   return "현재 상태와 자료는 다음 단계로 넘길 준비가 되어 있습니다";
@@ -74,36 +81,21 @@ export default async function AdminV2ReviewDetailPage({
   }
 
   const { id } = await params;
-  const proposal = await getProposalDetail(id);
+  const [proposal, canonicalDraft] = await Promise.all([
+    getProposalDetail(id),
+    getEditorialV2DraftByProposalId(id),
+  ]);
 
   if (!proposal) {
     notFound();
   }
 
-  const baseGeneration = resolveDraftGenerationState({
-    hasDraft: proposal.hasDraft,
-    proposalStatus: proposal.status,
-    proposalUpdatedAt: proposal.updatedAt,
-    draftSourceProposalUpdatedAt: proposal.draftSourceProposalUpdatedAt,
-    proposalSourceSnapshot: {
-      projectName: proposal.projectName,
-      summary: proposal.summary,
-      productDescription: proposal.productDescription,
-      whyNow: proposal.whyNow,
-      stage: proposal.stage,
-      market: proposal.market,
-      updatedAt: proposal.updatedAt,
-    },
-    draftSourceSnapshot: proposal.draftSourceSnapshot,
-    processingJobs: proposal.processingJobs,
+  const draftGeneration = await getEditorialV2DraftGenerationState({
+    proposal,
+    draft: canonicalDraft,
   });
-  const hasDraftGenerationJob = proposal.processingJobs.some(
-    (job) => job.taskType === draftGenerationTaskType,
-  );
-  const draftGeneration =
-    !proposal.hasDraft && proposal.status === "in_review" && !hasDraftGenerationJob
-      ? { ...baseGeneration, state: "idle" as const }
-      : baseGeneration;
+  const hasCanonicalDraft = Boolean(canonicalDraft);
+  const isReadyToPublish = canonicalDraft?.status === "ready_to_publish";
 
   return (
     <div className={styles.page}>
@@ -130,7 +122,9 @@ export default async function AdminV2ReviewDetailPage({
       <section className={styles.actionBar}>
         <div className={styles.actionLead}>
           <p className={styles.sectionLabel}>현재 병목</p>
-          <h2 className={styles.actionTitle}>{getCurrentBottleneck(proposal)}</h2>
+          <h2 className={styles.actionTitle}>
+            {getCurrentBottleneck(proposal, hasCanonicalDraft, isReadyToPublish)}
+          </h2>
           <p className={styles.actionCopy}>검토실에서는 GET 요청으로 draft를 만들지 않습니다. 상태 전이와 생성은 action route만 수행합니다.</p>
         </div>
         <dl className={styles.actionMeta}>
@@ -148,7 +142,7 @@ export default async function AdminV2ReviewDetailPage({
           </div>
           <div>
             <dt>원고실</dt>
-            <dd>{proposal.hasDraft ? "draft_ready" : "대기"}</dd>
+            <dd>{hasCanonicalDraft ? "draft_ready" : "대기"}</dd>
           </div>
         </dl>
       </section>
@@ -161,7 +155,7 @@ export default async function AdminV2ReviewDetailPage({
           quality={draftGeneration.quality}
           summary={draftGeneration.summary}
           errorMessage={draftGeneration.errorMessage}
-          hasDraft={proposal.hasDraft}
+          hasDraft={hasCanonicalDraft}
           actionBasePath="/admin/v2/actions"
           draftHrefBase="/admin/v2/editor"
           proposalHrefBase="/admin/v2/review"

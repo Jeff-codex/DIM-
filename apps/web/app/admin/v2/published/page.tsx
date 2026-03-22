@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PublishedFeatureActions } from "@/components/published-feature-actions";
-import { listPublishedFeaturesForAdmin } from "@/lib/server/editorial/published";
+import { listPublishedFeaturesForAdminV2 } from "@/lib/server/editorial-v2/published";
 import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import { AdminAccessRequired } from "../../access-required";
 import styles from "../../admin.module.css";
@@ -19,7 +19,7 @@ function toDateLabel(value: string) {
 }
 
 function filterFeatures(
-  features: Awaited<ReturnType<typeof listPublishedFeaturesForAdmin>>,
+  features: Awaited<ReturnType<typeof listPublishedFeaturesForAdminV2>>,
   view: PublishedView,
   query: string,
 ) {
@@ -58,7 +58,7 @@ export default async function AdminV2PublishedPage({
     return <AdminAccessRequired />;
   }
 
-  const features = await listPublishedFeaturesForAdmin();
+  const features = await listPublishedFeaturesForAdminV2();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const requestedView = resolvedSearchParams?.view;
   const currentView: PublishedView =
@@ -174,10 +174,6 @@ export default async function AdminV2PublishedPage({
                   slug={feature.slug}
                   revision={feature.revision}
                   actionBasePath="/admin/v2/actions"
-                  proposalHrefBase="/admin/v2/review"
-                  draftHrefBase="/admin/v2/editor"
-                  previewHrefBase={null}
-                  snapshotHrefBase="/admin/v2/publish"
                 />
               </div>
             </article>

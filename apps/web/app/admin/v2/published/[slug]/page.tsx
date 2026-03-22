@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublishedFeatureActions } from "@/components/published-feature-actions";
-import { getPublishedFeatureDetailForAdmin } from "@/lib/server/editorial/published";
+import { getPublishedFeatureDetailForAdminV2 } from "@/lib/server/editorial-v2/published";
 import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import { AdminAccessRequired } from "../../../access-required";
 import styles from "../../../admin.module.css";
@@ -9,7 +9,7 @@ import styles from "../../../admin.module.css";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type PublishedFeatureDetail = NonNullable<Awaited<ReturnType<typeof getPublishedFeatureDetailForAdmin>>>;
+type PublishedFeatureDetail = NonNullable<Awaited<ReturnType<typeof getPublishedFeatureDetailForAdminV2>>>;
 type RevisionDetail = PublishedFeatureDetail["revisionDetail"];
 
 function toDateLabel(value: string) {
@@ -24,11 +24,11 @@ function toDateLabel(value: string) {
 
 function getRevisionStatusLabel(revisionDetail: RevisionDetail) {
   if (!revisionDetail) return "개정 없음";
-  if (revisionDetail.hasSnapshot) return "발행 준비본 있음";
-  if (revisionDetail.hasDraft) return "개정 초안 작업 중";
-  if (revisionDetail.status === "needs_info") return "추가 정보 요청 중";
-  if (revisionDetail.status === "assigned") return "담당자 배정";
-  return "개정 검토 중";
+  if (revisionDetail.hasSnapshot) return "발행 준비 상태";
+  if (revisionDetail.status === "draft_generating") return "초안 생성 중";
+  if (revisionDetail.status === "draft_ready") return "초안 준비";
+  if (revisionDetail.status === "editing") return "원고 편집 중";
+  return "개정 진행 중";
 }
 
 export default async function AdminV2PublishedDetailPage({
@@ -43,7 +43,7 @@ export default async function AdminV2PublishedDetailPage({
   }
 
   const { slug } = await params;
-  const feature = await getPublishedFeatureDetailForAdmin(slug);
+  const feature = await getPublishedFeatureDetailForAdminV2(slug);
 
   if (!feature) {
     notFound();
@@ -111,16 +111,16 @@ export default async function AdminV2PublishedDetailPage({
                 <dd>{revisionStatusLabel}</dd>
               </div>
               <div>
-                <dt>proposal</dt>
-                <dd>{feature.revisionDetail?.proposalId ?? "-"}</dd>
-              </div>
-              <div>
-                <dt>담당</dt>
-                <dd>{feature.revisionDetail?.assigneeEmail ?? "-"}</dd>
+                <dt>revision</dt>
+                <dd>{feature.revisionDetail?.revisionId ?? "-"}</dd>
               </div>
               <div>
                 <dt>마지막 갱신</dt>
                 <dd>{feature.revisionDetail?.updatedAt ? toDateLabel(feature.revisionDetail.updatedAt) : "-"}</dd>
+              </div>
+              <div>
+                <dt>기준 proposal</dt>
+                <dd>{feature.revisionDetail?.proposalId ?? "-"}</dd>
               </div>
             </dl>
           </div>
@@ -142,12 +142,25 @@ export default async function AdminV2PublishedDetailPage({
               slug={feature.slug}
               revision={feature.revision}
               actionBasePath="/admin/v2/actions"
-              proposalHrefBase="/admin/v2/review"
-              draftHrefBase="/admin/v2/editor"
-              previewHrefBase={null}
-              snapshotHrefBase="/admin/v2/publish"
             />
           </div>
+
+          {feature.publishEvents.length > 0 ? (
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <p className={styles.sectionLabel}>발행 이력</p>
+              </div>
+              <div className={styles.timeline}>
+                {feature.publishEvents.map((event) => (
+                  <div key={event.id} className={styles.timelineItem}>
+                    <strong>{event.eventType}</strong>
+                    <span>{toDateLabel(event.createdAt)}</span>
+                    <p>{event.note ?? "-"}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </aside>
       </div>
     </div>

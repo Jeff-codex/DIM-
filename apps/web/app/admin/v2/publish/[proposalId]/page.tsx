@@ -3,8 +3,7 @@ import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { EditorialDraftPreview } from "@/components/editorial-draft-preview";
 import { PublishRoomActions } from "@/components/publish-room-actions";
 import { getProposalDetail, requireAdminIdentity } from "@/lib/server/editorial/admin";
-import { getEditorialDraftByProposalId } from "@/lib/server/editorial/draft";
-import { getPublicationSnapshot } from "@/lib/server/editorial/publication";
+import { getEditorialV2DraftByProposalId } from "@/lib/server/editorial-v2/workflow";
 import { AdminAccessRequired } from "../../../access-required";
 import styles from "../../../admin.module.css";
 
@@ -37,10 +36,9 @@ export default async function AdminV2PublishPage({
   }
 
   const { proposalId } = await params;
-  const [proposal, draft, snapshot] = await Promise.all([
+  const [proposal, draft] = await Promise.all([
     getProposalDetail(proposalId),
-    getEditorialDraftByProposalId(proposalId),
-    getPublicationSnapshot(proposalId),
+    getEditorialV2DraftByProposalId(proposalId),
   ]);
 
   if (!proposal) {
@@ -63,24 +61,29 @@ export default async function AdminV2PublishPage({
     );
   }
 
+  const isReadyToPublish = draft.status === "ready_to_publish";
   const categoryName =
-    categories.find((category) => category.id === (snapshot?.categoryId ?? draft.categoryId))?.name ?? "산업 해석";
+    categories.find((category) => category.id === draft.categoryId)?.name ?? "산업 해석";
 
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>발행실</p>
-          <h1 className={styles.title}>{snapshot ? "발행 준비본을 점검합니다" : "draft를 발행 준비본으로 고정합니다"}</h1>
+          <h1 className={styles.title}>
+            {isReadyToPublish ? "발행 준비 상태를 점검합니다" : "draft를 발행 준비 상태로 올립니다"}
+          </h1>
           <p className={styles.description}>
-            발행실은 공개 반영 전의 마지막 정리 단계입니다. 현재 draft를 기준으로 준비본을 만들고, canonical과 slug를 점검합니다.
+            발행실은 공개 반영 전의 마지막 정리 단계입니다. 현재 draft를 기준으로 발행 준비 상태를 만들고, canonical과 slug를 점검합니다.
           </p>
         </div>
         <div className={styles.metaPanel}>
           <p className={styles.metaLabel}>현재 상태</p>
-          <p className={styles.metaValue}>{snapshot ? "ready_to_publish" : "editing"}</p>
+          <p className={styles.metaValue}>{draft.status}</p>
           <p className={styles.metaSubtle}>draft 업데이트 {toDateLabel(draft.updatedAt)}</p>
-          {snapshot ? <p className={styles.metaSubtle}>준비본 업데이트 {toDateLabel(snapshot.updatedAt)}</p> : null}
+          {isReadyToPublish ? (
+            <p className={styles.metaSubtle}>발행 준비 상태 {toDateLabel(draft.updatedAt)}</p>
+          ) : null}
         </div>
       </header>
 
@@ -89,13 +92,13 @@ export default async function AdminV2PublishPage({
       <div className={styles.detailLayout}>
         <section className={styles.detailMain}>
           <EditorialDraftPreview
-            title={snapshot?.title ?? draft.title}
-            displayTitleLines={snapshot?.displayTitleLines ?? draft.displayTitleLines}
-            excerpt={snapshot?.excerpt ?? draft.excerpt}
-            interpretiveFrame={snapshot?.interpretiveFrame ?? draft.interpretiveFrame}
+            title={draft.title}
+            displayTitleLines={draft.displayTitleLines}
+            excerpt={draft.excerpt}
+            interpretiveFrame={draft.interpretiveFrame}
             categoryName={categoryName}
-            coverImageUrl={snapshot?.coverImageUrl ?? draft.coverImageUrl}
-            bodyMarkdown={snapshot?.bodyMarkdown ?? draft.bodyMarkdown}
+            coverImageUrl={draft.coverImageUrl}
+            bodyMarkdown={draft.bodyMarkdown}
           />
         </section>
 
@@ -104,7 +107,7 @@ export default async function AdminV2PublishPage({
             <div className={styles.cardHeader}>
               <p className={styles.sectionLabel}>발행실 액션</p>
             </div>
-            <PublishRoomActions proposalId={proposalId} hasSnapshot={Boolean(snapshot)} />
+            <PublishRoomActions proposalId={proposalId} hasSnapshot={isReadyToPublish} />
           </div>
 
           <div className={styles.card}>
@@ -122,11 +125,11 @@ export default async function AdminV2PublishPage({
               </div>
               <div>
                 <dt>준비본</dt>
-                <dd>{snapshot ? "있음" : "아직 없음"}</dd>
+                <dd>{isReadyToPublish ? "있음" : "아직 없음"}</dd>
               </div>
               <div>
                 <dt>slug</dt>
-                <dd>{snapshot?.articleSlug ?? "-"}</dd>
+                <dd>{draft.articleSlug ?? "-"}</dd>
               </div>
             </dl>
           </div>
