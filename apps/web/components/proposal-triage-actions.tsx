@@ -10,6 +10,8 @@ type ProposalTriageActionsProps = {
   currentStatus: string;
   currentNote?: string;
   redirectToDraftOnReview?: boolean;
+  actionBasePath?: string;
+  draftHrefBase?: string;
 };
 
 type ActionType = "assign" | "needs_info" | "in_review" | "reject";
@@ -33,6 +35,8 @@ export function ProposalTriageActions({
   currentStatus,
   currentNote = "",
   redirectToDraftOnReview = true,
+  actionBasePath = "/admin/actions",
+  draftHrefBase = "/admin/drafts",
 }: ProposalTriageActionsProps) {
   const router = useRouter();
   const [note, setNote] = useState(currentNote);
@@ -49,7 +53,7 @@ export function ProposalTriageActions({
     setSubmitting(action);
 
     try {
-      const response = await fetch(`/admin/actions/proposals/${proposalId}/triage`, {
+      const response = await fetch(`${actionBasePath}/proposals/${proposalId}/triage`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,7 +99,7 @@ export function ProposalTriageActions({
 
       if (redirectToDraftOnReview && data?.toStatus === "in_review") {
         setStatus("편집 검토로 넘겼습니다. 초안 화면으로 이동합니다");
-        router.push(`/admin/drafts/${proposalId}`);
+        router.push(`${draftHrefBase}/${proposalId}`);
         router.refresh();
         return;
       }

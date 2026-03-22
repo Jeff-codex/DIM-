@@ -13,11 +13,21 @@ type PublishedFeatureActionsProps = {
     hasDraft: boolean;
     hasSnapshot: boolean;
   } | null;
+  actionBasePath?: string;
+  proposalHrefBase?: string;
+  draftHrefBase?: string;
+  previewHrefBase?: string | null;
+  snapshotHrefBase?: string;
 };
 
 export function PublishedFeatureActions({
   slug,
   revision,
+  actionBasePath = "/admin/actions",
+  proposalHrefBase = "/admin/proposals",
+  draftHrefBase = "/admin/drafts",
+  previewHrefBase = "/admin/drafts",
+  snapshotHrefBase = "/admin/drafts",
 }: PublishedFeatureActionsProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -35,19 +45,19 @@ export function PublishedFeatureActions({
 
   const handleOpenRevision = async () => {
     if (revision?.hasSnapshot) {
-      router.push(`/admin/drafts/${revision.proposalId}/snapshot`);
+      router.push(`${snapshotHrefBase}/${revision.proposalId}/snapshot`);
       return;
     }
 
     if (revision?.hasDraft) {
-      router.push(`/admin/drafts/${revision.proposalId}`);
+      router.push(`${draftHrefBase}/${revision.proposalId}`);
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const response = await fetch(`/admin/actions/published/${slug}/revision`, {
+      const response = await fetch(`${actionBasePath}/published/${slug}/revision`, {
         method: "POST",
       });
       const contentType = response.headers.get("content-type") ?? "";
@@ -93,20 +103,20 @@ export function PublishedFeatureActions({
         </button>
         {revision ? (
           <a
-            href={`/admin/proposals/${revision.proposalId}`}
+            href={`${proposalHrefBase}/${revision.proposalId}`}
             className={styles.secondaryLink}
           >
             제안 검토 보기
           </a>
         ) : null}
         {revision?.hasDraft ? (
-          <a href={`/admin/drafts/${revision.proposalId}`} className={styles.secondaryLink}>
+          <a href={`${draftHrefBase}/${revision.proposalId}`} className={styles.secondaryLink}>
             초안 바로가기
           </a>
         ) : null}
-        {revision?.hasDraft ? (
+        {revision?.hasDraft && previewHrefBase ? (
           <a
-            href={`/admin/drafts/${revision.proposalId}/preview`}
+            href={`${previewHrefBase}/${revision.proposalId}/preview`}
             className={styles.secondaryLink}
           >
             읽기 점검 보기
@@ -114,7 +124,7 @@ export function PublishedFeatureActions({
         ) : null}
         {revision?.hasSnapshot ? (
           <a
-            href={`/admin/drafts/${revision.proposalId}/snapshot`}
+            href={`${snapshotHrefBase}/${revision.proposalId}/snapshot`}
             className={styles.secondaryLink}
           >
             발행 준비본 보기

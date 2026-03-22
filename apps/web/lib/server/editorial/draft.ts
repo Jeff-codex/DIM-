@@ -1318,6 +1318,15 @@ async function getExistingEditorialDraft(
   return existing ? mapDraftRecord(existing) : null;
 }
 
+export async function getEditorialDraftByProposalId(proposalId: string) {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+
+  return getExistingEditorialDraft(proposalId, env);
+}
+
 async function upsertDraftGenerationJob(
   env: Awaited<ReturnType<typeof getEditorialEnv>>,
   proposalId: string,

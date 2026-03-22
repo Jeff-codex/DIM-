@@ -9,6 +9,7 @@ type ProposalQueueActionsProps = {
   currentStatus: string;
   hasOfficialLink: boolean;
   hasWhyNow: boolean;
+  actionBasePath?: string;
 };
 
 type QueueAction = "assign" | "in_review" | "needs_info";
@@ -39,6 +40,7 @@ export function ProposalQueueActions({
   currentStatus,
   hasOfficialLink,
   hasWhyNow,
+  actionBasePath = "/admin/actions",
 }: ProposalQueueActionsProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState<QueueAction | null>(null);
@@ -60,7 +62,7 @@ export function ProposalQueueActions({
     setSubmitting(action);
 
     try {
-      const response = await fetch(`/admin/actions/proposals/${proposalId}/triage`, {
+      const response = await fetch(`${actionBasePath}/proposals/${proposalId}/triage`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

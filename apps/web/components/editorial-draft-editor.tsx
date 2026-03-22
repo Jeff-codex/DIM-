@@ -91,6 +91,13 @@ type EditorialDraftEditorProps = {
   generationErrorMessage?: string | null;
   generationVisibility: DraftVisibilityMetadata | null;
   proposalSourceSnapshot: DraftSourceSnapshot | null;
+  actionBasePath?: string;
+  workflowBasePath?: string;
+  workflowMode?: "legacy" | "v2";
+  workflowActive?: "draft" | "editor";
+  showDetachedPreviewLinks?: boolean;
+  detachedPreviewHref?: string;
+  publishRoomHref?: string;
 };
 
 type EditorialAssetFamilyRecord = EditorialDraftEditorProps["editorialAssets"][number];
@@ -127,6 +134,13 @@ export function EditorialDraftEditor({
   generationErrorMessage,
   generationVisibility,
   proposalSourceSnapshot,
+  actionBasePath = "/admin/actions",
+  workflowBasePath = "/admin",
+  workflowMode = "legacy",
+  workflowActive = "draft",
+  showDetachedPreviewLinks = true,
+  detachedPreviewHref,
+  publishRoomHref,
 }: EditorialDraftEditorProps) {
   const router = useRouter();
   const [draft, setDraft] = useState(initialDraft);
@@ -215,7 +229,7 @@ export function EditorialDraftEditor({
     setDraft(nextDraft);
 
     try {
-      const response = await fetch(`/admin/actions/drafts/${proposalId}`, {
+      const response = await fetch(`${actionBasePath}/drafts/${proposalId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -265,7 +279,7 @@ export function EditorialDraftEditor({
     setSaving(true);
 
     try {
-      const response = await fetch(`/admin/actions/drafts/${proposalId}`, {
+      const response = await fetch(`${actionBasePath}/drafts/${proposalId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -321,7 +335,7 @@ export function EditorialDraftEditor({
         setLastSavedSnapshot(serializeDraft(saveData.draft));
       }
 
-      const snapshotResponse = await fetch(`/admin/actions/drafts/${proposalId}/snapshot`, {
+      const snapshotResponse = await fetch(`${actionBasePath}/drafts/${proposalId}/snapshot`, {
         method: "POST",
       });
       ensureAdminActionResponse(snapshotResponse);
@@ -368,7 +382,7 @@ export function EditorialDraftEditor({
       const formData = new FormData();
       formData.set("file", file);
 
-      const response = await fetch(`/admin/actions/proposals/${proposalId}/editorial-assets/upload`, {
+      const response = await fetch(`${actionBasePath}/proposals/${proposalId}/editorial-assets/upload`, {
         method: "POST",
         body: formData,
       });
@@ -446,7 +460,7 @@ export function EditorialDraftEditor({
     setPromotingAssetId(assetId);
 
     try {
-      const response = await fetch(`/admin/actions/proposals/${proposalId}/editorial-assets/promote`, {
+      const response = await fetch(`${actionBasePath}/proposals/${proposalId}/editorial-assets/promote`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -539,16 +553,18 @@ export function EditorialDraftEditor({
           <p className={styles.metaSubtle}>초안 생성 {draft.draftGeneratedAt}</p>
           <p className={styles.metaSubtle}>마지막 저장 {draft.updatedAt}</p>
           <p className={styles.metaSubtle}>오른쪽 proof pane은 현재 편집 상태를 바로 반영합니다</p>
+          {showDetachedPreviewLinks ? (
+            <a
+              href={detachedPreviewHref ?? `${workflowBasePath}/drafts/${proposalId}/preview`}
+              target="_blank"
+              rel="noreferrer"
+              className={styles.previewLink}
+            >
+              별도 미리보기 열기
+            </a>
+          ) : null}
           <a
-            href={`/admin/drafts/${proposalId}/preview`}
-            target="_blank"
-            rel="noreferrer"
-            className={styles.previewLink}
-          >
-            별도 미리보기 열기
-          </a>
-          <a
-            href={`/admin/drafts/${proposalId}/snapshot`}
+            href={publishRoomHref ?? `${workflowBasePath}/drafts/${proposalId}/snapshot`}
             target="_blank"
             rel="noreferrer"
             className={styles.previewLink}
@@ -558,7 +574,12 @@ export function EditorialDraftEditor({
         </div>
       </header>
 
-      <AdminWorkflowNav proposalId={proposalId} active="draft" />
+      <AdminWorkflowNav
+        proposalId={proposalId}
+        active={workflowActive}
+        mode={workflowMode}
+        basePath={workflowBasePath}
+      />
 
       <DraftGenerationPanel
         proposalId={proposalId}
@@ -568,6 +589,14 @@ export function EditorialDraftEditor({
         summary={generationSummary}
         errorMessage={generationErrorMessage}
         hasDraft
+        actionBasePath={actionBasePath}
+        draftHrefBase={
+          workflowMode === "v2" ? `${workflowBasePath}/editor` : `${workflowBasePath}/drafts`
+        }
+        proposalHrefBase={
+          workflowMode === "v2" ? `${workflowBasePath}/review` : `${workflowBasePath}/proposals`
+        }
+        previewHrefBase={showDetachedPreviewLinks ? `${workflowBasePath}/drafts` : null}
       />
 
       <VisibilityReadinessPanel metadata={generationVisibility} scope="draft" />

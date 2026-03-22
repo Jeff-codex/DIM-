@@ -7,11 +7,13 @@ import styles from "./proposal-processing-actions.module.css";
 type ProposalProcessingActionsProps = {
   proposalId: string;
   failedJobCount: number;
+  actionBasePath?: string;
 };
 
 export function ProposalProcessingActions({
   proposalId,
   failedJobCount,
+  actionBasePath = "/admin/actions",
 }: ProposalProcessingActionsProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -34,7 +36,7 @@ export function ProposalProcessingActions({
     setSubmitting(true);
 
     try {
-      const response = await fetch(`/admin/actions/proposals/${proposalId}/rerun`, {
+      const response = await fetch(`${actionBasePath}/proposals/${proposalId}/rerun`, {
         method: "POST",
       });
 

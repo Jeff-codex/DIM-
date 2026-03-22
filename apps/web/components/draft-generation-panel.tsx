@@ -19,6 +19,11 @@ type DraftGenerationPanelProps = {
   summary?: string | null;
   errorMessage?: string | null;
   hasDraft: boolean;
+  actionBasePath?: string;
+  draftHrefBase?: string;
+  proposalHrefBase?: string;
+  previewHrefBase?: string | null;
+  allowGenerateFromIdle?: boolean;
 };
 
 function getViewCopy(
@@ -115,6 +120,11 @@ export function DraftGenerationPanel({
   summary,
   errorMessage,
   hasDraft,
+  actionBasePath = "/admin/actions",
+  draftHrefBase = "/admin/drafts",
+  proposalHrefBase = "/admin/proposals",
+  previewHrefBase = "/admin/drafts",
+  allowGenerateFromIdle = false,
 }: DraftGenerationPanelProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -176,7 +186,7 @@ export function DraftGenerationPanel({
     setSubmitting(true);
 
     try {
-      const response = await fetch(`/admin/actions/drafts/${proposalId}`, {
+      const response = await fetch(`${actionBasePath}/drafts/${proposalId}`, {
         method: "PUT",
       });
 
@@ -216,12 +226,14 @@ export function DraftGenerationPanel({
       <div className={styles.actions}>
         {state === "generated" ? (
           <>
-            <Link href={`/admin/drafts/${proposalId}`} className={styles.primary}>
+            <Link href={`${draftHrefBase}/${proposalId}`} className={styles.primary}>
               {ADMIN_SECTION_LABELS.draft} 열기
             </Link>
-            <Link href={`/admin/drafts/${proposalId}/preview`} className={styles.secondary}>
-              읽기 미리보기
-            </Link>
+            {previewHrefBase ? (
+              <Link href={`${previewHrefBase}/${proposalId}/preview`} className={styles.secondary}>
+                읽기 미리보기
+              </Link>
+            ) : null}
           </>
         ) : null}
 
@@ -236,7 +248,7 @@ export function DraftGenerationPanel({
               {submitting ? "초안 다시 만드는 중..." : "초안 다시 만들기"}
             </button>
             {hasDraft ? (
-              <Link href={`/admin/drafts/${proposalId}`} className={styles.secondary}>
+              <Link href={`${draftHrefBase}/${proposalId}`} className={styles.secondary}>
                 기존 초안 보기
               </Link>
             ) : null}
@@ -253,7 +265,7 @@ export function DraftGenerationPanel({
             >
               {submitting ? "초안 다시 만드는 중..." : "초안 다시 만들기"}
             </button>
-            <Link href={`/admin/drafts/${proposalId}`} className={styles.secondary}>
+            <Link href={`${draftHrefBase}/${proposalId}`} className={styles.secondary}>
               기존 초안 보기
             </Link>
           </>
@@ -271,9 +283,20 @@ export function DraftGenerationPanel({
         ) : null}
 
         {state === "idle" && scope === "draft" ? (
-          <Link href={`/admin/proposals/${proposalId}`} className={styles.secondary}>
-            {ADMIN_SECTION_LABELS.proposal}로 돌아가기
-          </Link>
+          allowGenerateFromIdle ? (
+            <button
+              type="button"
+              className={styles.primary}
+              disabled={submitting}
+              onClick={handleRegenerate}
+            >
+              {submitting ? "초안 만드는 중..." : "초안 생성"}
+            </button>
+          ) : (
+            <Link href={`${proposalHrefBase}/${proposalId}`} className={styles.secondary}>
+              {ADMIN_SECTION_LABELS.proposal}로 돌아가기
+            </Link>
+          )
         ) : null}
       </div>
       <p className={styles.status}>{status}</p>
