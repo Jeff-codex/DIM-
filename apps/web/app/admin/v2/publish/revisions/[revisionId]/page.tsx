@@ -99,10 +99,10 @@ export default async function AdminV2PublishRevisionPage({
         <div>
           <p className={styles.eyebrow}>발행실</p>
           <h1 className={styles.title}>
-            {isReadyToPublish ? "발행 준비 상태를 점검합니다" : "draft를 발행 준비 상태로 올립니다"}
+            {isReadyToPublish ? "지금 공개 반영할 수 있습니다" : "먼저 발행 준비 상태를 만듭니다"}
           </h1>
           <p className={styles.description}>
-            발행실은 공개 반영 전의 마지막 정리 단계입니다. 현재 draft를 기준으로 발행 준비 상태를 만들고, canonical과 slug를 점검합니다.
+            발행실은 마지막 공개 반영 단계입니다. 준비본을 만들었다고 바로 라이브에 반영되지는 않으며, 공개 반영 버튼까지 눌러야 실제 글이 바뀝니다.
           </p>
         </div>
         <div className={styles.metaPanel}>

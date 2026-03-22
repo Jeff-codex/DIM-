@@ -21,9 +21,6 @@ type PublishedFeatureActionsProps = {
   } | null;
   actionBasePath?: string;
   proposalHrefBase?: string;
-  draftHrefBase?: string;
-  previewHrefBase?: string | null;
-  snapshotHrefBase?: string;
 };
 
 export function PublishedFeatureActions({
@@ -31,27 +28,28 @@ export function PublishedFeatureActions({
   revision,
   actionBasePath = "/admin/actions",
   proposalHrefBase = "/admin/review",
-  draftHrefBase = "/admin/editor",
-  previewHrefBase = null,
-  snapshotHrefBase = "/admin/publish",
 }: PublishedFeatureActionsProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
   const primaryLabel =
-    revision?.hasSnapshot ? "발행 준비본 확인"
-    : revision?.hasDraft ? "개정 계속하기"
+    revision?.hasSnapshot ? "발행실 열기"
+    : revision?.hasDraft ? "원고 계속하기"
     : revision ? "개정 흐름 열기"
     : "개정 시작";
   const [status, setStatus] = useState(
-    revision
-      ? "현재 개정 흐름이 있으면 이어서 열 수 있습니다"
-      : "현재 발행 피처를 기준으로 새 개정 초안을 만들 수 있습니다",
+    !revision
+      ? "현재 공개 피처를 기준으로 새 개정 흐름을 열 수 있습니다"
+      : revision.hasSnapshot
+        ? "발행 준비는 끝났습니다. 아직 라이브에는 이전 버전이 보입니다. 발행실에서 공개 반영을 마쳐야 합니다"
+        : revision.hasDraft
+          ? "개정 원고가 열려 있습니다. 수정 후 발행실에서 공개 반영까지 이어가야 합니다"
+          : "현재 개정 흐름이 있으면 이어서 열 수 있습니다",
   );
 
   const handleOpenRevision = async () => {
-    const editorHref = revision?.editorHref ?? (revision?.proposalId ? `${draftHrefBase}/${revision.proposalId}` : null);
-    const publishHref = revision?.publishHref ?? (revision?.proposalId ? `${snapshotHrefBase}/${revision.proposalId}` : null);
+    const editorHref = revision?.editorHref ?? null;
+    const publishHref = revision?.publishHref ?? null;
 
     if (revision?.hasSnapshot && publishHref) {
       router.push(publishHref);
@@ -77,6 +75,8 @@ export function PublishedFeatureActions({
       const data = (await response.json().catch(() => null)) as
         | {
             draftHref?: string;
+            publishHref?: string;
+            mode?: "new" | "existing";
             proposalId?: string;
           }
         | null;
@@ -85,7 +85,11 @@ export function PublishedFeatureActions({
         throw new Error("published-revision-open-failed");
       }
 
-      setStatus("개정 초안을 열었습니다");
+      setStatus(
+        data.mode === "existing"
+          ? "기존 개정 흐름을 열었습니다"
+          : "새 개정 흐름을 열었습니다",
+      );
       router.push(data.draftHref);
       router.refresh();
     } catch (error) {
@@ -111,7 +115,9 @@ export function PublishedFeatureActions({
           {submitting ? "준비 중..." : primaryLabel}
         </button>
         {(() => {
-          const reviewHref = revision?.reviewHref ?? (revision?.proposalId ? `${proposalHrefBase}/${revision.proposalId}` : null);
+          const reviewHref =
+            revision?.reviewHref ??
+            (revision?.proposalId ? `${proposalHrefBase}/${revision.proposalId}` : null);
           return reviewHref ? (
           <a href={reviewHref} className={styles.secondaryLink}>
             제안 검토 보기
@@ -119,7 +125,7 @@ export function PublishedFeatureActions({
           ) : null;
         })()}
         {(() => {
-          const editorHref = revision?.editorHref ?? (revision?.proposalId ? `${draftHrefBase}/${revision.proposalId}` : null);
+          const editorHref = revision?.editorHref ?? null;
           return revision?.hasDraft && editorHref ? (
           <a href={editorHref} className={styles.secondaryLink}>
             초안 바로가기
@@ -127,7 +133,7 @@ export function PublishedFeatureActions({
           ) : null;
         })()}
         {(() => {
-          const previewHref = revision?.previewHref ?? (revision?.proposalId && previewHrefBase ? `${previewHrefBase}/${revision.proposalId}` : null);
+          const previewHref = revision?.previewHref ?? null;
           return revision?.hasDraft && previewHref ? (
           <a href={previewHref} className={styles.secondaryLink}>
             읽기 점검 보기
@@ -135,7 +141,7 @@ export function PublishedFeatureActions({
           ) : null;
         })()}
         {(() => {
-          const publishHref = revision?.publishHref ?? (revision?.proposalId ? `${snapshotHrefBase}/${revision.proposalId}` : null);
+          const publishHref = revision?.publishHref ?? null;
           return revision?.hasSnapshot && publishHref ? (
           <a href={publishHref} className={styles.secondaryLink}>
             발행 준비본 보기

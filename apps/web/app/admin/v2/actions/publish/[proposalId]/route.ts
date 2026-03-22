@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getAdminIdentity } from "@/lib/server/editorial/admin";
 import { publishFeatureRevisionFromProposal } from "@/lib/server/editorial-v2/published";
@@ -36,6 +37,12 @@ export async function POST(
         { status: 404 },
       );
     }
+
+    revalidatePath("/");
+    revalidatePath("/articles");
+    revalidatePath(`/articles/${published.slug}`);
+    revalidatePath("/admin/published");
+    revalidatePath(`/admin/published/${published.slug}`);
 
     return NextResponse.json({
       ok: true,

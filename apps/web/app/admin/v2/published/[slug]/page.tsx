@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PublishedFeatureDeleteButton } from "@/components/published-feature-delete-button";
 import { notFound } from "next/navigation";
 import { PublishedFeatureActions } from "@/components/published-feature-actions";
 import { getPublishedFeatureDetailForAdminV2 } from "@/lib/server/editorial-v2/published";
@@ -24,7 +25,7 @@ function toDateLabel(value: string) {
 
 function getRevisionStatusLabel(revisionDetail: RevisionDetail) {
   if (!revisionDetail) return "개정 없음";
-  if (revisionDetail.hasSnapshot) return "발행 준비 상태";
+  if (revisionDetail.hasSnapshot) return "발행 준비 완료, 아직 라이브 미반영";
   if (revisionDetail.status === "draft_generating") return "초안 생성 중";
   if (revisionDetail.status === "draft_ready") return "초안 준비";
   if (revisionDetail.status === "editing") return "원고 편집 중";
@@ -59,7 +60,7 @@ export default async function AdminV2PublishedDetailPage({
           <p className={styles.eyebrow}>발행 관리</p>
           <h1 className={styles.title}>{feature.title}</h1>
           <p className={styles.description}>
-            현재 공개본과 현재 개정 흐름을 분리해서 읽고, 개정이 필요하면 review/editor/publish room으로 연결합니다.
+            현재 공개본과 개정 흐름을 분리해서 읽습니다. 개정본이 있어도 공개 반영을 완료하기 전까지는 라이브에 이전 버전이 보입니다.
           </p>
         </div>
         <div className={styles.metaPanel}>
@@ -143,6 +144,13 @@ export default async function AdminV2PublishedDetailPage({
               revision={feature.revision}
               actionBasePath="/admin/actions"
             />
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <p className={styles.sectionLabel}>정리 액션</p>
+            </div>
+            <PublishedFeatureDeleteButton slug={feature.slug} />
           </div>
 
           {feature.publishEvents.length > 0 ? (

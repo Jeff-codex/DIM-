@@ -27,8 +27,8 @@ export function PublishRoomActions({
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState(
     hasSnapshot
-      ? "발행 준비가 끝났습니다. 마지막 확인 뒤 바로 발행할 수 있습니다"
-      : "먼저 발행 준비본을 만들면 최종 점검을 시작할 수 있습니다",
+      ? "발행 준비는 끝났습니다. 아직 라이브에는 이전 버전이 보입니다. 지금 공개 반영을 눌러야 실제로 바뀝니다"
+      : "먼저 발행 준비본을 만들면 마지막 확인과 공개 반영 단계로 넘어갑니다",
   );
 
   const handlePublish = async () => {
@@ -60,7 +60,7 @@ export function PublishRoomActions({
         throw new Error(payload?.detail ?? payload?.error ?? "publish-failed");
       }
 
-      setStatus("공개 발행을 완료했습니다");
+      setStatus("공개 반영을 완료했습니다");
       router.push(payload.slug ? `${publishedHref}/${payload.slug}` : publishedHref);
       router.refresh();
     } catch (error) {
@@ -109,7 +109,7 @@ export function PublishRoomActions({
         );
       }
 
-      setStatus("발행 준비본을 만들었습니다");
+      setStatus("발행 준비는 끝났습니다. 아직 라이브에는 이전 버전이 보입니다");
       router.push(snapshotHref);
       router.refresh();
     } catch (error) {
@@ -126,14 +126,6 @@ export function PublishRoomActions({
   return (
     <div className={styles.panel}>
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.primary}
-          disabled={submitting}
-          onClick={() => void handlePrepare()}
-        >
-          {submitting ? "준비 중..." : hasSnapshot ? "준비본 다시 만들기" : "발행 준비본 만들기"}
-        </button>
         {hasSnapshot ? (
           <button
             type="button"
@@ -141,7 +133,26 @@ export function PublishRoomActions({
             disabled={submitting}
             onClick={() => void handlePublish()}
           >
-            {submitting ? "발행 중..." : "바로 발행"}
+            {submitting ? "공개 반영 중..." : "지금 공개 반영"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={styles.primary}
+            disabled={submitting}
+            onClick={() => void handlePrepare()}
+          >
+            {submitting ? "준비 중..." : "발행 준비본 만들기"}
+          </button>
+        )}
+        {hasSnapshot ? (
+          <button
+            type="button"
+            className={styles.secondary}
+            disabled={submitting}
+            onClick={() => void handlePrepare()}
+          >
+            {submitting ? "준비 중..." : "준비본 다시 만들기"}
           </button>
         ) : null}
       </div>

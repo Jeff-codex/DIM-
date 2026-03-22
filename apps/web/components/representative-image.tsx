@@ -16,6 +16,10 @@ const imageDimensions = {
   detail: { width: 1600, height: 1000, sizes: "(max-width: 760px) 100vw, 720px" },
 } as const;
 
+function isEditorialAssetRoute(src: string) {
+  return src.startsWith("/api/editorial/assets/");
+}
+
 export function RepresentativeImage({
   src,
   alt,
@@ -24,6 +28,7 @@ export function RepresentativeImage({
   variant = "card",
 }: RepresentativeImageProps) {
   const config = imageDimensions[variant];
+  const unoptimized = isEditorialAssetRoute(src);
 
   const image = (
     <div className={`${styles.frame} ${styles[variant]}`.trim()}>
@@ -35,6 +40,7 @@ export function RepresentativeImage({
         sizes={config.sizes}
         className={styles.image}
         priority={priority}
+        unoptimized={unoptimized}
       />
     </div>
   );

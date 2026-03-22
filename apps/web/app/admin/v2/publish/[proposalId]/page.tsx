@@ -73,8 +73,8 @@ export default async function AdminV2PublishPage({
           <h1 className={styles.title}>{draft.title || proposal.projectName}</h1>
           <p className={styles.description}>
             {isReadyToPublish
-              ? "이제 마지막 확인 뒤 발행하면 됩니다."
-              : "준비본을 만든 뒤 최종 확인을 이어갑니다."}
+              ? "이제 공개 반영 버튼을 눌러야 라이브가 실제로 바뀝니다."
+              : "준비본을 만든 뒤 공개 반영 단계로 넘어갑니다."}
           </p>
         </div>
         <div className={styles.metaPanel}>
