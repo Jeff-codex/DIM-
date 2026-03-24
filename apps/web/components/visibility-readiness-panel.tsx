@@ -41,6 +41,53 @@ function label(level: DraftVisibilityLevel) {
   }
 }
 
+function compactLabel(level: DraftVisibilityLevel) {
+  switch (level) {
+    case "strong":
+      return "충분";
+    case "needs_work":
+      return "보강";
+    default:
+      return "부족";
+  }
+}
+
+function summarizeReadiness(scope: "proposal" | "draft", metadata: DraftVisibilityMetadata) {
+  const levels = Object.values(metadata.visibilityChecklist);
+  const missingCount = levels.filter((level) => level === "missing").length;
+  const needsWorkCount = levels.filter((level) => level === "needs_work").length;
+
+  if (missingCount > 0) {
+    return scope === "proposal"
+      ? "초안은 만들 수 있지만, 먼저 보강해야 할 정보가 있습니다"
+      : "원고는 이어갈 수 있지만, 지금 보강해야 할 항목이 있습니다";
+  }
+
+  if (needsWorkCount > 0) {
+    return scope === "proposal"
+      ? "초안 생성은 가능하지만, 품질을 더 올릴 여지가 있습니다"
+      : "원고는 안정적이지만, 발행 전 보강이 더 있으면 좋습니다";
+  }
+
+  return scope === "proposal"
+    ? "초안 생성 기준에서 큰 부족 없이 정리된 상태입니다"
+    : "원고가 검색·답변·근거 기준에서 고르게 갖춰진 상태입니다";
+}
+
+function buildPriorityItems(metadata: DraftVisibilityMetadata) {
+  return checklistLabels
+    .map((item) => ({
+      label: item.label,
+      level: metadata.visibilityChecklist[item.key],
+    }))
+    .filter((item) => item.level !== "strong")
+    .sort((left, right) => {
+      const rank = { missing: 0, needs_work: 1, strong: 2 } as const;
+      return rank[left.level] - rank[right.level];
+    })
+    .slice(0, 3);
+}
+
 export function VisibilityReadinessPanel({
   metadata,
   scope = "draft",
@@ -49,22 +96,22 @@ export function VisibilityReadinessPanel({
     scope === "proposal" ? "초안 생성 준비도" : "초안 생성 시점 준비도";
   const title =
     scope === "proposal"
-      ? "AI가 이 제안을 search-answer-generative ready한 초안으로 바꿀 준비가 됐는지 봅니다"
-      : "AI가 마지막 생성 시점에 남긴 visibility 진단을 참고합니다";
+      ? "AI 초안 준비도"
+      : "현재 초안 진단";
   const description =
     scope === "proposal"
-      ? "본찰력 해석과 함께 답변 추출성, 근거 인용성, 엔터티 명확성, 전환 준비도를 한 번에 점검합니다."
-      : "이 평가는 마지막 생성 시점 기준입니다. 아래 편집 입력을 수정해도 자동 재계산되지는 않으니, 재생성이 필요하면 초안 생성 패널에서 다시 호출하세요.";
+      ? "지금 제안이 초안 생성에 얼마나 준비됐는지 간단히 봅니다."
+      : "마지막 생성 기준으로, 지금 원고에서 무엇을 더 보강해야 하는지 요약해 보여줍니다.";
 
   if (!metadata) {
     const legacyTitle =
       scope === "proposal"
-        ? "초안이 아직 visibility metadata를 만들지 못했습니다"
-        : "이 초안은 visibility 진단이 없는 예전 형식 초안입니다";
+        ? "준비도 진단이 아직 없습니다"
+        : "이 초안에는 준비도 진단이 없습니다";
     const legacyDescription =
       scope === "proposal"
-        ? "다음 생성부터는 질문 맵, 근거 블록, 엔터티 맵, 전환 준비도를 함께 저장합니다."
-        : "현재 초안 자체는 편집할 수 있지만, 질문 맵·근거 블록·엔터티 맵이 아직 같이 저장되지 않았습니다. 초안을 다시 만들면 이 진단도 함께 채워집니다.";
+        ? "다음 생성부터는 초안 생성 준비도와 보강 포인트를 함께 저장합니다."
+        : "지금 원고는 편집할 수 있지만, 다음 재생성 전까지는 이 진단이 비어 있습니다.";
 
     return (
       <section className={styles.panel}>
@@ -75,89 +122,131 @@ export function VisibilityReadinessPanel({
     );
   }
 
+  const levels = Object.values(metadata.visibilityChecklist);
+  const strongCount = levels.filter((level) => level === "strong").length;
+  const needsWorkCount = levels.filter((level) => level === "needs_work").length;
+  const missingCount = levels.filter((level) => level === "missing").length;
+  const priorityItems = buildPriorityItems(metadata);
+  const overallSummary = summarizeReadiness(scope, metadata);
+  const actionCopy =
+    priorityItems.length > 0
+      ? `${priorityItems[0]?.label}부터 먼저 보강하면 다음 단계가 훨씬 안정적입니다.`
+      : metadata.conversionNextStep;
+  const summaryAnswer = metadata.answerBlock.trim();
+
   return (
     <section className={styles.panel}>
       <p className={styles.eyebrow}>{eyebrow}</p>
       <h2 className={styles.title}>{title}</h2>
       <p className={styles.description}>{description}</p>
+      <p className={styles.summary}>{overallSummary}</p>
+
+      <div className={styles.summaryRow}>
+        <article className={styles.summaryCard}>
+          <span className={styles.summaryLabel}>충분</span>
+          <strong className={styles.summaryValue}>{strongCount}</strong>
+        </article>
+        <article className={styles.summaryCard}>
+          <span className={styles.summaryLabel}>보강</span>
+          <strong className={styles.summaryValue}>{needsWorkCount}</strong>
+        </article>
+        <article className={styles.summaryCard}>
+          <span className={styles.summaryLabel}>부족</span>
+          <strong className={styles.summaryValue}>{missingCount}</strong>
+        </article>
+      </div>
 
       <div className={styles.checklist}>
         {checklistLabels.map((item) => (
-          <article key={item.key} className={styles.checkItem}>
+          <article key={item.key} className={styles.checkChip}>
             <span className={styles.checkLabel}>{item.label}</span>
             <span className={tone(metadata.visibilityChecklist[item.key])}>
-              {label(metadata.visibilityChecklist[item.key])}
+              {compactLabel(metadata.visibilityChecklist[item.key])}
             </span>
           </article>
         ))}
       </div>
 
-      <div className={styles.grid}>
+      <div className={styles.overview}>
         <article className={styles.card}>
-          <p className={styles.cardLabel}>질문 맵</p>
-          <ul className={styles.list}>
-            {metadata.questionMap.map((item, index) => (
-              <li key={`${item}-${index}`}>{item}</li>
-            ))}
-          </ul>
+          <p className={styles.cardLabel}>지금 먼저 볼 것</p>
+          {priorityItems.length > 0 ? (
+            <ul className={styles.listCompact}>
+              {priorityItems.map((item) => (
+                <li key={item.label}>
+                  {item.label} <span className={styles.listMeta}>{label(item.level)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.copy}>핵심 준비도는 고르게 갖춰져 있습니다.</p>
+          )}
         </article>
 
         <article className={styles.card}>
-          <p className={styles.cardLabel}>핵심 답변 블록</p>
-          <p className={styles.copy}>{metadata.answerBlock}</p>
+          <p className={styles.cardLabel}>다음 액션</p>
+          <p className={styles.copy}>{actionCopy}</p>
         </article>
 
         <article className={styles.card}>
-          <p className={styles.cardLabel}>근거 블록</p>
-          <ul className={styles.list}>
-            {metadata.evidenceBlocks.map((item, index) => (
-              <li key={`${item}-${index}`}>{item}</li>
-            ))}
-          </ul>
-        </article>
-
-        <article className={styles.card}>
-          <p className={styles.cardLabel}>엔터티 맵</p>
-          <ul className={styles.list}>
-            {metadata.entityMap.map((item, index) => (
-              <li key={`${item}-${index}`}>{item}</li>
-            ))}
-          </ul>
-        </article>
-
-        <article className={styles.card}>
-          <p className={styles.cardLabel}>인용 제안</p>
-          <ul className={styles.list}>
-            {metadata.citationSuggestions.map((item, index) => (
-              <li key={`${item}-${index}`}>{item}</li>
-            ))}
-          </ul>
-        </article>
-
-        <article className={styles.card}>
-          <p className={styles.cardLabel}>정합성 체크</p>
-          <ul className={styles.list}>
-            {metadata.schemaParityChecks.map((item, index) => (
-              <li key={`${item}-${index}`}>{item}</li>
-            ))}
-          </ul>
+          <p className={styles.cardLabel}>핵심 답변 요약</p>
+          <p className={styles.summaryCopy}>{summaryAnswer}</p>
         </article>
       </div>
 
-      <div className={styles.footer}>
-        <article className={styles.footerCard}>
-          <p className={styles.cardLabel}>주의할 점</p>
-          <p className={styles.copy}>{metadata.caveatBlock}</p>
-        </article>
-        <article className={styles.footerCard}>
-          <p className={styles.cardLabel}>다음 행동</p>
-          <p className={styles.copy}>{metadata.conversionNextStep}</p>
-        </article>
-        <article className={styles.footerCard}>
-          <p className={styles.cardLabel}>Freshness</p>
-          <p className={styles.copy}>{metadata.freshnessNote}</p>
-        </article>
-      </div>
+      <details className={styles.details}>
+        <summary className={styles.detailsSummary}>세부 진단 보기</summary>
+        <div className={styles.detailsBody}>
+          <div className={styles.detailStack}>
+            <article className={styles.card}>
+              <p className={styles.cardLabel}>질문 맵</p>
+              <ul className={styles.list}>
+                {metadata.questionMap.map((item, index) => (
+                  <li key={`${item}-${index}`}>{item}</li>
+                ))}
+              </ul>
+            </article>
+
+            <article className={styles.card}>
+              <p className={styles.cardLabel}>근거와 인용</p>
+              <ul className={styles.list}>
+                {metadata.evidenceBlocks.map((item, index) => (
+                  <li key={`${item}-${index}`}>{item}</li>
+                ))}
+              </ul>
+              <ul className={styles.list}>
+                {metadata.citationSuggestions.map((item, index) => (
+                  <li key={`${item}-${index}`}>{item}</li>
+                ))}
+              </ul>
+            </article>
+
+            <article className={styles.card}>
+              <p className={styles.cardLabel}>엔터티와 정합성</p>
+              <ul className={styles.list}>
+                {metadata.entityMap.map((item, index) => (
+                  <li key={`${item}-${index}`}>{item}</li>
+                ))}
+              </ul>
+              <ul className={styles.list}>
+                {metadata.schemaParityChecks.map((item, index) => (
+                  <li key={`${item}-${index}`}>{item}</li>
+                ))}
+              </ul>
+            </article>
+
+            <article className={styles.card}>
+              <p className={styles.cardLabel}>주의할 점</p>
+              <p className={styles.copy}>{metadata.caveatBlock}</p>
+            </article>
+
+            <article className={styles.card}>
+              <p className={styles.cardLabel}>Freshness</p>
+              <p className={styles.copy}>{metadata.freshnessNote}</p>
+            </article>
+          </div>
+        </div>
+      </details>
     </section>
   );
 }

@@ -3,58 +3,115 @@
   background:
     radial-gradient(circle at top left, rgba(66, 214, 255, 0.14), transparent 42%),
     linear-gradient(180deg, rgba(10, 15, 34, 0.96), rgba(7, 10, 24, 0.98));
-  padding: 28px;
-  border-radius: 24px;
+  padding: 20px;
+  border-radius: 22px;
   display: grid;
-  gap: 20px;
+  gap: 16px;
   box-shadow: 0 24px 80px rgba(4, 8, 24, 0.45);
 }
 
 .eyebrow {
   margin: 0;
-  font-size: 0.74rem;
-  letter-spacing: 0.24em;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(123, 231, 255, 0.82);
 }
 
 .title {
   margin: 0;
-  font-size: clamp(1.45rem, 2vw, 1.9rem);
-  line-height: 1.18;
+  font-size: clamp(1.1rem, 1.35vw, 1.32rem);
+  line-height: 1.28;
   color: rgba(245, 247, 255, 0.97);
+  max-width: 20ch;
+  word-break: keep-all;
+  text-wrap: balance;
 }
 
 .description,
 .copy {
   margin: 0;
-  font-size: 0.98rem;
-  line-height: 1.72;
+  font-size: 0.9rem;
+  line-height: 1.68;
   color: rgba(196, 204, 230, 0.82);
 }
 
-.checklist {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+.summaryCopy {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.68;
+  color: rgba(196, 204, 230, 0.82);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
-.checkItem,
-.card,
-.footerCard {
-  border: 1px solid rgba(140, 170, 255, 0.14);
-  border-radius: 18px;
-  background: rgba(11, 16, 34, 0.78);
-  padding: 16px;
+.summary {
+  margin: 0;
+  color: rgba(236, 243, 255, 0.94);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.summaryRow {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 10px;
+}
+
+.summaryCard {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid rgba(140, 170, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(11, 16, 34, 0.72);
+}
+
+.summaryLabel {
+  color: rgba(136, 151, 201, 0.68);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+}
+
+.summaryValue {
+  color: rgba(246, 249, 255, 0.98);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.checkChip,
+.card,
+.summaryCard {
+  border: 1px solid rgba(140, 170, 255, 0.14);
+  border-radius: 16px;
+  background: rgba(11, 16, 34, 0.78);
+}
+
+.checkChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+}
+
+.card {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
 }
 
 .checkLabel,
 .cardLabel {
-  font-size: 0.78rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
   color: rgba(136, 151, 201, 0.7);
 }
 
@@ -86,39 +143,69 @@
   background: rgba(113, 29, 63, 0.42);
 }
 
-.grid {
+.overview {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .list {
   margin: 0;
   padding-left: 18px;
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  color: rgba(225, 231, 250, 0.92);
+  line-height: 1.65;
+}
+
+.listCompact {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
   color: rgba(225, 231, 250, 0.92);
   line-height: 1.6;
 }
 
-.footer {
+.listMeta {
+  color: rgba(158, 176, 224, 0.72);
+  font-size: 0.8rem;
+}
+
+.details {
+  border-top: 1px solid rgba(140, 170, 255, 0.12);
+  padding-top: 12px;
+}
+
+.detailsSummary {
+  cursor: pointer;
+  list-style: none;
+  color: rgba(153, 238, 255, 0.88);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.detailsSummary::-webkit-details-marker {
+  display: none;
+}
+
+.detailsBody {
+  padding-top: 14px;
+}
+
+.detailStack {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
 }
 
 @media (max-width: 1120px) {
-  .checklist,
-  .grid,
-  .footer {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .summaryRow {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 760px) {
-  .checklist,
-  .grid,
-  .footer {
-    grid-template-columns: 1fr;
+  .panel {
+    padding: 18px;
   }
 }
