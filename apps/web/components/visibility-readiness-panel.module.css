@@ -10,6 +10,24 @@
   box-shadow: 0 24px 80px rgba(4, 8, 24, 0.45);
 }
 
+.proposalPanel {
+  gap: 14px;
+}
+
+.draftPanel {
+  gap: 14px;
+}
+
+.headerBlock {
+  display: grid;
+  gap: 12px;
+}
+
+.headerCopy {
+  display: grid;
+  gap: 8px;
+}
+
 .eyebrow {
   margin: 0;
   font-size: 0.72rem;
@@ -82,6 +100,11 @@
 }
 
 .checklist {
+  display: grid;
+  gap: 10px;
+}
+
+.checkChipRow {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -199,7 +222,7 @@
 }
 
 @media (max-width: 1120px) {
-  .summaryRow {
+  .draftPanel .headerBlock {
     grid-template-columns: 1fr;
   }
 }
@@ -207,5 +230,24 @@
 @media (max-width: 760px) {
   .panel {
     padding: 18px;
+  }
+}
+
+@media (min-width: 900px) {
+  .draftPanel .headerBlock {
+    grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.65fr);
+    align-items: start;
+  }
+
+  .draftPanel .summaryRow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .draftPanel .overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .draftPanel .overview > :last-child {
+    grid-column: 1 / -1;
   }
 }

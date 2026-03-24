@@ -92,6 +92,10 @@ export function VisibilityReadinessPanel({
   metadata,
   scope = "draft",
 }: VisibilityReadinessPanelProps) {
+  const panelClassName =
+    scope === "proposal"
+      ? `${styles.panel} ${styles.proposalPanel}`
+      : `${styles.panel} ${styles.draftPanel}`;
   const eyebrow =
     scope === "proposal" ? "초안 생성 준비도" : "초안 생성 시점 준비도";
   const title =
@@ -114,7 +118,7 @@ export function VisibilityReadinessPanel({
         : "지금 원고는 편집할 수 있지만, 다음 재생성 전까지는 이 진단이 비어 있습니다.";
 
     return (
-      <section className={styles.panel}>
+      <section className={panelClassName}>
         <p className={styles.eyebrow}>{eyebrow}</p>
         <h2 className={styles.title}>{legacyTitle}</h2>
         <p className={styles.description}>{legacyDescription}</p>
@@ -135,36 +139,44 @@ export function VisibilityReadinessPanel({
   const summaryAnswer = metadata.answerBlock.trim();
 
   return (
-    <section className={styles.panel}>
-      <p className={styles.eyebrow}>{eyebrow}</p>
-      <h2 className={styles.title}>{title}</h2>
-      <p className={styles.description}>{description}</p>
-      <p className={styles.summary}>{overallSummary}</p>
-
-      <div className={styles.summaryRow}>
-        <article className={styles.summaryCard}>
-          <span className={styles.summaryLabel}>충분</span>
-          <strong className={styles.summaryValue}>{strongCount}</strong>
-        </article>
-        <article className={styles.summaryCard}>
-          <span className={styles.summaryLabel}>보강</span>
-          <strong className={styles.summaryValue}>{needsWorkCount}</strong>
-        </article>
-        <article className={styles.summaryCard}>
-          <span className={styles.summaryLabel}>부족</span>
-          <strong className={styles.summaryValue}>{missingCount}</strong>
-        </article>
+    <section className={panelClassName}>
+      <div className={styles.headerBlock}>
+        <div className={styles.headerCopy}>
+          <p className={styles.eyebrow}>{eyebrow}</p>
+          <h2 className={styles.title}>{title}</h2>
+          <p className={styles.description}>{description}</p>
+          <p className={styles.summary}>{overallSummary}</p>
+        </div>
+        <div className={styles.summaryRow}>
+          <article className={styles.summaryCard}>
+            <span className={styles.summaryLabel}>충분</span>
+            <strong className={styles.summaryValue}>{strongCount}</strong>
+          </article>
+          <article className={styles.summaryCard}>
+            <span className={styles.summaryLabel}>보강</span>
+            <strong className={styles.summaryValue}>{needsWorkCount}</strong>
+          </article>
+          <article className={styles.summaryCard}>
+            <span className={styles.summaryLabel}>부족</span>
+            <strong className={styles.summaryValue}>{missingCount}</strong>
+          </article>
+        </div>
       </div>
 
       <div className={styles.checklist}>
-        {checklistLabels.map((item) => (
-          <article key={item.key} className={styles.checkChip}>
-            <span className={styles.checkLabel}>{item.label}</span>
-            <span className={tone(metadata.visibilityChecklist[item.key])}>
-              {compactLabel(metadata.visibilityChecklist[item.key])}
-            </span>
-          </article>
-        ))}
+        <article className={styles.summaryCard}>
+          <span className={styles.cardLabel}>상태 한눈에 보기</span>
+          <div className={styles.checkChipRow}>
+            {checklistLabels.map((item) => (
+              <article key={item.key} className={styles.checkChip}>
+                <span className={styles.checkLabel}>{item.label}</span>
+                <span className={tone(metadata.visibilityChecklist[item.key])}>
+                  {compactLabel(metadata.visibilityChecklist[item.key])}
+                </span>
+              </article>
+            ))}
+          </div>
+        </article>
       </div>
 
       <div className={styles.overview}>
