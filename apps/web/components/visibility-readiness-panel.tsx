@@ -152,7 +152,6 @@ export function VisibilityReadinessPanel({
     priorityItems.length > 0
       ? `${priorityItems[0]?.label}부터 먼저 보강하면 다음 단계가 훨씬 안정적입니다.`
       : metadata.conversionNextStep;
-  const summaryAnswer = metadata.answerBlock.trim();
   const compactSummary = `충분 ${strongCount} · 보강 ${needsWorkCount} · 부족 ${missingCount}`;
   const summaryBadge = buildSummaryBadge(metadata);
 
@@ -209,13 +208,6 @@ export function VisibilityReadinessPanel({
           <p className={styles.cardLabel}>다음 액션</p>
           <p className={styles.copy}>{actionCopy}</p>
         </article>
-
-        {scope === "draft" ? (
-          <article className={styles.card}>
-            <p className={styles.cardLabel}>핵심 답변 요약</p>
-            <p className={styles.summaryCopy}>{summaryAnswer}</p>
-          </article>
-        ) : null}
       </div>
 
       <details className={styles.details}>
@@ -230,6 +222,13 @@ export function VisibilityReadinessPanel({
                 ))}
               </ul>
             </article>
+
+            {scope === "draft" ? (
+              <article className={styles.card}>
+                <p className={styles.cardLabel}>핵심 답변 요약</p>
+                <p className={styles.summaryCopy}>{metadata.answerBlock.trim()}</p>
+              </article>
+            ) : null}
 
             <article className={styles.card}>
               <p className={styles.cardLabel}>근거와 인용</p>

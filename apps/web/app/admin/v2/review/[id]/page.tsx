@@ -117,6 +117,12 @@ export default async function AdminV2ReviewDetailPage({
 
       <AdminWorkflowNav proposalId={proposal.id} active="review" mode="v2" basePath="/admin" />
 
+      {proposal.status === "in_review" && draftGeneration.visibility ? (
+        <section className={styles.fullWidthPanel}>
+          <VisibilityReadinessPanel metadata={draftGeneration.visibility} scope="proposal" />
+        </section>
+      ) : null}
+
       <div className={styles.detailLayout}>
         <section className={styles.detailMain}>
           <div className={styles.card}>
@@ -258,12 +264,6 @@ export default async function AdminV2ReviewDetailPage({
           ) : null}
         </aside>
       </div>
-
-      {proposal.status === "in_review" && draftGeneration.visibility ? (
-        <section className={styles.fullWidthPanel}>
-          <VisibilityReadinessPanel metadata={draftGeneration.visibility} scope="proposal" />
-        </section>
-      ) : null}
     </div>
   );
 }
