@@ -15,6 +15,9 @@ export function MagazineCategoryNav({
   excludedCategoryIds = [],
   centered = false,
 }: MagazineCategoryNavProps) {
+  const normalizedBase = hrefBase.endsWith("/")
+    ? hrefBase.slice(0, -1)
+    : hrefBase;
   const visibleCategories = categories.filter(
     (category) => !excludedCategoryIds.includes(category.id),
   );
@@ -29,7 +32,7 @@ export function MagazineCategoryNav({
           {visibleCategories.map((category) => (
             <Link
               key={category.id}
-              href={`${hrefBase}?channel=${category.id}`}
+              href={`${normalizedBase}/${category.slug}`}
               className={`${styles.link} ${
                 activeCategoryId === category.id ? styles.active : ""
               }`.trim()}

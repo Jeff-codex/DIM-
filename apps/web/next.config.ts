@@ -13,6 +13,53 @@ const nextConfig: NextConfig = isStaticExport
       async redirects() {
         return [
           {
+            source: "/articles",
+            has: [
+              {
+                type: "query",
+                key: "channel",
+                value: "startups",
+              },
+            ],
+            destination: "/articles/startups",
+            permanent: false,
+          },
+          {
+            source: "/articles",
+            has: [
+              {
+                type: "query",
+                key: "channel",
+                value: "product-launches",
+              },
+            ],
+            destination: "/articles/product-launches",
+            permanent: false,
+          },
+          {
+            source: "/articles",
+            has: [
+              {
+                type: "query",
+                key: "channel",
+                value: "industry-analysis",
+              },
+            ],
+            destination: "/articles/industry-analysis",
+            permanent: false,
+          },
+          {
+            source: "/articles",
+            has: [
+              {
+                type: "query",
+                key: "channel",
+              },
+            ],
+            destination: "/articles",
+            permanent: false,
+          },
+          {
             source: "/admin/v2",
             destination: "/admin",
             permanent: false,

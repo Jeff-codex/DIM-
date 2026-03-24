@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { listCmsPublishedArticles, getCmsPublishedArticleBySlug } from "@/lib/server/editorial-v2/repository";
+import { getCategoryById } from "@/content/categories";
 import {
   getLegacyArticleBySlug,
   getLegacyPublishedArticles,
@@ -42,6 +43,19 @@ export const getPublishedArticles = cache(async (): Promise<
 
   return mergePublishedArticles(cmsArticles, legacyArticles);
 });
+
+export const getPublishedArticlesByCategory = cache(
+  async (categoryId: string): Promise<PublishedArticleSummary[]> => {
+    const category = getCategoryById(categoryId);
+
+    if (!category) {
+      return [];
+    }
+
+    const articles = await getPublishedArticles();
+    return articles.filter((article) => article.category.id === categoryId);
+  },
+);
 
 export const getFeaturedArticle = cache(async () => {
   const articles = await getPublishedArticles();

@@ -7,13 +7,13 @@ import { getPublishedArticles } from "@/lib/content";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: siteConfig.statement,
+  title: "비즈니스 구조 분석 매거진",
   description: siteConfig.description,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: `${siteConfig.statement} | ${siteConfig.name}`,
+    title: "비즈니스 구조 분석 매거진 | DIM",
     description: siteConfig.description,
     url: siteConfig.url,
   },
@@ -38,7 +38,7 @@ export default async function HomePage() {
         titleLines={siteConfig.statementLines}
         body={[
           siteConfig.positioning,
-          "각 피처는 브랜드 소개보다 구조 변화의 이유와 근거를 먼저 정리합니다",
+          "각 피처는 브랜드 소개보다 구조 변화의 이유, 운영 방식의 이동, 판단의 근거를 함께 정리합니다",
         ]}
       />
       <MagazineCategoryNav centered />
