@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import styles from "./page.module.css";
-import { ArticleListItem } from "@/components/article-list-item";
+import { ArticleArchiveBrowser } from "./_components/article-archive-browser";
 import { MagazineCategoryNav } from "@/components/magazine-category-nav";
 import { MagazineIntro } from "@/components/magazine-intro";
 import { getPublishedArticles } from "@/lib/content";
@@ -34,20 +34,11 @@ export default async function ArticlesPage() {
         ]}
       />
       <MagazineCategoryNav centered />
-
-      <section className={styles.archiveSection}>
-        <div className={`container ${styles.inner}`}>
-          {articles.length > 0 ? (
-            <div className={styles.grid}>
-              {articles.map((article) => (
-                <ArticleListItem key={article.slug} article={article} />
-              ))}
-            </div>
-          ) : (
-            <p className={styles.empty}>아직 이 채널에 공개된 피처가 없습니다</p>
-          )}
-        </div>
-      </section>
+      <ArticleArchiveBrowser
+        articles={articles}
+        emptyMessage="제목이나 요약을 조금 다르게 검색해 보세요."
+        searchPlaceholder="제목·요약 검색"
+      />
     </div>
   );
 }

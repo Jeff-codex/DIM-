@@ -33,6 +33,7 @@ export function MagazineCategoryNav({
             <Link
               key={category.id}
               href={`${normalizedBase}/${category.slug}`}
+              aria-current={activeCategoryId === category.id ? "page" : undefined}
               className={`${styles.link} ${
                 activeCategoryId === category.id ? styles.active : ""
               }`.trim()}
