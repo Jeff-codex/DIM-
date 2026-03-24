@@ -514,6 +514,10 @@
   align-items: start;
 }
 
+.fullWidthPanel {
+  display: grid;
+}
+
 .actionBar {
   display: grid;
   gap: 20px;

@@ -695,6 +695,12 @@ export function EditorialDraftEditor({
         />
       ) : null}
 
+      {showVisibilityPanel ? (
+        <section className={styles.visibilityStrip}>
+          <VisibilityReadinessPanel metadata={generationVisibility} scope="draft" />
+        </section>
+      ) : null}
+
       <div className={styles.layout}>
         <section className={styles.editorSurface}>
           <div className={styles.editorHeader}>
@@ -1021,14 +1027,6 @@ export function EditorialDraftEditor({
             </div>
             <p className={styles.status}>{status}</p>
           </div>
-          {showVisibilityPanel ? (
-            <details className={styles.supportPanel}>
-              <summary className={styles.supportSummary}>SEO / AEO / GEO 준비도 보기</summary>
-              <div className={styles.supportBody}>
-                <VisibilityReadinessPanel metadata={generationVisibility} scope="draft" />
-              </div>
-            </details>
-          ) : null}
         </section>
 
         <EditorialDraftPreview

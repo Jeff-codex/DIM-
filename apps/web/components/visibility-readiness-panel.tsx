@@ -88,6 +88,22 @@ function buildPriorityItems(metadata: DraftVisibilityMetadata) {
     .slice(0, 3);
 }
 
+function buildSummaryBadge(metadata: DraftVisibilityMetadata) {
+  const levels = Object.values(metadata.visibilityChecklist);
+  const missingCount = levels.filter((level) => level === "missing").length;
+  const needsWorkCount = levels.filter((level) => level === "needs_work").length;
+
+  if (missingCount > 0) {
+    return `부족 ${missingCount}`;
+  }
+
+  if (needsWorkCount > 0) {
+    return `보강 ${needsWorkCount}`;
+  }
+
+  return "준비 완료";
+}
+
 export function VisibilityReadinessPanel({
   metadata,
   scope = "draft",
@@ -137,35 +153,29 @@ export function VisibilityReadinessPanel({
       ? `${priorityItems[0]?.label}부터 먼저 보강하면 다음 단계가 훨씬 안정적입니다.`
       : metadata.conversionNextStep;
   const summaryAnswer = metadata.answerBlock.trim();
+  const compactSummary = `충분 ${strongCount} · 보강 ${needsWorkCount} · 부족 ${missingCount}`;
+  const summaryBadge = buildSummaryBadge(metadata);
 
   return (
     <section className={panelClassName}>
       <div className={styles.headerBlock}>
         <div className={styles.headerCopy}>
           <p className={styles.eyebrow}>{eyebrow}</p>
-          <h2 className={styles.title}>{title}</h2>
+          <div className={styles.titleRow}>
+            <h2 className={styles.title}>{title}</h2>
+            <span className={styles.summaryBadge}>{summaryBadge}</span>
+          </div>
           <p className={styles.description}>{description}</p>
-          <p className={styles.summary}>{overallSummary}</p>
-        </div>
-        <div className={styles.summaryRow}>
-          <article className={styles.summaryCard}>
-            <span className={styles.summaryLabel}>충분</span>
-            <strong className={styles.summaryValue}>{strongCount}</strong>
-          </article>
-          <article className={styles.summaryCard}>
-            <span className={styles.summaryLabel}>보강</span>
-            <strong className={styles.summaryValue}>{needsWorkCount}</strong>
-          </article>
-          <article className={styles.summaryCard}>
-            <span className={styles.summaryLabel}>부족</span>
-            <strong className={styles.summaryValue}>{missingCount}</strong>
-          </article>
+          <p className={styles.summary}>{compactSummary}</p>
         </div>
       </div>
 
       <div className={styles.checklist}>
         <article className={styles.summaryCard}>
-          <span className={styles.cardLabel}>상태 한눈에 보기</span>
+          <div className={styles.inlineHeader}>
+            <span className={styles.cardLabel}>상태 한눈에 보기</span>
+            <p className={styles.inlineCopy}>{overallSummary}</p>
+          </div>
           <div className={styles.checkChipRow}>
             {checklistLabels.map((item) => (
               <article key={item.key} className={styles.checkChip}>
@@ -181,7 +191,7 @@ export function VisibilityReadinessPanel({
 
       <div className={styles.overview}>
         <article className={styles.card}>
-          <p className={styles.cardLabel}>지금 먼저 볼 것</p>
+          <p className={styles.cardLabel}>먼저 볼 항목</p>
           {priorityItems.length > 0 ? (
             <ul className={styles.listCompact}>
               {priorityItems.map((item) => (
@@ -200,10 +210,12 @@ export function VisibilityReadinessPanel({
           <p className={styles.copy}>{actionCopy}</p>
         </article>
 
-        <article className={styles.card}>
-          <p className={styles.cardLabel}>핵심 답변 요약</p>
-          <p className={styles.summaryCopy}>{summaryAnswer}</p>
-        </article>
+        {scope === "draft" ? (
+          <article className={styles.card}>
+            <p className={styles.cardLabel}>핵심 답변 요약</p>
+            <p className={styles.summaryCopy}>{summaryAnswer}</p>
+          </article>
+        ) : null}
       </div>
 
       <details className={styles.details}>
@@ -253,7 +265,7 @@ export function VisibilityReadinessPanel({
             </article>
 
             <article className={styles.card}>
-              <p className={styles.cardLabel}>Freshness</p>
+              <p className={styles.cardLabel}>최신성</p>
               <p className={styles.copy}>{metadata.freshnessNote}</p>
             </article>
           </div>

@@ -241,10 +241,6 @@ export default async function AdminV2ReviewDetailPage({
             </div>
           ) : null}
 
-          {proposal.status === "in_review" && draftGeneration.visibility ? (
-            <VisibilityReadinessPanel metadata={draftGeneration.visibility} scope="proposal" />
-          ) : null}
-
           {failedJobs.length > 0 ? (
             <div className={styles.card}>
               <div className={styles.cardHeader}>
@@ -262,6 +258,12 @@ export default async function AdminV2ReviewDetailPage({
           ) : null}
         </aside>
       </div>
+
+      {proposal.status === "in_review" && draftGeneration.visibility ? (
+        <section className={styles.fullWidthPanel}>
+          <VisibilityReadinessPanel metadata={draftGeneration.visibility} scope="proposal" />
+        </section>
+      ) : null}
     </div>
   );
 }

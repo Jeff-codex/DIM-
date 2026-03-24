@@ -136,6 +136,10 @@
   align-items: start;
 }
 
+.visibilityStrip {
+  display: grid;
+}
+
 .editorSurface {
   display: grid;
   gap: 22px;

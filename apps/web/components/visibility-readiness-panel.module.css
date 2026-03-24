@@ -28,6 +28,13 @@
   gap: 8px;
 }
 
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
 .eyebrow {
   margin: 0;
   font-size: 0.72rem;
@@ -38,12 +45,26 @@
 
 .title {
   margin: 0;
-  font-size: clamp(1.1rem, 1.35vw, 1.32rem);
+  font-size: clamp(1.02rem, 1.1vw, 1.18rem);
   line-height: 1.28;
   color: rgba(245, 247, 255, 0.97);
-  max-width: 20ch;
+  max-width: none;
   word-break: keep-all;
   text-wrap: balance;
+}
+
+.summaryBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(145, 163, 217, 0.16);
+  border-radius: 999px;
+  background: rgba(15, 21, 38, 0.88);
+  color: rgba(242, 247, 255, 0.92);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .description,
@@ -61,15 +82,15 @@
   color: rgba(196, 204, 230, 0.82);
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   overflow: hidden;
 }
 
 .summary {
   margin: 0;
   color: rgba(236, 243, 255, 0.94);
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.88rem;
+  line-height: 1.58;
 }
 
 .summaryRow {
@@ -97,6 +118,21 @@
   color: rgba(246, 249, 255, 0.98);
   font-size: 1.2rem;
   line-height: 1;
+}
+
+.inlineHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.inlineCopy {
+  margin: 0;
+  color: rgba(196, 204, 230, 0.78);
+  font-size: 0.82rem;
+  line-height: 1.55;
 }
 
 .checklist {
@@ -168,7 +204,7 @@
 
 .overview {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -231,16 +267,16 @@
   .panel {
     padding: 18px;
   }
+
+  .overview {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (min-width: 900px) {
   .draftPanel .headerBlock {
     grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.65fr);
     align-items: start;
-  }
-
-  .draftPanel .summaryRow {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .draftPanel .overview {
