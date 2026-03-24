@@ -3,6 +3,7 @@ import { ArticleListItem } from "@/components/article-list-item";
 import { MagazineCategoryNav } from "@/components/magazine-category-nav";
 import { MagazineIntro } from "@/components/magazine-intro";
 import type { Category, PublishedArticleSummary } from "@/content/types";
+import { buildCategoryStructuredData } from "@/lib/structured-data";
 
 type CategoryLandingProps = {
   category: Category;
@@ -10,8 +11,19 @@ type CategoryLandingProps = {
 };
 
 export function CategoryLanding({ category, articles }: CategoryLandingProps) {
+  const structuredData = buildCategoryStructuredData(category, articles);
+
   return (
     <div className={styles.page}>
+      {structuredData.map((entry, index) => (
+        <script
+          key={`${category.id}-structured-data-${index}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(entry),
+          }}
+        />
+      ))}
       <MagazineIntro
         eyebrow={category.landingEyebrow}
         title={category.landingTitle}

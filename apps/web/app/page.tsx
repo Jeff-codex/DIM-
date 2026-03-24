@@ -5,6 +5,7 @@ import { MagazineCategoryNav } from "@/components/magazine-category-nav";
 import { MagazineIntro } from "@/components/magazine-intro";
 import { getPublishedArticles } from "@/lib/content";
 import { siteConfig } from "@/lib/site";
+import { buildHomeStructuredData } from "@/lib/structured-data";
 
 export const metadata: Metadata = {
   title: "비즈니스 구조 분석 매거진",
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const articles = await getPublishedArticles();
+  const structuredData = buildHomeStructuredData(articles);
   const featuredArticle =
     articles.find((article) => article.featured) ?? articles[0] ?? null;
   const orderedArticles = featuredArticle
@@ -32,6 +34,15 @@ export default async function HomePage() {
 
   return (
     <div className={styles.page}>
+      {structuredData.map((entry, index) => (
+        <script
+          key={`home-structured-data-${index}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(entry),
+          }}
+        />
+      ))}
       <MagazineIntro
         eyebrow="비즈니스 구조 분석"
         title={siteConfig.statement}
