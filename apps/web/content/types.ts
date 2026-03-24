@@ -13,6 +13,11 @@ export type Category = {
   name: string;
   description: string;
   perspective: string;
+  seoTitle: string;
+  seoDescription: string;
+  landingEyebrow: string;
+  landingTitle: string;
+  landingBody: string[];
 };
 
 export type Tag = {

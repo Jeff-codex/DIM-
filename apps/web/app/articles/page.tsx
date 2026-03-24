@@ -26,7 +26,7 @@ export default async function ArticlesPage() {
   return (
     <div className={styles.page}>
       <MagazineIntro
-        eyebrow="Magazine Archive"
+        eyebrow="비즈니스 구조 분석 아카이브"
         title="비즈니스 구조 분석 피처"
         body={[
           "스타트업 분석, 제품 출시 분석, 산업 구조 분석 피처를 한곳에서 볼 수 있습니다",

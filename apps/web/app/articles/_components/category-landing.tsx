@@ -13,9 +13,9 @@ export function CategoryLanding({ category, articles }: CategoryLandingProps) {
   return (
     <div className={styles.page}>
       <MagazineIntro
-        eyebrow="Magazine Archive"
-        title={category.name}
-        body={[category.description, category.perspective]}
+        eyebrow={category.landingEyebrow}
+        title={category.landingTitle}
+        body={category.landingBody}
       />
       <MagazineCategoryNav centered activeCategoryId={category.id} />
 

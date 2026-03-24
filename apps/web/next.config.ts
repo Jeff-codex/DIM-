@@ -49,17 +49,6 @@ const nextConfig: NextConfig = isStaticExport
             permanent: false,
           },
           {
-            source: "/articles",
-            has: [
-              {
-                type: "query",
-                key: "channel",
-              },
-            ],
-            destination: "/articles",
-            permanent: false,
-          },
-          {
             source: "/admin/v2",
             destination: "/admin",
             permanent: false,

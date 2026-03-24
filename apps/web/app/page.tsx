@@ -33,7 +33,7 @@ export default async function HomePage() {
   return (
     <div className={styles.page}>
       <MagazineIntro
-        eyebrow="DIM Magazine"
+        eyebrow="비즈니스 구조 분석"
         title={siteConfig.statement}
         titleLines={siteConfig.statementLines}
         body={[
