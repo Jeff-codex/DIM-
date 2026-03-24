@@ -6,7 +6,7 @@ export const siteConfig = {
   publisher: {
     id: "https://depthintelligence.kr/#organization",
     name: "Depth Intelligence Magazine",
-    alternateName: "DIM",
+    alternateName: "뎁스 인텔리전스 매거진",
     logoPath: "/brand/dim-logo-black.png",
     sameAs: [] as string[],
   },

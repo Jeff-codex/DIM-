@@ -7,6 +7,8 @@ import { getPublishedArticles } from "@/lib/content";
 import { siteConfig } from "@/lib/site";
 import { buildHomeStructuredData } from "@/lib/structured-data";
 
+const defaultSocialImage = `${siteConfig.url}${siteConfig.publisher.logoPath}`;
+
 export const metadata: Metadata = {
   title: "비즈니스 구조 분석 매거진",
   description: siteConfig.description,
@@ -17,6 +19,18 @@ export const metadata: Metadata = {
     title: "비즈니스 구조 분석 매거진 | DIM",
     description: siteConfig.description,
     url: siteConfig.url,
+    images: [
+      {
+        url: defaultSocialImage,
+        alt: "DIM 로고",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "비즈니스 구조 분석 매거진 | DIM",
+    description: siteConfig.description,
+    images: [defaultSocialImage],
   },
 };
 

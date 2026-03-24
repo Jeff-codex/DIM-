@@ -22,7 +22,7 @@ export function buildHomeStructuredData(articles: PublishedArticleSummary[]) {
       "@id": `${siteConfig.url}/#website`,
       url: siteConfig.url,
       name: siteConfig.name,
-      alternateName: siteConfig.publisher.name,
+      alternateName: siteConfig.publisher.alternateName,
       description: siteConfig.description,
       inLanguage: "ko-KR",
       publisher: {

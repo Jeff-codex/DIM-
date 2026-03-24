@@ -6,6 +6,8 @@ import { SiteHeader } from "@/components/site-header";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
+const defaultSocialImage = `${siteConfig.url}${siteConfig.publisher.logoPath}`;
+
 const notoSansKr = Noto_Sans_KR({
   variable: "--font-body",
   display: "swap",
@@ -46,11 +48,18 @@ export const metadata: Metadata = {
     title: siteConfig.name,
     description: siteConfig.description,
     siteName: siteConfig.name,
+    images: [
+      {
+        url: defaultSocialImage,
+        alt: "DIM 로고",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: siteConfig.name,
     description: siteConfig.description,
+    images: [defaultSocialImage],
   },
   verification: {
     google: "viTebMQcg3UIXlwCFpe7VyVLFqqXmCp92LiUe-9PvDk",
