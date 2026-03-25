@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./admin-primary-nav.module.css";
 
-type V2NavItemId = "inbox" | "review" | "editor" | "publish" | "published";
+type V2NavItemId = "inbox" | "review" | "editor" | "publish" | "published" | "internal";
 
 function resolveWorkflow(proposalId: string | null) {
   if (!proposalId) {
@@ -37,7 +37,8 @@ function getContext(pathname: string) {
         : null;
 
   const activeId: V2NavItemId =
-    pathname.startsWith("/admin/published") || pathname.startsWith("/admin/v2/published") ? "published"
+    pathname.startsWith("/admin/internal/industry-analysis") ? "internal"
+    : pathname.startsWith("/admin/published") || pathname.startsWith("/admin/v2/published") ? "published"
     : pathname.startsWith("/admin/publish") || pathname.startsWith("/admin/v2/publish") ? "publish"
     : pathname.startsWith("/admin/editor") || pathname.startsWith("/admin/v2/editor") ? "editor"
     : pathname.startsWith("/admin/review") || pathname.startsWith("/admin/v2/review") ? "review"
@@ -91,6 +92,20 @@ export function AdminV2PrimaryNav() {
                 </Link>
               );
             })}
+          </div>
+        </section>
+        <section className={styles.group}>
+          <div className={styles.groupHeader}>
+            <p className={styles.groupLabel}>내부 작성</p>
+            <p className={styles.groupDescription}>외부 제안과 별개로 산업 구조 분석 피처를 바로 시작합니다</p>
+          </div>
+          <div className={styles.links}>
+            <Link
+              href="/admin/internal/industry-analysis/new"
+              className={activeId === "internal" ? styles.linkActive : styles.link}
+            >
+              산업 구조 분석
+            </Link>
           </div>
         </section>
       </nav>

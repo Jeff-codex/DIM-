@@ -107,6 +107,17 @@ export default async function AdminInboxPage({
           <p className={styles.sectionLabel}>제안 목록</p>
           <p className={styles.sectionHint}>필터를 고르고 검토만 시작하면 됩니다</p>
         </div>
+        <section className={styles.supportGrid}>
+          <article className={styles.supportBlock}>
+            <h2 className={styles.supportTitle}>산업 구조 분석</h2>
+            <p className={styles.queueCopy}>
+              내부 발굴형 피처는 외부 제안함에 섞지 않고 여기서 바로 새 작성으로 시작합니다.
+            </p>
+            <Link href="/admin/internal/industry-analysis/new" className={styles.linkAction}>
+              내부 작성 시작
+            </Link>
+          </article>
+        </section>
         <nav className={styles.filterBar} aria-label="제안 필터">
           {links.map((view) => (
             <Link
