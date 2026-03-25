@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import { AdminAccessRequired } from "../../access-required";
 import { listInternalIndustryAnalysisEntries } from "@/lib/server/editorial-v2/repository";
+import { InternalAnalysisDeleteButton } from "@/components/internal-analysis-delete-button";
 import styles from "../../admin.module.css";
 
 export const runtime = "nodejs";
@@ -182,6 +183,12 @@ export default async function AdminInternalIndustryAnalysisIndexPage() {
                   <Link href={getPrimaryHref(item.revisionId, item.status)} className={styles.linkAction}>
                     {getPrimaryLabel(item.status)}
                   </Link>
+                  {!item.publishedAt && item.status !== "published" ? (
+                    <InternalAnalysisDeleteButton
+                      revisionId={item.revisionId}
+                      workingTitle={item.workingTitle}
+                    />
+                  ) : null}
                 </div>
               </article>
             ))

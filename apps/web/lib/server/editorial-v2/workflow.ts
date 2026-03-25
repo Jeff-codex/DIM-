@@ -431,6 +431,131 @@ export async function createInternalIndustryAnalysisEntry(
   };
 }
 
+export async function deleteInternalIndustryAnalysisEntryByRevisionId(
+  revisionId: string,
+  editorEmail: string,
+) {
+  const env = await getEditorialEnv({
+    requireBucket: true,
+    requireQueue: false,
+  });
+  const target = await env.EDITORIAL_DB.prepare(
+    `SELECT
+       fe.id AS featureEntryId,
+       fe.slug,
+       fe.current_published_revision_id AS currentPublishedRevisionId,
+       fr.id AS revisionId,
+       fr.status,
+       fr.published_at AS publishedAt
+     FROM feature_revision fr
+     JOIN feature_entry fe
+       ON fe.id = fr.feature_entry_id
+     WHERE fr.id = ?
+       AND fe.source_type = 'internal_industry_analysis'
+     LIMIT 1`,
+  )
+    .bind(revisionId)
+    .first<{
+      featureEntryId: string;
+      slug: string;
+      currentPublishedRevisionId: string | null;
+      revisionId: string;
+      status: string;
+      publishedAt: string | null;
+    }>();
+
+  if (!target) {
+    return null;
+  }
+
+  if (target.currentPublishedRevisionId || target.publishedAt || target.status === "published") {
+    throw new Error("internal_analysis_already_published");
+  }
+
+  const [revisionsResult, variantsResult] = await Promise.all([
+    env.EDITORIAL_DB.prepare(
+      `SELECT id
+       FROM feature_revision
+       WHERE feature_entry_id = ?`,
+    )
+      .bind(target.featureEntryId)
+      .all<{ id: string }>(),
+    env.EDITORIAL_DB.prepare(
+      `SELECT DISTINCT
+         af.id AS assetFamilyId,
+         av.r2_key AS r2Key
+       FROM asset_family af
+       LEFT JOIN asset_variant av
+         ON av.asset_family_id = af.id
+       WHERE af.feature_entry_id = ?
+          OR af.feature_revision_id IN (
+            SELECT id
+            FROM feature_revision
+            WHERE feature_entry_id = ?
+          )`,
+    )
+      .bind(target.featureEntryId, target.featureEntryId)
+      .all<{ assetFamilyId: string; r2Key: string | null }>(),
+  ]);
+
+  const revisionIds = (revisionsResult.results ?? []).map((row) => row.id);
+  const familyIds = Array.from(
+    new Set(
+      (variantsResult.results ?? [])
+        .map((row) => row.assetFamilyId)
+        .filter(Boolean),
+    ),
+  );
+  const r2Keys = Array.from(
+    new Set(
+      (variantsResult.results ?? [])
+        .map((row) => row.r2Key)
+        .filter(Boolean) as string[],
+    ),
+  );
+  const now = new Date().toISOString();
+
+  await env.EDITORIAL_DB.batch([
+    env.EDITORIAL_DB.prepare(
+      `DELETE FROM draft_generation_run
+       WHERE feature_revision_id IN (
+         SELECT id
+         FROM feature_revision
+         WHERE feature_entry_id = ?
+       )`,
+    ).bind(target.featureEntryId),
+    env.EDITORIAL_DB.prepare(
+      `DELETE FROM asset_family
+       WHERE feature_entry_id = ?
+          OR feature_revision_id IN (
+            SELECT id
+            FROM feature_revision
+            WHERE feature_entry_id = ?
+          )`,
+    ).bind(target.featureEntryId, target.featureEntryId),
+    env.EDITORIAL_DB.prepare(
+      `DELETE FROM feature_entry
+       WHERE id = ?`,
+    ).bind(target.featureEntryId),
+  ]);
+
+  if (r2Keys.length > 0) {
+    await Promise.allSettled(r2Keys.map((key) => env.INTAKE_BUCKET.delete(key)));
+  }
+
+  return {
+    deleted: true,
+    revisionId,
+    featureEntryId: target.featureEntryId,
+    slug: target.slug,
+    deletedRevisionCount: revisionIds.length,
+    deletedAssetFamilyCount: familyIds.length,
+    deletedAssetVariantCount: r2Keys.length,
+    deletedBy: editorEmail,
+    deletedAt: now,
+  };
+}
+
 async function ensureFeatureEntryForProposal(proposal: ProposalDetail) {
   const env = await getEditorialEnv({
     requireBucket: false,
