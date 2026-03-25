@@ -216,6 +216,18 @@ export type InternalAnalysisBriefRecord = {
   updatedAt: string;
 };
 
+export type InternalAnalysisListItem = {
+  featureEntryId: string;
+  revisionId: string;
+  slug: string;
+  status: FeatureRevisionStatus;
+  title: string;
+  summary: string;
+  workingTitle: string;
+  updatedAt: string;
+  publishedAt: string | null;
+};
+
 export type CmsPublishedArticle = PublishedArticleSummary & {
   coverImageCard?: string;
   coverImageDetail?: string;

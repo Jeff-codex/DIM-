@@ -20,6 +20,7 @@ import type {
   FeatureRevisionRecord,
   FeatureRevisionStatus,
   InternalAnalysisBriefRecord,
+  InternalAnalysisListItem,
   PublishEventRecord,
   RevisionNoteRecord,
   VisibilityMetadata,
@@ -817,6 +818,58 @@ export async function getInternalAnalysisBriefByRevisionId(
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+export async function listInternalIndustryAnalysisEntries(): Promise<
+  InternalAnalysisListItem[]
+> {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+  const result = await env.EDITORIAL_DB.prepare(
+    `SELECT
+       fe.id AS featureEntryId,
+       fe.slug,
+       fr.id AS revisionId,
+       fr.status,
+       fr.title,
+       fr.updated_at AS updatedAt,
+       fr.published_at AS publishedAt,
+       iab.working_title AS workingTitle,
+       iab.summary
+     FROM feature_entry fe
+     JOIN feature_revision fr
+       ON fr.feature_entry_id = fe.id
+     LEFT JOIN internal_analysis_brief iab
+       ON iab.feature_entry_id = fe.id
+      AND iab.current_revision_id = fr.id
+     WHERE fe.archived_at IS NULL
+       AND fe.source_type = 'internal_industry_analysis'
+     ORDER BY datetime(fr.updated_at) DESC`,
+  ).all<{
+    featureEntryId: string;
+    slug: string;
+    revisionId: string;
+    status: string;
+    title: string;
+    updatedAt: string;
+    publishedAt: string | null;
+    workingTitle: string | null;
+    summary: string | null;
+  }>();
+
+  return (result.results ?? []).map((row) => ({
+    featureEntryId: row.featureEntryId,
+    revisionId: row.revisionId,
+    slug: row.slug,
+    status: normalizeFeatureRevisionStatus(row.status),
+    title: row.title,
+    summary: row.summary ?? "",
+    workingTitle: row.workingTitle ?? row.title,
+    updatedAt: row.updatedAt,
+    publishedAt: row.publishedAt,
+  }));
 }
 
 export async function listPublishEventsForEntry(

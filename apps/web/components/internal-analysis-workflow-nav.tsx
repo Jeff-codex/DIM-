@@ -3,10 +3,15 @@ import styles from "@/app/admin/admin.module.css";
 
 type InternalAnalysisWorkflowNavProps = {
   revisionId: string;
-  active: "brief" | "editor" | "publish";
+  active: "hub" | "brief" | "editor" | "publish" | "published";
 };
 
 const tabs = [
+  {
+    id: "hub",
+    label: "작성 홈",
+    href: () => "/admin/internal/industry-analysis",
+  },
   {
     id: "brief",
     label: "브리프",
@@ -24,6 +29,11 @@ const tabs = [
     label: "발행실",
     href: (revisionId: string) =>
       `/admin/internal/industry-analysis/revisions/${revisionId}/publish`,
+  },
+  {
+    id: "published",
+    label: "발행 관리",
+    href: () => "/admin/published",
   },
 ] as const;
 

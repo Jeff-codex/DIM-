@@ -36,8 +36,8 @@ export default async function AdminInternalIndustryAnalysisNewPage() {
       <section className={styles.card}>
         <div className={styles.cardHeader}>
           <p className={styles.sectionLabel}>내부 브리프</p>
-          <Link href="/admin" className={styles.backLink}>
-            대시보드로 돌아가기
+          <Link href="/admin/internal/industry-analysis" className={styles.backLink}>
+            내부 작성 홈으로
           </Link>
         </div>
 
@@ -148,7 +148,7 @@ export default async function AdminInternalIndustryAnalysisNewPage() {
             <button type="submit" className={styles.linkAction}>
               내부 작성 시작
             </button>
-            <Link href="/admin" className={styles.linkActionSecondary}>
+            <Link href="/admin/internal/industry-analysis" className={styles.linkActionSecondary}>
               취소
             </Link>
           </div>

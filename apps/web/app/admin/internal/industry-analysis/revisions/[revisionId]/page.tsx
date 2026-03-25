@@ -9,6 +9,8 @@ import {
   getFeatureRevisionById,
   getInternalAnalysisBriefByRevisionId,
 } from "@/lib/server/editorial-v2/repository";
+import { suggestInternalAnalysisFrameByRevisionId } from "@/lib/server/editorial-v2/internal-assist";
+import { listEditorialV2AssetFamiliesByRevisionId } from "@/lib/server/editorial-v2/workflow";
 import { AdminAccessRequired } from "../../../../access-required";
 import styles from "../../../../admin.module.css";
 
@@ -25,10 +27,28 @@ function toDateLabel(value: string) {
   }).format(new Date(value));
 }
 
+function mapInternalAssistError(rawDetail: string) {
+  if (rawDetail === "internal_analysis_ai_not_configured") {
+    return "이 runtime에는 direct OpenAI key가 없어 내부 작성용 AI 보조 기능을 아직 사용할 수 없습니다.";
+  }
+
+  if (rawDetail === "internal_analysis_revision_not_found") {
+    return "내부 산업 구조 분석 작업본을 찾지 못했습니다.";
+  }
+
+  if (rawDetail === "internal_analysis_revision_invalid_source") {
+    return "이 작업본은 내부 산업 구조 분석 보조 기능 대상이 아닙니다.";
+  }
+
+  return "분석 프레임 제안을 불러오지 못했습니다.";
+}
+
 export default async function AdminInternalIndustryAnalysisRevisionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ revisionId: string }>;
+  searchParams?: Promise<{ assist?: string }>;
 }) {
   const identity = await requireAdminIdentity();
 
@@ -43,10 +63,12 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
     notFound();
   }
 
-  const [featureEntry, brief, aiConfig] = await Promise.all([
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const [featureEntry, brief, aiConfig, editorialAssets] = await Promise.all([
     getFeatureEntryById(revision.featureEntryId),
     getInternalAnalysisBriefByRevisionId(revision.id),
     getEditorialAiConfig(),
+    listEditorialV2AssetFamiliesByRevisionId(revision.id),
   ]);
 
   if (
@@ -61,6 +83,22 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
   const assistDisabledReason = assistEnabled
     ? null
     : "이 runtime에는 direct OpenAI key가 없어 보조 기능을 아직 사용할 수 없습니다.";
+  const imageAssetCount = editorialAssets.length;
+  let assistStatus = assistEnabled
+    ? "브리프를 바탕으로 판단문과 섹션 골격만 짧게 제안합니다"
+    : assistDisabledReason ?? "이 runtime에는 내부 작성용 AI 보조 기능이 아직 연결되지 않았습니다";
+  let assistSuggestion = null;
+
+  if (resolvedSearchParams.assist === "1" && assistEnabled) {
+    try {
+      assistSuggestion = await suggestInternalAnalysisFrameByRevisionId(revision.id);
+      assistStatus = "판단문과 섹션 골격을 정리했습니다";
+    } catch (error) {
+      const rawDetail =
+        error instanceof Error ? error.message : "internal_analysis_ai_assist_failed";
+      assistStatus = mapInternalAssistError(rawDetail);
+    }
+  }
 
   return (
     <div className={styles.page}>
@@ -209,8 +247,11 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
               >
                 발행실 보기
               </Link>
-              <Link href="/admin" className={styles.linkActionSecondary}>
-                대시보드로 이동
+              <Link
+                href="/admin/internal/industry-analysis"
+                className={styles.linkActionSecondary}
+              >
+                작성 홈으로 이동
               </Link>
               <Link
                 href="/admin/internal/industry-analysis/new"
@@ -221,10 +262,36 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
             </div>
           </div>
 
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <p className={styles.sectionLabel}>이미지</p>
+            </div>
+            <h2 className={styles.actionTitle}>이미지 첨부와 커버 지정은 원고실에서 합니다</h2>
+            <p className={styles.actionCopy}>
+              내부 산업 구조 분석 글의 이미지는 원고실에서 올리고, 그 자리에서 바로
+              커버로 지정합니다.
+            </p>
+            <p className={styles.metaSubtle}>
+              {imageAssetCount > 0
+                ? `현재 ${imageAssetCount}개의 이미지 자산이 준비되어 있습니다.`
+                : "아직 첨부된 이미지가 없습니다."}
+            </p>
+            <div className={styles.linkGrid}>
+              <Link
+                href={`/admin/internal/industry-analysis/revisions/${revision.id}/editor`}
+                className={styles.linkAction}
+              >
+                원고실에서 이미지 첨부
+              </Link>
+            </div>
+          </div>
+
           <InternalAnalysisAssistCard
-            revisionId={revision.id}
             enabled={assistEnabled}
             disabledReason={assistDisabledReason}
+            suggestHref={`/admin/internal/industry-analysis/revisions/${revision.id}?assist=1#internal-analysis-assist`}
+            initialSuggestion={assistSuggestion}
+            initialStatus={assistStatus}
           />
         </aside>
       </div>

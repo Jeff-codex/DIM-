@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { useEffect } from "react";
 import styles from "@/app/admin/admin.module.css";
 
 type InternalAnalysisAssistResult = {
@@ -15,9 +17,11 @@ type InternalAnalysisAssistResult = {
 };
 
 type InternalAnalysisAssistCardProps = {
-  revisionId: string;
   enabled?: boolean;
   disabledReason?: string | null;
+  suggestHref: string;
+  initialSuggestion?: InternalAnalysisAssistResult | null;
+  initialStatus?: string;
 };
 
 const purposeLabels: Record<
@@ -32,58 +36,34 @@ const purposeLabels: Record<
 };
 
 export function InternalAnalysisAssistCard({
-  revisionId,
   enabled = true,
   disabledReason = null,
+  suggestHref,
+  initialSuggestion = null,
+  initialStatus,
 }: InternalAnalysisAssistCardProps) {
-  const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(
-    enabled
+    initialStatus ??
+      (enabled
       ? "브리프를 바탕으로 판단문과 섹션 골격만 짧게 제안합니다"
-      : (disabledReason ?? "이 runtime에는 내부 작성용 AI 보조 기능이 아직 연결되지 않았습니다"),
+      : disabledReason ?? "이 runtime에는 내부 작성용 AI 보조 기능이 아직 연결되지 않았습니다"),
   );
-  const [suggestion, setSuggestion] =
-    useState<InternalAnalysisAssistResult | null>(null);
+  const suggestion = initialSuggestion;
 
-  const handleSuggest = async () => {
-    if (!enabled) {
+  useEffect(() => {
+    if (typeof window === "undefined") {
       return;
     }
 
-    setLoading(true);
-    setStatus("분석 프레임을 정리하고 있습니다");
+    const url = new URL(window.location.href);
 
-    try {
-      const response = await fetch(
-        `/admin/actions/internal/industry-analysis/revisions/${revisionId}/assist`,
-        {
-          method: "POST",
-        },
-      );
-      const payload = (await response.json().catch(() => null)) as
-        | {
-            ok?: boolean;
-            suggestion?: InternalAnalysisAssistResult;
-            detail?: string;
-          }
-        | null;
-
-      if (!response.ok || !payload?.ok || !payload.suggestion) {
-        throw new Error(payload?.detail ?? "분석 프레임 제안을 불러오지 못했습니다.");
-      }
-
-      setSuggestion(payload.suggestion);
-      setStatus("판단문과 섹션 골격을 정리했습니다");
-    } catch (error) {
-      setStatus(
-        error instanceof Error && error.message
-          ? error.message
-          : "분석 프레임 제안을 불러오지 못했습니다.",
-      );
-    } finally {
-      setLoading(false);
+    if (!url.searchParams.has("assist")) {
+      return;
     }
-  };
+
+    url.searchParams.delete("assist");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
 
   const handleCopy = async () => {
     if (!suggestion) {
@@ -118,7 +98,7 @@ export function InternalAnalysisAssistCard({
   };
 
   return (
-    <div className={styles.card}>
+    <div id="internal-analysis-assist" className={styles.card}>
       <div className={styles.cardHeader}>
         <p className={styles.sectionLabel}>AI 보조</p>
       </div>
@@ -128,14 +108,15 @@ export function InternalAnalysisAssistCard({
         먼저 정리합니다.
       </p>
       <div className={styles.linkGrid}>
-        <button
-          type="button"
-          className={styles.linkAction}
-          disabled={loading || !enabled}
-          onClick={() => void handleSuggest()}
-        >
-          {loading ? "정리 중..." : enabled ? "분석 프레임 제안 받기" : "AI 보조 준비 중"}
-        </button>
+        {enabled ? (
+          <Link href={suggestHref} className={styles.linkAction}>
+            {suggestion ? "분석 프레임 다시 받기" : "분석 프레임 제안 받기"}
+          </Link>
+        ) : (
+          <button type="button" className={styles.linkAction} disabled>
+            AI 보조 준비 중
+          </button>
+        )}
         {suggestion ? (
           <button
             type="button"

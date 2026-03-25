@@ -63,8 +63,8 @@ export default async function AdminIndexPage() {
         <div className={styles.supportBlock}>
           <h2 className={styles.supportTitle}>산업 구조 분석</h2>
           <p className={styles.queueCopy}>외부 제안과 분리된 내부 작성 entry에서 산업 구조 분석 피처를 시작합니다.</p>
-          <Link href="/admin/internal/industry-analysis/new" className={styles.linkAction}>
-            새로 작성 시작
+          <Link href="/admin/internal/industry-analysis" className={styles.linkAction}>
+            내부 작성 홈
           </Link>
         </div>
         <div className={styles.supportBlock}>

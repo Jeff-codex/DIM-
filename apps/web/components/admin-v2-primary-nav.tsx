@@ -4,7 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./admin-primary-nav.module.css";
 
-type V2NavItemId = "inbox" | "review" | "editor" | "publish" | "published" | "internal";
+type V2NavItemId =
+  | "inbox"
+  | "review"
+  | "editor"
+  | "publish"
+  | "published"
+  | "internal"
+  | "internal_new";
 
 function resolveWorkflow(proposalId: string | null) {
   if (!proposalId) {
@@ -37,7 +44,9 @@ function getContext(pathname: string) {
         : null;
 
   const activeId: V2NavItemId =
-    pathname.startsWith("/admin/internal/industry-analysis") ? "internal"
+    pathname.startsWith("/admin/internal/industry-analysis/new") ? "internal_new"
+    : pathname.startsWith("/admin/internal/industry-analysis")
+      ? "internal"
     : pathname.startsWith("/admin/published") || pathname.startsWith("/admin/v2/published") ? "published"
     : pathname.startsWith("/admin/publish") || pathname.startsWith("/admin/v2/publish") ? "publish"
     : pathname.startsWith("/admin/editor") || pathname.startsWith("/admin/v2/editor") ? "editor"
@@ -101,10 +110,16 @@ export function AdminV2PrimaryNav() {
           </div>
           <div className={styles.links}>
             <Link
-              href="/admin/internal/industry-analysis/new"
+              href="/admin/internal/industry-analysis"
               className={activeId === "internal" ? styles.linkActive : styles.link}
             >
               산업 구조 분석
+            </Link>
+            <Link
+              href="/admin/internal/industry-analysis/new"
+              className={activeId === "internal_new" ? styles.linkActive : styles.link}
+            >
+              새 내부 작성
             </Link>
           </div>
         </section>
