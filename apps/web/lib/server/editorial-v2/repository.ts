@@ -7,6 +7,7 @@ import { getEditorialEnv } from "@/lib/server/editorial/env";
 import type {
   AssetFamilyBundle,
   AssetFamilyRecord,
+  AssetFamilySourceType,
   AssetVariantKey,
   AssetVariantRecord,
   CmsArticleDetail,
@@ -15,8 +16,10 @@ import type {
   DraftGenerationRunRecord,
   FeatureBodySection,
   FeatureEntryRecord,
+  FeatureEntrySourceType,
   FeatureRevisionRecord,
   FeatureRevisionStatus,
+  InternalAnalysisBriefRecord,
   PublishEventRecord,
   RevisionNoteRecord,
   VisibilityMetadata,
@@ -215,6 +218,32 @@ function normalizeFeatureRevisionStatus(status: string): FeatureRevisionStatus {
       return status;
     default:
       return "editing";
+  }
+}
+
+function normalizeFeatureEntrySourceType(
+  sourceType: string | null | undefined,
+): FeatureEntrySourceType {
+  switch (sourceType) {
+    case "internal_industry_analysis":
+      return "internal_industry_analysis";
+    case "proposal_intake":
+    default:
+      return "proposal_intake";
+  }
+}
+
+function normalizeAssetFamilySourceType(
+  sourceType: string | null | undefined,
+): AssetFamilySourceType {
+  switch (sourceType) {
+    case "proposal_promoted":
+      return "proposal_promoted";
+    case "internal_upload":
+      return "internal_upload";
+    case "admin_upload":
+    default:
+      return "admin_upload";
   }
 }
 
@@ -530,6 +559,54 @@ export async function getFeatureEntryBySlug(
 
   return {
     ...row,
+    sourceType: normalizeFeatureEntrySourceType(row.sourceType),
+    featured: row.featured === 1,
+  };
+}
+
+export async function getFeatureEntryById(
+  featureEntryId: string,
+): Promise<FeatureEntryRecord | null> {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+
+  const row = await env.EDITORIAL_DB.prepare(
+    `SELECT
+       id,
+       legacy_article_id AS legacyArticleId,
+       slug,
+       source_type AS sourceType,
+       current_published_revision_id AS currentPublishedRevisionId,
+       featured,
+       created_at AS createdAt,
+       updated_at AS updatedAt,
+       archived_at AS archivedAt
+     FROM feature_entry
+     WHERE id = ?
+     LIMIT 1`,
+  )
+    .bind(featureEntryId)
+    .first<{
+      id: string;
+      legacyArticleId: string | null;
+      slug: string;
+      sourceType: string;
+      currentPublishedRevisionId: string | null;
+      featured: number;
+      createdAt: string;
+      updatedAt: string;
+      archivedAt: string | null;
+    }>();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    sourceType: normalizeFeatureEntrySourceType(row.sourceType),
     featured: row.featured === 1,
   };
 }
@@ -669,6 +746,79 @@ export async function listDraftGenerationRunsForRevision(
   return result.results ?? [];
 }
 
+export async function getInternalAnalysisBriefByRevisionId(
+  revisionId: string,
+): Promise<InternalAnalysisBriefRecord | null> {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+  const row = await env.EDITORIAL_DB.prepare(
+    `SELECT
+       id,
+       feature_entry_id AS featureEntryId,
+       current_revision_id AS currentRevisionId,
+       working_title AS workingTitle,
+       summary,
+       analysis_scope AS analysisScope,
+       why_now AS whyNow,
+       market,
+       core_entities_json AS coreEntitiesJson,
+       source_links_json AS sourceLinksJson,
+       evidence_points_json AS evidencePointsJson,
+       editor_notes AS editorNotes,
+       created_by AS createdBy,
+       updated_by AS updatedBy,
+       created_at AS createdAt,
+       updated_at AS updatedAt
+     FROM internal_analysis_brief
+     WHERE current_revision_id = ?
+     LIMIT 1`,
+  )
+    .bind(revisionId)
+    .first<{
+      id: string;
+      featureEntryId: string;
+      currentRevisionId: string | null;
+      workingTitle: string;
+      summary: string;
+      analysisScope: string | null;
+      whyNow: string | null;
+      market: string | null;
+      coreEntitiesJson: string | null;
+      sourceLinksJson: string | null;
+      evidencePointsJson: string | null;
+      editorNotes: string | null;
+      createdBy: string | null;
+      updatedBy: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    featureEntryId: row.featureEntryId,
+    currentRevisionId: row.currentRevisionId,
+    workingTitle: row.workingTitle,
+    summary: row.summary,
+    analysisScope: row.analysisScope,
+    whyNow: row.whyNow,
+    market: row.market,
+    coreEntities: parseStringArray(row.coreEntitiesJson),
+    sourceLinks: parseStringArray(row.sourceLinksJson),
+    evidencePoints: parseStringArray(row.evidencePointsJson),
+    editorNotes: row.editorNotes,
+    createdBy: row.createdBy,
+    updatedBy: row.updatedBy,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
 export async function listPublishEventsForEntry(
   featureEntryId: string,
 ): Promise<PublishEventRecord[]> {
@@ -748,7 +898,11 @@ export async function getAssetFamilyBundle(
      LIMIT 1`,
   )
     .bind(familyId)
-    .first<AssetFamilyRecord>();
+    .first<
+      Omit<AssetFamilyRecord, "sourceType"> & {
+        sourceType: string;
+      }
+    >();
 
   if (!family) {
     return null;
@@ -774,6 +928,7 @@ export async function getAssetFamilyBundle(
 
   const bundle: AssetFamilyBundle = {
     ...family,
+    sourceType: normalizeAssetFamilySourceType(family.sourceType),
     variants: {},
   };
 

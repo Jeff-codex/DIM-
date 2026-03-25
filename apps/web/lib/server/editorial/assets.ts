@@ -95,7 +95,7 @@ const imageVariantResponseSchema = z.object({
   }),
 });
 
-function ensureAllowedImageFile(file: File) {
+export function ensureAllowedImageFile(file: File) {
   if (!allowedMimeTypes.has(file.type)) {
     throw new Error("editorial_image_type_invalid");
   }
@@ -215,7 +215,7 @@ async function getEditorialAssetRowsByFamilyId(familyId: string) {
   return result.results ?? [];
 }
 
-async function requestEditorialImageVariants(input: {
+export async function requestEditorialImageVariants(input: {
   filename: string;
   mimeType: string;
   fileBuffer: ArrayBuffer;

@@ -2,9 +2,9 @@
 
 ## Current checkpoint
 
-- Date: `2026-03-20`
+- Date: `2026-03-24`
 - Branch: `main`
-- Commit: `d8f2791` (`docs: prepare DIM production hardening rounds`)
+- Commit: `a5157de` (`refactor: polish DIM public archive navigation`)
 - Remote: `origin -> https://github.com/Jeff-codex/DIM-.git`
 - Public app: `apps/web`
 - Runtime target: `Cloudflare Workers`
@@ -70,6 +70,19 @@
 - `apps/editorial-generator` 외부 서비스가 추가됐고, 로컬에서 실제 OpenAI 호출과 본찰력 초안 생성 응답을 확인했다.
 - 외부 generator는 `/ready`, `/v1/editorial/draft`, `railway.json`, `render.yaml`, `npm run smoke`까지 준비됐고, 남은 것은 외부 호스팅 URL과 shared secret를 Cloudflare runtime에 연결하는 단계다.
 - Cloudflare runtime direct OpenAI path는 region restriction으로 fallback되므로, 실사용 고품질 초안 생성은 외부 generator 경유 구성을 기준으로 진행한다.
+- public SEO/GEO work now includes:
+  - static category landing routes
+    - `/articles/startups`
+    - `/articles/product-launches`
+    - `/articles/industry-analysis`
+  - category-specific metadata and landing intro copy
+  - sitemap entries for the category landings
+  - structured data for home and category landing pages
+- public archive UX now includes:
+  - editorial index-style category tabs on home and `/articles`
+  - local filter search bar on `/articles` and category landing pages
+  - grayscale/black hover-active treatment aligned to DIM brand mood
+- favicon/app icons were replaced with DIM logo-based assets.
 
 ## Latest verified preview
 
@@ -77,6 +90,13 @@
 - Editorial runtime preview: `https://dim-web-editorial_preview.depthintelligence.workers.dev`
 - Production-candidate runtime: `https://dim-web-production_candidate.depthintelligence.workers.dev`
 - Deprecated legacy worker: `https://dim-web.depthintelligence.workers.dev` (do not use as a canonical review or hardening target)
+- Latest production-candidate public review used for archive/navigation polish:
+  - `/`
+  - `/articles`
+  - `/articles/startups`
+  - `/articles/product-launches`
+  - `/articles/industry-analysis`
+  - `/articles/ai-work-tools-are-becoming-management-layers`
 
 ## Guardrails
 
@@ -91,10 +111,10 @@
 ## First actions for the next session
 
 1. Read this file and `docs/deployment-checklist.md`.
-2. Read `docs/production-hardening-rounds.md` before starting production hardening.
+2. Read `docs/production-hardening-rounds.md` only if the task returns to infra hardening.
 3. If the task needs planning or prioritization, read `docs/agent-kit/README.md` and `docs/agent-kit/dim/WEEKLY_BRIEF.md`.
 4. Check repository state with `git status --short`.
-5. Confirm the current checkpoint is still `main` at or ahead of `d8f2791`.
+5. Confirm the current checkpoint is still `main` at or ahead of `a5157de`.
 6. Reuse the existing DIM agents first and continue from the latest integrated findings rather than starting fresh.
 7. If code changed, run from `apps/web`:
    - `npm run lint`
@@ -119,12 +139,19 @@
    - `/submit`
 13. Share only the verified external preview URL. Never hand off localhost.
 
+## Next queued product checklist
+
+- Add a dedicated internal workflow for `산업 구조 분석` content that DIM produces in-house.
+- Scope the new workflow as a separate CMS/editorial capability, not a public proposal intake path.
+- Required product surface for the next round:
+  - internal `산업 구조 분석` feature creation entry
+  - structured editor flow for in-house analysis drafting
+  - publish-room handoff for that internal content type
+  - publication path that lands in the existing public `산업 구조 분석` category
+- Keep the current external proposal workflow intact while adding the internal authoring path.
+
 ## Most likely next product tasks
 
-- Production hardening rounds:
-  - Cloudflare Access for `/admin`
-  - Turnstile keys and production submit protection
-  - production-candidate smoke for `submit -> inbox -> triage -> draft -> snapshot`
-  - queue consumer hardening and job visibility
-  - monitoring / alerting / failure visibility
-- Real-domain deployment only after those rounds are signed off
+- Internal `산업 구조 분석` authoring workflow in CMS/editorial system
+- FAQ / structured-data follow-up for category landing pages if public SEO work resumes
+- Further archive/search polish only after internal workflow requirements are clarified

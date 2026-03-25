@@ -22,6 +22,13 @@ export const editorialV2ProposalStatuses = [
 export type EditorialV2ProposalStatus =
   (typeof editorialV2ProposalStatuses)[number];
 
+export const featureEntrySourceTypes = [
+  "proposal_intake",
+  "internal_industry_analysis",
+] as const;
+
+export type FeatureEntrySourceType = (typeof featureEntrySourceTypes)[number];
+
 export const featureRevisionStatuses = [
   "draft_generating",
   "draft_ready",
@@ -36,6 +43,14 @@ export type FeatureRevisionStatus =
 
 export const assetVariantKeys = ["original", "master", "card", "detail"] as const;
 export type AssetVariantKey = (typeof assetVariantKeys)[number];
+
+export const assetFamilySourceTypes = [
+  "proposal_promoted",
+  "admin_upload",
+  "internal_upload",
+] as const;
+
+export type AssetFamilySourceType = (typeof assetFamilySourceTypes)[number];
 
 export type BodySectionPurpose =
   | "shift"
@@ -76,7 +91,7 @@ export type FeatureEntryRecord = {
   id: string;
   legacyArticleId: string | null;
   slug: string;
-  sourceType: string;
+  sourceType: FeatureEntrySourceType;
   currentPublishedRevisionId: string | null;
   featured: boolean;
   createdAt: string;
@@ -118,7 +133,7 @@ export type AssetFamilyRecord = {
   proposalId: string | null;
   featureEntryId: string | null;
   featureRevisionId: string | null;
-  sourceType: string;
+  sourceType: AssetFamilySourceType;
   sourceProposalAssetId: string | null;
   originalFilename: string | null;
   originalMimeType: string;
@@ -180,6 +195,25 @@ export type RevisionNoteRecord = {
   authorEmail: string | null;
   note: string;
   createdAt: string;
+};
+
+export type InternalAnalysisBriefRecord = {
+  id: string;
+  featureEntryId: string;
+  currentRevisionId: string | null;
+  workingTitle: string;
+  summary: string;
+  analysisScope: string | null;
+  whyNow: string | null;
+  market: string | null;
+  coreEntities: string[];
+  sourceLinks: string[];
+  evidencePoints: string[];
+  editorNotes: string | null;
+  createdBy: string | null;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CmsPublishedArticle = PublishedArticleSummary & {

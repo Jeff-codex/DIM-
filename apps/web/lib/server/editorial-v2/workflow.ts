@@ -15,7 +15,10 @@ import {
 } from "@/lib/server/editorial/draft";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
 import {
+  editorialImageSpec,
+  ensureAllowedImageFile,
   promoteProposalAssetForProposal,
+  requestEditorialImageVariants,
   uploadEditorialImageForProposal,
 } from "@/lib/server/editorial/assets";
 import type {
@@ -29,6 +32,8 @@ import { getAssetFamilyBundle } from "@/lib/server/editorial-v2/repository";
 import {
   editorialV2DraftInputSchema,
   type EditorialV2DraftInput,
+  internalAnalysisBriefInputSchema,
+  type InternalAnalysisBriefInput,
 } from "@/lib/server/editorial-v2/schema";
 
 const defaultAuthorId = "dim-editorial-team";
@@ -242,6 +247,188 @@ async function buildUniqueFeatureSlug(base: string) {
     candidate = `${normalized}-${suffix}`.slice(0, 80);
     suffix += 1;
   }
+}
+
+function buildInternalAnalysisBodyMarkdown(input: InternalAnalysisBriefInput) {
+  const sections = [
+    "# 내부 산업 구조 분석 메모",
+    "",
+    input.summary,
+    "",
+    "## 무엇을 먼저 볼 것인가",
+    input.analysisScope || "- 분석 범위를 먼저 정리합니다.",
+    "",
+    "## 왜 지금 중요한가",
+    input.whyNow || "- why now를 더 정리합니다.",
+    "",
+    "## 핵심 엔터티",
+    ...(input.coreEntities.length > 0
+      ? input.coreEntities.map((entity) => `- ${entity}`)
+      : ["- 아직 정리 전"]),
+    "",
+    "## 참고 링크",
+    ...(input.sourceLinks.length > 0
+      ? input.sourceLinks.map((link) => `- ${link}`)
+      : ["- 아직 정리 전"]),
+    "",
+    "## 근거 포인트",
+    ...(input.evidencePoints.length > 0
+      ? input.evidencePoints.map((point) => `- ${point}`)
+      : ["- 아직 정리 전"]),
+  ];
+
+  if (input.editorNotes) {
+    sections.push("", "## 편집 메모", input.editorNotes);
+  }
+
+  return sections.join("\n");
+}
+
+function buildInternalAnalysisVerdict(input: InternalAnalysisBriefInput) {
+  return (
+    input.analysisScope ||
+    input.whyNow ||
+    "이 글은 산업 구조 변화를 해석하기 위한 내부 작업본입니다."
+  );
+}
+
+function buildInternalAnalysisSourceSnapshot(
+  input: InternalAnalysisBriefInput,
+): DraftSourceSnapshot {
+  return {
+    projectName: input.workingTitle,
+    summary: input.summary,
+    productDescription: input.analysisScope ?? null,
+    whyNow: input.whyNow ?? null,
+    stage: null,
+    market: input.market ?? null,
+    updatedAt: null,
+  };
+}
+
+export async function createInternalIndustryAnalysisEntry(
+  input: InternalAnalysisBriefInput,
+  editorEmail: string,
+) {
+  const parsed = internalAnalysisBriefInputSchema.parse(input);
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+  const now = new Date().toISOString();
+  const featureEntryId = crypto.randomUUID();
+  const revisionId = crypto.randomUUID();
+  const briefId = crypto.randomUUID();
+  const slug = await buildUniqueFeatureSlug(parsed.workingTitle);
+  const sourceSnapshot = buildInternalAnalysisSourceSnapshot(parsed);
+  const sourceSnapshotJson = JSON.stringify(sourceSnapshot);
+  const sourceSnapshotHash = buildSourceSnapshotHash(sourceSnapshot);
+
+  await env.EDITORIAL_DB.batch([
+    env.EDITORIAL_DB.prepare(
+      `INSERT INTO feature_entry (
+         id,
+         legacy_article_id,
+         slug,
+         source_type,
+         current_published_revision_id,
+         featured,
+         created_at,
+         updated_at,
+         archived_at
+       ) VALUES (?, NULL, ?, 'internal_industry_analysis', NULL, 0, ?, ?, NULL)`,
+    ).bind(featureEntryId, slug, now, now),
+    env.EDITORIAL_DB.prepare(
+      `INSERT INTO feature_revision (
+         id,
+         feature_entry_id,
+         proposal_id,
+         status,
+         revision_number,
+         title,
+         display_title_lines_json,
+         dek,
+         verdict,
+         category_id,
+         author_id,
+         tag_ids_json,
+         cover_asset_family_id,
+         body_markdown,
+         body_sections_json,
+         visibility_metadata_json,
+         citations_json,
+         entity_map_json,
+         editor_notes,
+         source_snapshot_hash,
+         source_snapshot_json,
+         published_at,
+         scheduled_for,
+         created_by,
+         updated_by,
+         created_at,
+         updated_at
+       ) VALUES (?, ?, NULL, 'editing', 1, ?, '[]', ?, ?, 'industry-analysis', ?, '[]', NULL, ?, '[]', NULL, '[]', '[]', ?, ?, ?, NULL, NULL, ?, ?, ?, ?)`,
+    ).bind(
+      revisionId,
+      featureEntryId,
+      parsed.workingTitle,
+      parsed.summary,
+      buildInternalAnalysisVerdict(parsed),
+      defaultAuthorId,
+      buildInternalAnalysisBodyMarkdown(parsed),
+      parsed.editorNotes ?? null,
+      sourceSnapshotHash,
+      sourceSnapshotJson,
+      editorEmail,
+      editorEmail,
+      now,
+      now,
+    ),
+    env.EDITORIAL_DB.prepare(
+      `INSERT INTO internal_analysis_brief (
+         id,
+         feature_entry_id,
+         current_revision_id,
+         working_title,
+         summary,
+         analysis_scope,
+         why_now,
+         market,
+         core_entities_json,
+         source_links_json,
+         evidence_points_json,
+         editor_notes,
+         created_by,
+         updated_by,
+         created_at,
+         updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      briefId,
+      featureEntryId,
+      revisionId,
+      parsed.workingTitle,
+      parsed.summary,
+      parsed.analysisScope ?? null,
+      parsed.whyNow ?? null,
+      parsed.market ?? null,
+      JSON.stringify(parsed.coreEntities),
+      JSON.stringify(parsed.sourceLinks),
+      JSON.stringify(parsed.evidencePoints),
+      parsed.editorNotes ?? null,
+      editorEmail,
+      editorEmail,
+      now,
+      now,
+    ),
+  ]);
+
+  return {
+    featureEntryId,
+    revisionId,
+    briefId,
+    slug,
+  };
 }
 
 async function ensureFeatureEntryForProposal(proposal: ProposalDetail) {
@@ -537,6 +724,32 @@ async function listCanonicalAssetFamiliesByProposalId(
      ORDER BY datetime(created_at) DESC`,
   )
     .bind(proposalId)
+    .all<{ id: string }>();
+
+  const bundles = await Promise.all(
+    (result.results ?? []).map(async (row) => getAssetFamilyBundle(row.id)),
+  );
+
+  return bundles.filter((bundle): bundle is AssetFamilyBundle => Boolean(bundle));
+}
+
+async function listCanonicalAssetFamiliesByRevisionContext(input: {
+  revisionId: string;
+  featureEntryId: string;
+}) {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+
+  const result = await env.EDITORIAL_DB.prepare(
+    `SELECT DISTINCT id
+     FROM asset_family
+     WHERE feature_revision_id = ?
+        OR feature_entry_id = ?
+     ORDER BY datetime(created_at) DESC`,
+  )
+    .bind(input.revisionId, input.featureEntryId)
     .all<{ id: string }>();
 
   const bundles = await Promise.all(
@@ -1299,6 +1512,127 @@ export async function listEditorialV2AssetFamilies(proposalId: string) {
   return bundles.map(mapAssetBundleToEditorFamily);
 }
 
+export async function listEditorialV2AssetFamiliesByRevisionId(revisionId: string) {
+  const context = await getDraftRevisionContextById(revisionId);
+
+  if (!context) {
+    return [] as EditorialV2AssetFamilyRecord[];
+  }
+
+  const bundles = context.proposalId
+    ? await listCanonicalAssetFamiliesByProposalId(context.proposalId)
+    : await listCanonicalAssetFamiliesByRevisionContext({
+        revisionId: context.revision.id,
+        featureEntryId: context.revision.featureEntryId,
+      });
+
+  return bundles.map(mapAssetBundleToEditorFamily);
+}
+
+async function storeInternalCanonicalAssetFamily(input: {
+  featureEntryId: string;
+  featureRevisionId: string;
+  originalFilename: string;
+  originalMimeType: string;
+  createdBy: string;
+  variants: Awaited<ReturnType<typeof requestEditorialImageVariants>>;
+}) {
+  const env = await getEditorialEnv({
+    requireBucket: true,
+    requireQueue: false,
+  });
+  const familyId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  type GeneratedEditorialVariant = Awaited<
+    ReturnType<typeof requestEditorialImageVariants>
+  >["master"];
+  const variantEntries = (
+    Object.entries(input.variants) as Array<
+      [AssetVariantKey, GeneratedEditorialVariant]
+    >
+  ).filter(([variantKey]) => variantKey === "master" || variantKey === "card" || variantKey === "detail");
+
+  await env.EDITORIAL_DB.prepare(
+    `INSERT INTO asset_family (
+       id,
+       proposal_id,
+       feature_entry_id,
+       feature_revision_id,
+       source_type,
+       source_proposal_asset_id,
+       original_filename,
+       original_mime_type,
+       crop_status,
+       focus_x,
+       focus_y,
+       created_by,
+       created_at,
+       updated_at
+     ) VALUES (?, NULL, ?, ?, 'internal_upload', NULL, ?, ?, 'ready', NULL, NULL, ?, ?, ?)`,
+  )
+    .bind(
+      familyId,
+      input.featureEntryId,
+      input.featureRevisionId,
+      input.originalFilename,
+      input.originalMimeType,
+      input.createdBy,
+      now,
+      now,
+    )
+    .run();
+
+  await Promise.all(
+    variantEntries.map(async ([variantKey, variant]) => {
+      const assetVariantId = crypto.randomUUID();
+      const r2Key = `editorial/internal/${input.featureEntryId}/${familyId}/${variantKey}.jpg`;
+      const body = Buffer.from(variant.contentBase64, "base64");
+
+      await env.INTAKE_BUCKET.put(r2Key, body, {
+        httpMetadata: {
+          contentType: variant.mimeType,
+        },
+      });
+
+      await env.EDITORIAL_DB.prepare(
+        `INSERT INTO asset_variant (
+           id,
+           asset_family_id,
+           variant_key,
+           r2_key,
+           public_url,
+           mime_type,
+           width,
+           height,
+           size_bytes,
+           created_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+        .bind(
+          assetVariantId,
+          familyId,
+          variantKey,
+          r2Key,
+          buildCanonicalEditorialAssetPublicUrl(assetVariantId),
+          variant.mimeType,
+          variant.width,
+          variant.height,
+          body.byteLength,
+          now,
+        )
+        .run();
+    }),
+  );
+
+  const bundle = await getAssetFamilyBundle(familyId);
+
+  if (!bundle) {
+    throw new Error("internal_canonical_asset_family_store_failed");
+  }
+
+  return bundle;
+}
+
 export async function getEditorialV2AssetVariantById(assetId: string) {
   const env = await getEditorialEnv({
     requireBucket: false,
@@ -1471,11 +1805,44 @@ export async function uploadEditorialV2ImageForRevision(
   }
 
   if (!context.proposalId) {
-    throw new Error("feature_revision_has_no_proposal");
+    ensureAllowedImageFile(file);
+    const variants = await requestEditorialImageVariants({
+      filename: file.name,
+      mimeType: file.type,
+      fileBuffer: await file.arrayBuffer(),
+    });
+    const master = variants.master;
+
+    if (
+      master.width < editorialImageSpec.master.width ||
+      master.height < editorialImageSpec.master.height
+    ) {
+      throw new Error("image_too_small_for_editorial_master");
+    }
+
+    const bundle = await storeInternalCanonicalAssetFamily({
+      featureEntryId: context.revision.featureEntryId,
+      featureRevisionId: context.revision.id,
+      originalFilename: file.name,
+      originalMimeType: file.type,
+      createdBy: editorEmail,
+      variants,
+    });
+    const draft = await setEditorialV2CoverAssetFamilyByRevisionId(
+      context.revision.id,
+      bundle.id,
+      editorEmail,
+    );
+
+    return {
+      family: mapAssetBundleToEditorFamily(bundle),
+      draft,
+    };
   }
 
+  const proposalId = context.proposalId;
   const legacyFamily = await uploadEditorialImageForProposal(
-    context.proposalId,
+    proposalId,
     file,
     editorEmail,
   );
@@ -1485,7 +1852,7 @@ export async function uploadEditorialV2ImageForRevision(
   }
 
   const bundle = await upsertCanonicalAssetFamilyFromLegacyFamily({
-    proposalId: context.proposalId,
+    proposalId,
     legacyFamilyId: legacyFamily.familyId,
     featureEntryId: context.revision.featureEntryId,
     featureRevisionId: context.revision.id,

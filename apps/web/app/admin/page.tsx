@@ -61,6 +61,13 @@ export default async function AdminIndexPage() {
 
       <section className={styles.linkGrid}>
         <div className={styles.supportBlock}>
+          <h2 className={styles.supportTitle}>산업 구조 분석</h2>
+          <p className={styles.queueCopy}>외부 제안과 분리된 내부 작성 entry에서 산업 구조 분석 피처를 시작합니다.</p>
+          <Link href="/admin/internal/industry-analysis/new" className={styles.linkAction}>
+            새로 작성 시작
+          </Link>
+        </div>
+        <div className={styles.supportBlock}>
           <h2 className={styles.supportTitle}>제안함</h2>
           <p className={styles.queueCopy}>외부 제안을 읽고 검토로 넘길지 결정합니다.</p>
           <Link href="/admin/inbox" className={styles.linkAction}>

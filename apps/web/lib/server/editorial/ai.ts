@@ -2,8 +2,13 @@ import "server-only";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 type EditorialAiEnv = CloudflareEnv & {
+  DIM_WORKFLOW_ENV?: string;
   OPENAI_API_KEY?: string;
   OPENAI_PROJECT_ID?: string;
+  OPENAI_API_KEY_PREVIEW?: string;
+  OPENAI_PROJECT_ID_PREVIEW?: string;
+  OPENAI_API_KEY_PROD?: string;
+  OPENAI_PROJECT_ID_PROD?: string;
   OPENAI_SIGNAL_MODEL?: string;
   OPENAI_DRAFT_MODEL?: string;
   EDITORIAL_DRAFT_GENERATOR_URL?: string;
@@ -21,18 +26,50 @@ export type EditorialAiConfig = {
   externalGeneratorConfigured: boolean;
 };
 
+function readScopedOpenAiApiKey(aiEnv: EditorialAiEnv) {
+  if (aiEnv.OPENAI_API_KEY?.trim()) {
+    return aiEnv.OPENAI_API_KEY.trim();
+  }
+
+  if (aiEnv.DIM_WORKFLOW_ENV === "editorial_preview") {
+    return aiEnv.OPENAI_API_KEY_PREVIEW?.trim() || undefined;
+  }
+
+  if (aiEnv.DIM_WORKFLOW_ENV === "editorial_production") {
+    return aiEnv.OPENAI_API_KEY_PROD?.trim() || undefined;
+  }
+
+  return undefined;
+}
+
+function readScopedOpenAiProjectId(aiEnv: EditorialAiEnv) {
+  if (aiEnv.OPENAI_PROJECT_ID?.trim()) {
+    return aiEnv.OPENAI_PROJECT_ID.trim();
+  }
+
+  if (aiEnv.DIM_WORKFLOW_ENV === "editorial_preview") {
+    return aiEnv.OPENAI_PROJECT_ID_PREVIEW?.trim() || undefined;
+  }
+
+  if (aiEnv.DIM_WORKFLOW_ENV === "editorial_production") {
+    return aiEnv.OPENAI_PROJECT_ID_PROD?.trim() || undefined;
+  }
+
+  return undefined;
+}
+
 export async function getEditorialAiConfig(): Promise<EditorialAiConfig> {
   const { env } = await getCloudflareContext({ async: true });
   const aiEnv = env as EditorialAiEnv;
   const generatorUrl = aiEnv.EDITORIAL_DRAFT_GENERATOR_URL?.trim() || undefined;
   const generatorSecretPresent = Boolean(aiEnv.EDITORIAL_GENERATOR_SHARED_SECRET?.trim());
-  const apiKeyPresent = Boolean(aiEnv.OPENAI_API_KEY);
+  const apiKey = readScopedOpenAiApiKey(aiEnv);
   const externalGeneratorConfigured = Boolean(generatorUrl) && generatorSecretPresent;
 
   return {
-    enabled: apiKeyPresent || externalGeneratorConfigured,
-    apiKeyPresent,
-    projectId: aiEnv.OPENAI_PROJECT_ID,
+    enabled: Boolean(apiKey) || externalGeneratorConfigured,
+    apiKeyPresent: Boolean(apiKey),
+    projectId: readScopedOpenAiProjectId(aiEnv),
     signalModel: aiEnv.OPENAI_SIGNAL_MODEL || "gpt-5-mini",
     draftModel: aiEnv.OPENAI_DRAFT_MODEL || "gpt-5.4",
     generatorUrl,
@@ -44,16 +81,18 @@ export async function getEditorialAiConfig(): Promise<EditorialAiConfig> {
 export async function requireEditorialAiConfig(): Promise<EditorialAiConfig & { apiKey: string }> {
   const { env } = await getCloudflareContext({ async: true });
   const aiEnv = env as EditorialAiEnv;
+  const apiKey = readScopedOpenAiApiKey(aiEnv);
+  const projectId = readScopedOpenAiProjectId(aiEnv);
 
-  if (!aiEnv.OPENAI_API_KEY) {
+  if (!apiKey) {
     throw new Error("DIM editorial OpenAI API key is not configured in this runtime");
   }
 
   return {
     enabled: true,
     apiKeyPresent: true,
-    apiKey: aiEnv.OPENAI_API_KEY,
-    projectId: aiEnv.OPENAI_PROJECT_ID,
+    apiKey,
+    projectId,
     signalModel: aiEnv.OPENAI_SIGNAL_MODEL || "gpt-5-mini",
     draftModel: aiEnv.OPENAI_DRAFT_MODEL || "gpt-5.4",
     generatorUrl: aiEnv.EDITORIAL_DRAFT_GENERATOR_URL?.trim() || undefined,

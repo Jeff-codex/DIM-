@@ -804,6 +804,68 @@
   text-underline-offset: 0.18em;
 }
 
+.form {
+  display: grid;
+  gap: 20px;
+}
+
+.formGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.formField {
+  display: grid;
+  gap: 8px;
+}
+
+.fieldLabel {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(226, 233, 247, 0.9);
+}
+
+.fieldHelp {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: rgba(188, 198, 223, 0.62);
+}
+
+.textInput,
+.textArea {
+  width: 100%;
+  border: 1px solid rgba(132, 149, 203, 0.16);
+  background: rgba(20, 25, 37, 0.72);
+  color: #f4f7ff;
+  font: inherit;
+}
+
+.textInput {
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.textArea {
+  min-height: 132px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.detailCard {
+  display: grid;
+  gap: 14px;
+}
+
 .blocked {
   display: grid;
   gap: 12px;
@@ -839,6 +901,7 @@
   .linkGrid,
   .supportGrid,
   .assetGrid,
+  .formGrid,
   .rowMeta,
   .actionMeta {
     grid-template-columns: 1fr;

@@ -48,6 +48,7 @@ type EditorialDraftRecord = {
 
 type EditorialDraftEditorProps = {
   proposalId: string;
+  routeContextId?: string;
   categories: DraftCategoryOption[];
   initialDraft: EditorialDraftRecord;
   sourceAssets: Array<{
@@ -59,7 +60,7 @@ type EditorialDraftEditorProps = {
   }>;
   editorialAssets: Array<{
     familyId: string;
-    sourceType: "admin_upload" | "proposal_promoted";
+    sourceType: "admin_upload" | "proposal_promoted" | "internal_upload";
     sourceProposalAssetId: string | null;
     originalFilename: string | null;
     createdAt: string;
@@ -106,6 +107,10 @@ type EditorialDraftEditorProps = {
   showDetachedPreviewLinks?: boolean;
   detachedPreviewHref?: string;
   publishRoomHref?: string;
+  hideWorkflowNav?: boolean;
+  forceAssetShelf?: boolean;
+  sourceDescriptor?: string;
+  coverImageHint?: string;
 };
 
 type EditorialAssetFamilyRecord = EditorialDraftEditorProps["editorialAssets"][number];
@@ -132,6 +137,7 @@ function resolveEditorialFamilyCoverUrl(family: EditorialAssetFamilyRecord) {
 
 export function EditorialDraftEditor({
   proposalId,
+  routeContextId,
   categories,
   initialDraft,
   sourceAssets,
@@ -155,6 +161,10 @@ export function EditorialDraftEditor({
   showDetachedPreviewLinks = true,
   detachedPreviewHref,
   publishRoomHref,
+  hideWorkflowNav = false,
+  forceAssetShelf = false,
+  sourceDescriptor = "원본 제안",
+  coverImageHint = "새 이미지를 올리거나 제안 첨부를 커버로 올릴 수 있습니다. 권장 규격은 1600 × 1200px 이상, 4:3입니다.",
 }: EditorialDraftEditorProps) {
   const router = useRouter();
   const [draft, setDraft] = useState(initialDraft);
@@ -165,17 +175,19 @@ export function EditorialDraftEditor({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [promotingAssetId, setPromotingAssetId] = useState<string | null>(null);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState(() => serializeDraft(initialDraft));
-  const resolvedDraftActionPath = draftActionPath ?? `${actionBasePath}/drafts/${proposalId}`;
+  const resolvedRouteContextId = routeContextId ?? proposalId;
+  const resolvedDraftActionPath =
+    draftActionPath ?? `${actionBasePath}/drafts/${resolvedRouteContextId}`;
   const resolvedDraftSnapshotActionPath =
     draftSnapshotActionPath ?? `${resolvedDraftActionPath}/snapshot`;
   const resolvedDraftCoverActionPath =
     draftCoverActionPath ?? `${resolvedDraftActionPath}/cover`;
   const resolvedEditorialAssetUploadActionPath =
     editorialAssetUploadActionPath ??
-    `${actionBasePath}/proposals/${proposalId}/editorial-assets/upload`;
+    `${actionBasePath}/proposals/${resolvedRouteContextId}/editorial-assets/upload`;
   const resolvedEditorialAssetPromoteActionPath =
     editorialAssetPromoteActionPath ??
-    `${actionBasePath}/proposals/${proposalId}/editorial-assets/promote`;
+    `${actionBasePath}/proposals/${resolvedRouteContextId}/editorial-assets/promote`;
 
   const selectedCategoryName =
     categories.find((category) => category.id === draft.categoryId)?.name ?? "산업 해석";
@@ -228,6 +240,8 @@ export function EditorialDraftEditor({
   const showGenerationPanel =
     generationState !== "generated" || Boolean(generationErrorMessage) || hasSourceMismatch;
   const showVisibilityPanel = Boolean(generationVisibility);
+  const showAssetShelf =
+    forceAssetShelf || sourceAssets.length > 0 || editorialAssetFamilies.length > 0;
 
   const ensureAdminActionResponse = (response: Response) => {
     const contentType = response.headers.get("content-type") ?? "";
@@ -641,14 +655,16 @@ export function EditorialDraftEditor({
           <p className={styles.metaLabel}>현재 상태</p>
           <p className={styles.metaValue}>{saveStateLabel}</p>
           <p className={styles.metaSubtle}>
-            {hasSourceMismatch ? "원본 제안이 바뀌어 초안을 다시 확인해야 합니다" : "원고와 원본 제안이 맞춰져 있습니다"}
+            {hasSourceMismatch
+              ? `${sourceDescriptor}가 바뀌어 원고를 다시 확인해야 합니다`
+              : `원고와 ${sourceDescriptor}가 맞춰져 있습니다`}
           </p>
           <p className={styles.metaSubtle}>
             {hasSnapshotReady ? "이제 발행실로 넘기면 됩니다" : "제목, 답변, 판단, 본문을 먼저 정리하세요"}
           </p>
           {showDetachedPreviewLinks ? (
             <a
-              href={detachedPreviewHref ?? `${workflowBasePath}/drafts/${proposalId}/preview`}
+              href={detachedPreviewHref ?? `${workflowBasePath}/drafts/${resolvedRouteContextId}/preview`}
               target="_blank"
               rel="noreferrer"
               className={styles.previewLink}
@@ -657,7 +673,7 @@ export function EditorialDraftEditor({
             </a>
           ) : null}
           <a
-            href={publishRoomHref ?? `${workflowBasePath}/drafts/${proposalId}/snapshot`}
+            href={publishRoomHref ?? `${workflowBasePath}/drafts/${resolvedRouteContextId}/snapshot`}
             target="_blank"
             rel="noreferrer"
             className={styles.previewLink}
@@ -667,17 +683,19 @@ export function EditorialDraftEditor({
         </div>
       </header>
 
-      <AdminWorkflowNav
-        proposalId={proposalId}
-        active={workflowActive}
-        mode={workflowMode}
-        basePath={workflowBasePath}
-        customLinks={workflowLinks}
-      />
+      {hideWorkflowNav ? null : (
+        <AdminWorkflowNav
+          proposalId={resolvedRouteContextId}
+          active={workflowActive}
+          mode={workflowMode}
+          basePath={workflowBasePath}
+          customLinks={workflowLinks}
+        />
+      )}
 
       {showGenerationPanel ? (
         <DraftGenerationPanel
-          proposalId={proposalId}
+          proposalId={resolvedRouteContextId}
           scope="draft"
           state={generationState}
           quality={generationQuality}
@@ -709,13 +727,11 @@ export function EditorialDraftEditor({
             <p className={styles.proofHint}>{nextStepHint}</p>
           </div>
 
-          {sourceAssets.length > 0 || editorialAssetFamilies.length > 0 ? (
+          {showAssetShelf ? (
             <section className={styles.assetShelf}>
               <div className={styles.groupHeader}>
                 <p className={styles.groupLabel}>커버 이미지</p>
-                <p className={styles.groupHint}>
-                  새 이미지를 올리거나 제안 첨부를 커버로 올릴 수 있습니다. 권장 규격은 1600 × 1200px 이상, 4:3입니다.
-                </p>
+                <p className={styles.groupHint}>{coverImageHint}</p>
               </div>
               <div className={styles.assetUploadBar}>
                 <label className={styles.assetUploadButton}>

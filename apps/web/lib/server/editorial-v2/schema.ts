@@ -29,3 +29,38 @@ export const editorialV2DraftInputSchema = z.object({
 });
 
 export type EditorialV2DraftInput = z.infer<typeof editorialV2DraftInputSchema>;
+
+const optionalBriefString = z
+  .string()
+  .trim()
+  .max(2400)
+  .optional()
+  .transform((value) => value || undefined);
+
+const briefStringList = (maxItems: number, maxLength: number) =>
+  z
+    .array(z.string().trim().min(1).max(maxLength))
+    .max(maxItems)
+    .default([])
+    .transform((value) => value.filter(Boolean));
+
+export const internalAnalysisBriefInputSchema = z.object({
+  workingTitle: z.string().trim().min(1).max(180),
+  summary: z.string().trim().min(1).max(420),
+  analysisScope: optionalBriefString,
+  whyNow: optionalBriefString,
+  market: z
+    .string()
+    .trim()
+    .max(220)
+    .optional()
+    .transform((value) => value || undefined),
+  coreEntities: briefStringList(12, 80),
+  sourceLinks: briefStringList(12, 2048),
+  evidencePoints: briefStringList(10, 220),
+  editorNotes: optionalBriefString,
+});
+
+export type InternalAnalysisBriefInput = z.infer<
+  typeof internalAnalysisBriefInputSchema
+>;

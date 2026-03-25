@@ -6,6 +6,7 @@ import styles from "./published-feature-actions.module.css";
 
 type PublishRoomActionsProps = {
   proposalId: string;
+  actionTargetId?: string;
   hasSnapshot: boolean;
   actionBasePath?: string;
   prepareActionPath?: string;
@@ -16,6 +17,7 @@ type PublishRoomActionsProps = {
 
 export function PublishRoomActions({
   proposalId,
+  actionTargetId,
   hasSnapshot,
   actionBasePath = "/admin/actions",
   prepareActionPath,
@@ -24,6 +26,7 @@ export function PublishRoomActions({
   publishedHref = "/admin/published",
 }: PublishRoomActionsProps) {
   const router = useRouter();
+  const resolvedActionTargetId = actionTargetId ?? proposalId;
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState(
     hasSnapshot
@@ -36,7 +39,7 @@ export function PublishRoomActions({
 
     try {
       const response = await fetch(
-        publishActionPath ?? `${actionBasePath}/publish/${proposalId}`,
+        publishActionPath ?? `${actionBasePath}/publish/${resolvedActionTargetId}`,
         {
         method: "POST",
         },
@@ -81,7 +84,7 @@ export function PublishRoomActions({
 
     try {
       const response = await fetch(
-        prepareActionPath ?? `${actionBasePath}/drafts/${proposalId}/snapshot`,
+        prepareActionPath ?? `${actionBasePath}/drafts/${resolvedActionTargetId}/snapshot`,
         {
         method: "POST",
         },
