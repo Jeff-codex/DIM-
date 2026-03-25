@@ -58,6 +58,17 @@ function toDateLabel(value: string | null) {
   }).format(new Date(value));
 }
 
+function getInternalPublishStatusLabel(status: string) {
+  switch (status) {
+    case "ready_to_publish":
+      return "발행 준비 완료";
+    case "published":
+      return "공개 반영 완료";
+    default:
+      return "원고 작성 중";
+  }
+}
+
 export default async function AdminInternalIndustryAnalysisPublishPage({
   params,
 }: {
@@ -126,15 +137,15 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
             {isReadyToPublish ? "지금 공개 반영할 수 있습니다" : "먼저 발행 준비 상태를 만듭니다"}
           </h1>
           <p className={styles.description}>
-            내부 작성 글은 외부 제안과 분리된 흐름으로 관리합니다. 준비본을 만든 뒤
-            공개 반영까지 눌러야 실제 라이브 글이 바뀝니다.
+            내부 작성 글은 브리프와 원고실을 거쳐 발행실에서 최종 공개 반영합니다.
+            준비본을 만든 뒤 공개 반영까지 눌러야 실제 라이브 글이 바뀝니다.
           </p>
         </div>
         <div className={styles.metaPanel}>
           <p className={styles.metaLabel}>현재 기준</p>
-          <p className={styles.metaValue}>{resolvedDraft.status}</p>
+          <p className={styles.metaValue}>{getInternalPublishStatusLabel(resolvedDraft.status)}</p>
           <p className={styles.metaSubtle}>slug {featureEntry.slug}</p>
-          <p className={styles.metaSubtle}>초안 생성 {toDateLabel(resolvedDraft.draftGeneratedAt)}</p>
+          <p className={styles.metaSubtle}>최근 저장 {toDateLabel(resolvedDraft.updatedAt)}</p>
         </div>
       </header>
 
@@ -150,6 +161,7 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
             categoryName={categoryName}
             coverImageUrl={resolvedDraft.coverImageUrl}
             bodyMarkdown={resolvedDraft.bodyMarkdown}
+            mode="internal"
           />
         </section>
 

@@ -99,7 +99,7 @@ type EditorialDraftEditorProps = {
   editorialAssetUploadActionPath?: string;
   editorialAssetPromoteActionPath?: string;
   workflowBasePath?: string;
-  workflowMode?: "legacy" | "v2";
+  workflowMode?: "legacy" | "v2" | "internal";
   workflowActive?: "draft" | "editor";
   workflowLinks?: Partial<
     Record<"proposal" | "draft" | "preview" | "snapshot" | "review" | "editor" | "publish", string | null>
@@ -188,6 +188,7 @@ export function EditorialDraftEditor({
   const resolvedEditorialAssetPromoteActionPath =
     editorialAssetPromoteActionPath ??
     `${actionBasePath}/proposals/${resolvedRouteContextId}/editorial-assets/promote`;
+  const isInternalWorkflow = workflowMode === "internal";
 
   const selectedCategoryName =
     categories.find((category) => category.id === draft.categoryId)?.name ?? "산업 해석";
@@ -215,28 +216,46 @@ export function EditorialDraftEditor({
         : "저장됨";
 
   const currentBottleneck = (() => {
+    if (isInternalWorkflow && !hasTitle) {
+      return "내부 작성 제목을 먼저 정리해야 합니다";
+    }
+
     if (!hasWhyNow) {
-      return "왜 지금 중요한지 한 줄 더 보강해야 합니다";
+      return isInternalWorkflow
+        ? "브리프의 왜 지금 중요한가를 한 줄 더 정리해야 합니다"
+        : "왜 지금 중요한지 한 줄 더 보강해야 합니다";
     }
 
     if (!hasExcerpt) {
-      return "핵심 답변이 아직 비어 있습니다";
+      return isInternalWorkflow
+        ? "핵심 답변을 먼저 직접 써야 합니다"
+        : "핵심 답변이 아직 비어 있습니다";
     }
 
     if (!hasVerdict) {
-      return "핵심 판단이 아직 비어 있습니다";
+      return isInternalWorkflow
+        ? "핵심 판단을 분명하게 써야 합니다"
+        : "핵심 판단이 아직 비어 있습니다";
     }
 
     if (!hasBody) {
-      return "본문 초안이 아직 부족합니다";
+      return isInternalWorkflow
+        ? "본문을 직접 작성해 공개면 기준으로 다듬어야 합니다"
+        : "본문 초안이 아직 부족합니다";
     }
 
-    return "발행실로 넘길 최소 구성은 갖춰졌습니다";
+    return isInternalWorkflow
+      ? "내부 원고는 발행실로 넘길 최소 구성을 갖췄습니다"
+      : "발행실로 넘길 최소 구성은 갖춰졌습니다";
   })();
 
   const nextStepHint = hasSnapshotReady
-    ? "저장한 뒤 발행실로 넘기면 됩니다"
-    : "제목, 핵심 답변, 핵심 판단, 본문 순서로만 채우면 됩니다";
+    ? isInternalWorkflow
+      ? "저장한 뒤 발행실로 넘겨 공개 반영 준비를 하면 됩니다"
+      : "저장한 뒤 발행실로 넘기면 됩니다"
+    : isInternalWorkflow
+      ? "브리프를 참고해 제목, 핵심 답변, 핵심 판단, 본문 순서로 직접 채우면 됩니다"
+      : "제목, 핵심 답변, 핵심 판단, 본문 순서로만 채우면 됩니다";
   const showGenerationPanel =
     generationState !== "generated" || Boolean(generationErrorMessage) || hasSourceMismatch;
   const showVisibilityPanel = Boolean(generationVisibility);
@@ -388,7 +407,7 @@ export function EditorialDraftEditor({
   };
 
   const handleUseAssetAsCover = async (previewUrl: string, label: string) => {
-    if (workflowMode === "v2") {
+    if (workflowMode === "v2" || isInternalWorkflow) {
       const family = editorialAssetFamilies.find((item) => {
         const familyCoverUrl = resolveEditorialFamilyCoverUrl(item);
         return familyCoverUrl === previewUrl;
@@ -530,7 +549,7 @@ export function EditorialDraftEditor({
         return;
       }
 
-      if (workflowMode === "v2") {
+      if (workflowMode === "v2" || isInternalWorkflow) {
         throw new Error(
           "편집 이미지는 만들어졌지만 원고실 draft 반영이 끝나지 않았습니다. 자산 목록을 새로고침한 뒤 다시 시도해 주세요",
         );
@@ -615,7 +634,7 @@ export function EditorialDraftEditor({
         return;
       }
 
-      if (workflowMode === "v2") {
+      if (workflowMode === "v2" || isInternalWorkflow) {
         throw new Error(
           "편집 이미지는 준비됐지만 원고실 draft 반영이 끝나지 않았습니다. 자산 목록을 새로고침한 뒤 다시 시도해 주세요",
         );
@@ -645,10 +664,12 @@ export function EditorialDraftEditor({
     <div className={styles.page}>
       <header className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>원고실</p>
+          <p className={styles.eyebrow}>{isInternalWorkflow ? "내부 원고실" : "원고실"}</p>
           <h1 className={styles.title}>{(draft.sourceSnapshot?.projectName ?? draft.title) || "원고 편집"}</h1>
           <p className={styles.description}>
-            핵심 답변과 판단, 커버 이미지를 정리한 뒤 발행실로 넘기는 화면입니다.
+            {isInternalWorkflow
+              ? "브리프를 기준으로 제목, 핵심 답변, 판단, 본문, 커버 이미지를 직접 정리한 뒤 발행실로 넘기는 화면입니다."
+              : "핵심 답변과 판단, 커버 이미지를 정리한 뒤 발행실로 넘기는 화면입니다."}
           </p>
         </div>
         <div className={styles.metaPanel}>
@@ -657,10 +678,18 @@ export function EditorialDraftEditor({
           <p className={styles.metaSubtle}>
             {hasSourceMismatch
               ? `${sourceDescriptor}가 바뀌어 원고를 다시 확인해야 합니다`
-              : `원고와 ${sourceDescriptor}가 맞춰져 있습니다`}
+              : isInternalWorkflow
+                ? `원고가 ${sourceDescriptor} 기준으로 정리되고 있습니다`
+                : `원고와 ${sourceDescriptor}가 맞춰져 있습니다`}
           </p>
           <p className={styles.metaSubtle}>
-            {hasSnapshotReady ? "이제 발행실로 넘기면 됩니다" : "제목, 답변, 판단, 본문을 먼저 정리하세요"}
+            {hasSnapshotReady
+              ? isInternalWorkflow
+                ? "이제 발행실로 넘겨 공개 반영 준비를 하면 됩니다"
+                : "이제 발행실로 넘기면 됩니다"
+              : isInternalWorkflow
+                ? "브리프를 참고해 제목, 답변, 판단, 본문을 직접 정리하세요"
+                : "제목, 답변, 판단, 본문을 먼저 정리하세요"}
           </p>
           {showDetachedPreviewLinks ? (
             <a
@@ -687,7 +716,7 @@ export function EditorialDraftEditor({
         <AdminWorkflowNav
           proposalId={resolvedRouteContextId}
           active={workflowActive}
-          mode={workflowMode}
+          mode={workflowMode === "internal" ? "v2" : workflowMode}
           basePath={workflowBasePath}
           customLinks={workflowLinks}
         />
@@ -941,7 +970,7 @@ export function EditorialDraftEditor({
                   </select>
                 </label>
 
-                {workflowMode === "v2" ? (
+                {workflowMode === "v2" || isInternalWorkflow ? (
                   <div className={styles.field}>
                     <span>커버 이미지</span>
                     <p className={styles.fieldHint}>
@@ -1053,6 +1082,7 @@ export function EditorialDraftEditor({
           categoryName={selectedCategoryName}
           coverImageUrl={draft.coverImageUrl}
           bodyMarkdown={draft.bodyMarkdown}
+          mode={isInternalWorkflow ? "internal" : "external"}
         />
       </div>
     </div>

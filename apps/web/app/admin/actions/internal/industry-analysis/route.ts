@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { getAdminIdentity } from "@/lib/server/editorial/admin";
 import { createInternalIndustryAnalysisEntry } from "@/lib/server/editorial-v2/workflow";
 import { internalAnalysisBriefInputSchema } from "@/lib/server/editorial-v2/schema";
@@ -11,13 +12,51 @@ function parseLineList(value: FormDataEntryValue | null) {
   }
 
   return value
-    .split(/\r?\n|,/)
+    .split(/\r?\n/)
     .map((entry) => entry.trim())
     .filter(Boolean);
 }
 
 function getTextValue(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value : "";
+}
+
+function buildFormErrorRedirect(request: Request, code: string) {
+  const redirectUrl = new URL("/admin/internal/industry-analysis/new", request.url);
+  redirectUrl.searchParams.set("error", code);
+  return NextResponse.redirect(redirectUrl, { status: 303 });
+}
+
+function getValidationErrorCode(error: ZodError) {
+  const firstIssue = error.issues[0];
+
+  if (!firstIssue) {
+    return "validation";
+  }
+
+  const [path] = firstIssue.path;
+
+  if (path === "coreEntities") {
+    return "core_entities_limit";
+  }
+
+  if (path === "sourceLinks") {
+    return "source_links_limit";
+  }
+
+  if (path === "evidencePoints") {
+    return "evidence_points_limit";
+  }
+
+  if (path === "workingTitle") {
+    return "working_title_invalid";
+  }
+
+  if (path === "summary") {
+    return "summary_invalid";
+  }
+
+  return "validation";
 }
 
 export async function POST(request: Request) {
@@ -62,16 +101,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Failed to create internal industry analysis entry", error);
 
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "internal_industry_analysis_create_failed",
-        detail:
-          error instanceof Error
-            ? error.message
-            : "산업 구조 분석 작성 entry를 만들지 못했습니다.",
-      },
-      { status: 400 },
-    );
+    if (error instanceof ZodError) {
+      return buildFormErrorRedirect(request, getValidationErrorCode(error));
+    }
+
+    return buildFormErrorRedirect(request, "create_failed");
   }
 }

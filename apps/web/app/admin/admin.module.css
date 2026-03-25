@@ -820,6 +820,18 @@
   gap: 8px;
 }
 
+.formError {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 162, 126, 0.28);
+  background:
+    linear-gradient(180deg, rgba(58, 24, 16, 0.94), rgba(30, 14, 11, 0.9)),
+    linear-gradient(135deg, rgba(255, 137, 88, 0.08), transparent 56%);
+  color: rgba(255, 227, 214, 0.9);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
 .fieldLabel {
   margin: 0;
   font-size: 0.84rem;

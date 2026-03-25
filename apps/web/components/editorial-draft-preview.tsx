@@ -10,6 +10,7 @@ type EditorialDraftPreviewProps = {
   categoryName: string;
   coverImageUrl?: string;
   bodyMarkdown: string;
+  mode?: "external" | "internal";
 };
 
 function renderBlocks(bodyMarkdown: string) {
@@ -76,6 +77,7 @@ export function EditorialDraftPreview({
   categoryName,
   coverImageUrl,
   bodyMarkdown,
+  mode = "external",
 }: EditorialDraftPreviewProps) {
   return (
     <aside className={styles.preview}>
@@ -120,9 +122,13 @@ export function EditorialDraftPreview({
         </div>
 
         <div className={styles.trustBlock}>
-          <p className={styles.answerLabel}>업로드 전 미리보기</p>
+          <p className={styles.answerLabel}>
+            {mode === "internal" ? "공개면 미리보기" : "업로드 전 미리보기"}
+          </p>
           <p className={styles.trustText}>
-            이 화면은 public article 문법에 맞춰 제목, 핵심 답변, 핵심 판단, 본문 리듬을 미리 확인하는 용도입니다
+            {mode === "internal"
+              ? "이 화면은 내부 작성 글이 공개면에서 어떻게 보이는지 미리 확인하는 용도입니다"
+              : "이 화면은 public article 문법에 맞춰 제목, 핵심 답변, 핵심 판단, 본문 리듬을 미리 확인하는 용도입니다"}
           </p>
         </div>
 

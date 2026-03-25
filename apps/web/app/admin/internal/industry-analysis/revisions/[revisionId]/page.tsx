@@ -1,15 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { InternalAnalysisAssistCard } from "@/components/internal-analysis-assist-card";
 import { InternalAnalysisWorkflowNav } from "@/components/internal-analysis-workflow-nav";
 import { requireAdminIdentity } from "@/lib/server/editorial/admin";
-import { getEditorialAiConfig } from "@/lib/server/editorial/ai";
 import {
   getFeatureEntryById,
   getFeatureRevisionById,
   getInternalAnalysisBriefByRevisionId,
 } from "@/lib/server/editorial-v2/repository";
-import { suggestInternalAnalysisFrameByRevisionId } from "@/lib/server/editorial-v2/internal-assist";
 import { listEditorialV2AssetFamiliesByRevisionId } from "@/lib/server/editorial-v2/workflow";
 import { AdminAccessRequired } from "../../../../access-required";
 import styles from "../../../../admin.module.css";
@@ -27,28 +24,21 @@ function toDateLabel(value: string) {
   }).format(new Date(value));
 }
 
-function mapInternalAssistError(rawDetail: string) {
-  if (rawDetail === "internal_analysis_ai_not_configured") {
-    return "이 runtime에는 direct OpenAI key가 없어 내부 작성용 AI 보조 기능을 아직 사용할 수 없습니다.";
+function getInternalStatusLabel(status: string) {
+  switch (status) {
+    case "ready_to_publish":
+      return "발행 준비 완료";
+    case "published":
+      return "공개됨";
+    default:
+      return "브리프 작성 중";
   }
-
-  if (rawDetail === "internal_analysis_revision_not_found") {
-    return "내부 산업 구조 분석 작업본을 찾지 못했습니다.";
-  }
-
-  if (rawDetail === "internal_analysis_revision_invalid_source") {
-    return "이 작업본은 내부 산업 구조 분석 보조 기능 대상이 아닙니다.";
-  }
-
-  return "분석 프레임 제안을 불러오지 못했습니다.";
 }
 
 export default async function AdminInternalIndustryAnalysisRevisionPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ revisionId: string }>;
-  searchParams?: Promise<{ assist?: string }>;
 }) {
   const identity = await requireAdminIdentity();
 
@@ -63,11 +53,9 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
     notFound();
   }
 
-  const resolvedSearchParams = (await searchParams) ?? {};
-  const [featureEntry, brief, aiConfig, editorialAssets] = await Promise.all([
+  const [featureEntry, brief, editorialAssets] = await Promise.all([
     getFeatureEntryById(revision.featureEntryId),
     getInternalAnalysisBriefByRevisionId(revision.id),
-    getEditorialAiConfig(),
     listEditorialV2AssetFamiliesByRevisionId(revision.id),
   ]);
 
@@ -79,26 +67,7 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
     notFound();
   }
 
-  const assistEnabled = aiConfig.apiKeyPresent;
-  const assistDisabledReason = assistEnabled
-    ? null
-    : "이 runtime에는 direct OpenAI key가 없어 보조 기능을 아직 사용할 수 없습니다.";
   const imageAssetCount = editorialAssets.length;
-  let assistStatus = assistEnabled
-    ? "브리프를 바탕으로 판단문과 섹션 골격만 짧게 제안합니다"
-    : assistDisabledReason ?? "이 runtime에는 내부 작성용 AI 보조 기능이 아직 연결되지 않았습니다";
-  let assistSuggestion = null;
-
-  if (resolvedSearchParams.assist === "1" && assistEnabled) {
-    try {
-      assistSuggestion = await suggestInternalAnalysisFrameByRevisionId(revision.id);
-      assistStatus = "판단문과 섹션 골격을 정리했습니다";
-    } catch (error) {
-      const rawDetail =
-        error instanceof Error ? error.message : "internal_analysis_ai_assist_failed";
-      assistStatus = mapInternalAssistError(rawDetail);
-    }
-  }
 
   return (
     <div className={styles.page}>
@@ -107,13 +76,13 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
           <p className={styles.eyebrow}>산업 구조 분석</p>
           <h1 className={styles.title}>{brief.workingTitle}</h1>
           <p className={styles.description}>
-            내부 브리프와 revision이 만들어졌습니다. 이 글은 외부 제안함과 섞이지 않는
-            내부 작성 흐름으로 이어집니다.
+            내부 브리프가 만들어졌습니다. 여기서 브리프를 정리한 뒤 원고실과 발행실로
+            이어서 작업합니다.
           </p>
         </div>
         <div className={styles.metaPanel}>
           <p className={styles.metaLabel}>현재 상태</p>
-          <p className={styles.metaValue}>{revision.status}</p>
+          <p className={styles.metaValue}>{getInternalStatusLabel(revision.status)}</p>
           <p className={styles.metaSubtle}>slug {featureEntry.slug}</p>
           <p className={styles.metaSubtle}>업데이트 {toDateLabel(revision.updatedAt)}</p>
         </div>
@@ -149,7 +118,7 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
                   <dd>{brief.market ?? "-"}</dd>
                 </div>
                 <div>
-                  <dt>revision</dt>
+                  <dt>작업 ID</dt>
                   <dd>{revision.id}</dd>
                 </div>
               </dl>
@@ -229,10 +198,11 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
             <div className={styles.cardHeader}>
               <p className={styles.sectionLabel}>다음 단계</p>
             </div>
-            <h2 className={styles.actionTitle}>내부 작성 entry는 열렸습니다</h2>
+            <h2 className={styles.actionTitle}>브리프가 준비됐습니다</h2>
             <p className={styles.actionCopy}>
               브리프를 정리했다면 원고실에서 직접 쓰기 시작하고, 준비가 되면 발행실에서
-              공개 준비 상태로 올리면 됩니다.
+              공개 준비 상태로 올리면 됩니다. 내부 산업 구조 분석은 AI 초안 생성 없이
+              직접 쓰는 흐름으로 이어집니다.
             </p>
             <div className={styles.linkGrid}>
               <Link
@@ -264,6 +234,39 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
 
           <div className={styles.card}>
             <div className={styles.cardHeader}>
+              <p className={styles.sectionLabel}>작업 순서</p>
+            </div>
+            <h2 className={styles.actionTitle}>브리프에서 원고, 발행실 순서로만 진행합니다</h2>
+            <p className={styles.actionCopy}>
+              이 화면에서는 브리프를 정리하고, 실제 본문 작성과 이미지 첨부는 원고실에서,
+              공개 반영은 발행실에서 처리합니다.
+            </p>
+            <dl className={styles.summaryGrid}>
+              <div>
+                <dt>1단계</dt>
+                <dd>브리프 정리</dd>
+              </div>
+              <div>
+                <dt>2단계</dt>
+                <dd>원고실 작성</dd>
+              </div>
+              <div>
+                <dt>3단계</dt>
+                <dd>발행실 공개 반영</dd>
+              </div>
+            </dl>
+            <div className={styles.linkGrid}>
+              <Link
+                href={`/admin/internal/industry-analysis/revisions/${revision.id}/editor`}
+                className={styles.linkAction}
+              >
+                원고실 열기
+              </Link>
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
               <p className={styles.sectionLabel}>이미지</p>
             </div>
             <h2 className={styles.actionTitle}>이미지 첨부와 커버 지정은 원고실에서 합니다</h2>
@@ -285,14 +288,6 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
               </Link>
             </div>
           </div>
-
-          <InternalAnalysisAssistCard
-            enabled={assistEnabled}
-            disabledReason={assistDisabledReason}
-            suggestHref={`/admin/internal/industry-analysis/revisions/${revision.id}?assist=1#internal-analysis-assist`}
-            initialSuggestion={assistSuggestion}
-            initialStatus={assistStatus}
-          />
         </aside>
       </div>
     </div>

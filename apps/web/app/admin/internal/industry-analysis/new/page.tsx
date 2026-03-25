@@ -6,12 +6,36 @@ import styles from "../../../admin.module.css";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default async function AdminInternalIndustryAnalysisNewPage() {
+const errorCopy: Record<string, string> = {
+  core_entities_limit:
+    "핵심 엔터티는 최대 12개까지 입력할 수 있습니다. 줄바꿈으로만 구분해 주세요.",
+  source_links_limit:
+    "참고 링크는 최대 12개까지 입력할 수 있습니다. 링크는 줄바꿈으로만 구분해 주세요.",
+  evidence_points_limit:
+    "근거 포인트는 최대 10개까지 입력할 수 있습니다. 줄바꿈으로만 구분해 주세요.",
+  working_title_invalid: "작업 제목 길이를 다시 확인해 주세요.",
+  summary_invalid: "한 줄 요약 길이를 다시 확인해 주세요.",
+  create_failed: "내부 작성 entry를 만들지 못했습니다. 입력값을 다시 확인해 주세요.",
+  validation: "입력값을 다시 확인해 주세요.",
+};
+
+type PageProps = {
+  searchParams?: Promise<{ error?: string }>;
+};
+
+export default async function AdminInternalIndustryAnalysisNewPage({
+  searchParams,
+}: PageProps) {
   const identity = await requireAdminIdentity();
 
   if (!identity) {
     return <AdminAccessRequired />;
   }
+
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const errorMessage = resolvedSearchParams.error
+    ? errorCopy[resolvedSearchParams.error] ?? errorCopy.validation
+    : undefined;
 
   return (
     <div className={styles.page}>
@@ -20,15 +44,15 @@ export default async function AdminInternalIndustryAnalysisNewPage() {
           <p className={styles.eyebrow}>내부 작성</p>
           <h1 className={styles.title}>산업 구조 분석을 내부에서 바로 시작합니다</h1>
           <p className={styles.description}>
-            외부 제안함을 거치지 않고 내부 브리프를 먼저 만들고, 이후 원고실과 발행실로
-            연결할 준비를 합니다.
+            산업 구조 분석 글의 브리프를 먼저 만들고, 이후 원고실과 발행실로 이어지는
+            내부 작성 흐름을 시작합니다.
           </p>
         </div>
         <div className={styles.metaPanel}>
           <p className={styles.metaLabel}>작성 계정</p>
           <p className={styles.metaValue}>{identity.email}</p>
           <p className={styles.metaSubtle}>
-            이 경로는 산업 구조 분석 전용 내부 작성 entry입니다
+            이 경로는 산업 구조 분석 전용 내부 작성 경로입니다
           </p>
         </div>
       </header>
@@ -40,6 +64,12 @@ export default async function AdminInternalIndustryAnalysisNewPage() {
             내부 작성 홈으로
           </Link>
         </div>
+
+        {errorMessage ? (
+          <div className={styles.formError} role="alert">
+            {errorMessage}
+          </div>
+        ) : null}
 
         <form
           action="/admin/actions/internal/industry-analysis"
@@ -112,7 +142,8 @@ export default async function AdminInternalIndustryAnalysisNewPage() {
                 placeholder={"엔터티를 줄바꿈으로 적습니다\n예: 쿠팡\n네이버\n무신사"}
               />
               <span className={styles.fieldHelp}>
-                브랜드, 플랫폼, 제품, 제도, 지표를 줄바꿈으로 구분합니다.
+                브랜드, 플랫폼, 제품, 제도, 지표를 줄바꿈으로 구분합니다. 최대 12개까지
+                입력할 수 있습니다.
               </span>
             </label>
 
@@ -123,6 +154,9 @@ export default async function AdminInternalIndustryAnalysisNewPage() {
                 className={styles.textArea}
                 placeholder={"핵심 근거를 줄바꿈으로 적습니다\n예: 무료 배송 경쟁 심화\n판매자 툴 통합 확대"}
               />
+              <span className={styles.fieldHelp}>
+                줄바꿈으로 구분하며 최대 10개까지 입력할 수 있습니다.
+              </span>
             </label>
           </div>
 
@@ -133,6 +167,9 @@ export default async function AdminInternalIndustryAnalysisNewPage() {
               className={styles.textArea}
               placeholder={"공식 링크나 참고 링크를 줄바꿈으로 적습니다\nhttps://example.com"}
             />
+            <span className={styles.fieldHelp}>
+              링크는 줄바꿈으로만 구분해 주세요. 최대 12개까지 입력할 수 있습니다.
+            </span>
           </label>
 
           <label className={styles.formField}>

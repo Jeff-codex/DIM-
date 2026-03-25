@@ -110,10 +110,12 @@ export default async function AdminInternalIndustryAnalysisEditorPage({
       <EditorialDraftEditor
         proposalId={resolvedDraft.proposalId}
         routeContextId={revision.id}
-        categories={categories.map((category) => ({
-          id: category.id,
-          name: category.name,
-        }))}
+        categories={categories
+          .filter((category) => category.id === "industry-analysis")
+          .map((category) => ({
+            id: category.id,
+            name: category.name,
+          }))}
         initialDraft={resolvedDraft}
         sourceAssets={[]}
         editorialAssets={editorialAssets}
@@ -129,6 +131,7 @@ export default async function AdminInternalIndustryAnalysisEditorPage({
         editorialAssetUploadActionPath={`/admin/actions/drafts/revisions/${revision.id}/editorial-assets/upload`}
         actionBasePath="/admin/actions"
         workflowBasePath="/admin/internal/industry-analysis/revisions"
+        workflowMode="internal"
         showDetachedPreviewLinks={false}
         publishRoomHref={`/admin/internal/industry-analysis/revisions/${revision.id}/publish`}
         hideWorkflowNav
