@@ -1,5 +1,9 @@
 import { cache } from "react";
-import { listCmsPublishedArticles, getCmsPublishedArticleBySlug } from "@/lib/server/editorial-v2/repository";
+import {
+  listCmsPublishedArticles,
+  getCmsPublishedArticleBySlug,
+  resolveFeatureSlug,
+} from "@/lib/server/editorial-v2/repository";
 import { getCategoryById } from "@/content/categories";
 import {
   getLegacyArticleBySlug,
@@ -73,13 +77,44 @@ export const getLatestArticles = cache(
 
 export const getArticleBySlug = cache(
   async (slug: string): Promise<ArticleDetail | null> => {
-    const cmsArticle = await getCmsPublishedArticleBySlug(slug);
+    const resolved = await resolveArticleBySlug(slug);
+    return resolved?.article ?? null;
+  },
+);
 
-    if (cmsArticle) {
-      return cmsArticle;
+export const resolveArticleBySlug = cache(
+  async (
+    slug: string,
+  ): Promise<{
+    article: ArticleDetail;
+    canonicalSlug: string;
+    via: "canonical" | "alias" | "legacy";
+  } | null> => {
+    const cmsResolution = await resolveFeatureSlug(slug);
+
+    if (cmsResolution) {
+      const cmsArticle = await getCmsPublishedArticleBySlug(cmsResolution.canonicalSlug);
+
+      if (cmsArticle) {
+        return {
+          article: cmsArticle,
+          canonicalSlug: cmsResolution.canonicalSlug,
+          via: cmsResolution.via,
+        };
+      }
     }
 
-    return getLegacyArticleBySlug(slug);
+    const legacyArticle = await getLegacyArticleBySlug(slug);
+
+    if (!legacyArticle) {
+      return null;
+    }
+
+    return {
+      article: legacyArticle,
+      canonicalSlug: legacyArticle.slug,
+      via: "legacy",
+    };
   },
 );
 

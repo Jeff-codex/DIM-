@@ -52,7 +52,10 @@ export async function POST(
     const rawDetail = error instanceof Error ? error.message : null;
     const detail = rawDetail?.startsWith("feature_revision_not_ready:")
       ? "발행실에서 먼저 발행 준비 상태를 만든 뒤 발행할 수 있습니다."
-      : "공개 발행을 완료하지 못했습니다.";
+      : rawDetail?.startsWith("feature_slug_preflight_failed:")
+        ? rawDetail.replace("feature_slug_preflight_failed:", "").trim() ||
+          "현재 slug가 발행 기준을 통과하지 못했습니다. 추천 slug를 먼저 확인해 주세요."
+        : "공개 발행을 완료하지 못했습니다.";
 
     return NextResponse.json(
       {

@@ -99,6 +99,13 @@ export type FeatureEntryRecord = {
   archivedAt: string | null;
 };
 
+export type FeatureSlugAliasRecord = {
+  aliasSlug: string;
+  featureEntryId: string;
+  createdAt: string;
+  retiredAt: string | null;
+};
+
 export type FeatureRevisionRecord = {
   id: string;
   featureEntryId: string;

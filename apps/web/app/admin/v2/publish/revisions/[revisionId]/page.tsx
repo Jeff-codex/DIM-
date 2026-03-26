@@ -5,6 +5,7 @@ import { PublishRoomActions } from "@/components/publish-room-actions";
 import { getProposalDetail, requireAdminIdentity } from "@/lib/server/editorial/admin";
 import { getEditorialV2DraftByRevisionId } from "@/lib/server/editorial-v2/workflow";
 import { getFeatureRevisionById } from "@/lib/server/editorial-v2/repository";
+import { getFeatureSlugPreflightByRevisionId } from "@/lib/server/editorial-v2/published";
 import { AdminAccessRequired } from "../../../../access-required";
 import styles from "../../../../admin.module.css";
 
@@ -23,6 +24,30 @@ function toDateLabel(value: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function getSlugStatusLabel(status: "pass" | "revise" | "reject") {
+  switch (status) {
+    case "pass":
+      return "발행 가능";
+    case "revise":
+      return "수정 권장";
+    case "reject":
+    default:
+      return "발행 차단";
+  }
+}
+
+function getSlugStatusClass(status: "pass" | "revise" | "reject") {
+  switch (status) {
+    case "pass":
+      return styles.signalChipPositive;
+    case "revise":
+      return styles.signalChipWarning;
+    case "reject":
+    default:
+      return styles.signalChipDanger;
+  }
 }
 
 export default async function AdminV2PublishRevisionPage({
@@ -62,9 +87,10 @@ export default async function AdminV2PublishRevisionPage({
       </section>
     );
   }
-  const [proposal, draft] = await Promise.all([
+  const [proposal, draft, slugPreflight] = await Promise.all([
     getProposalDetail(revision.proposalId),
     getEditorialV2DraftByRevisionId(revision.id),
+    getFeatureSlugPreflightByRevisionId(revision.id),
   ]);
 
   if (!proposal) {
@@ -176,7 +202,51 @@ export default async function AdminV2PublishRevisionPage({
                 <dt>slug</dt>
                 <dd>{draft.articleSlug ?? "-"}</dd>
               </div>
+              {slugPreflight ? (
+                <div>
+                  <dt>slug 상태</dt>
+                  <dd>
+                    <span
+                      className={getSlugStatusClass(slugPreflight.currentValidation.status)}
+                    >
+                      {getSlugStatusLabel(slugPreflight.currentValidation.status)}
+                    </span>
+                  </dd>
+                </div>
+              ) : null}
+              {slugPreflight &&
+              slugPreflight.recommendedSlug &&
+              slugPreflight.recommendedSlug !== slugPreflight.currentSlug &&
+              slugPreflight.currentValidation.status !== "pass" ? (
+                <div>
+                  <dt>추천 slug</dt>
+                  <dd>{slugPreflight.recommendedSlug}</dd>
+                </div>
+              ) : null}
             </dl>
+            {slugPreflight ? (
+              <>
+                <p className={styles.actionCopy}>
+                  {slugPreflight.willAutoFixOnFirstPublish
+                    ? "첫 공개 발행이라면 현재 slug가 기준을 통과하지 않아도 추천 slug로 자동 교체됩니다."
+                    : slugPreflight.currentValidation.status === "pass"
+                      ? "현재 slug가 공개 기준을 통과했습니다."
+                      : "현재 slug는 발행 기준이 약합니다. 추천 slug와 판정 사유를 먼저 확인해 주세요."}
+                </p>
+                {slugPreflight.currentValidation.reasons.length > 0 ? (
+                  <ul className={styles.slugPreflightList}>
+                    {slugPreflight.currentValidation.reasons.slice(0, 2).map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                {slugPreflight.currentValidation.warnings.length > 0 ? (
+                  <p className={styles.slugPreflightHint}>
+                    {slugPreflight.currentValidation.warnings.slice(0, 2).join(" / ")}
+                  </p>
+                ) : null}
+              </>
+            ) : null}
           </div>
         </aside>
       </div>

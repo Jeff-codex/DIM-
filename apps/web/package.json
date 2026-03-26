@@ -10,6 +10,8 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "build:static": "node ./scripts/build-static.mjs",
+    "slug:audit": "node --experimental-strip-types ./scripts/slug-audit.ts",
+    "slug:backfill": "node --experimental-strip-types ./scripts/slug-backfill.ts",
     "start": "next start",
     "lint": "eslint",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import styles from "./page.module.css";
 import { EditorialHeading } from "@/components/editorial-heading";
 import { RelatedArticles } from "@/components/related-articles";
 import { RepresentativeImage } from "@/components/representative-image";
 import {
-  getArticleBySlug,
   getPublishedArticles,
   getRelatedArticles,
+  resolveArticleBySlug,
 } from "@/lib/content";
 import { formatDate } from "@/lib/format";
 import { siteConfig } from "@/lib/site";
@@ -29,7 +29,8 @@ export async function generateMetadata({
   params,
 }: ArticlePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const article = await getArticleBySlug(slug);
+  const resolved = await resolveArticleBySlug(slug);
+  const article = resolved?.article ?? null;
 
   if (!article) {
     return {
@@ -37,7 +38,7 @@ export async function generateMetadata({
     };
   }
 
-  const canonical = `/articles/${article.slug}`;
+  const canonical = `/articles/${resolved?.canonicalSlug ?? article.slug}`;
   const image = `${siteConfig.url}${article.coverImage}`;
 
   return {
@@ -79,10 +80,15 @@ function isHttpUrl(value: string) {
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const article = await getArticleBySlug(slug);
+  const resolved = await resolveArticleBySlug(slug);
+  const article = resolved?.article ?? null;
 
   if (!article) {
     notFound();
+  }
+
+  if (resolved?.via === "alias" && resolved.canonicalSlug !== slug) {
+    permanentRedirect(`/articles/${resolved.canonicalSlug}`);
   }
 
   const relatedArticles = await getRelatedArticles(article.slug, 3);

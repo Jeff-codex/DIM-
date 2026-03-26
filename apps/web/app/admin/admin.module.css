@@ -905,6 +905,23 @@
   gap: 14px;
 }
 
+.slugPreflightList {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  color: rgba(221, 229, 244, 0.8);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.slugPreflightHint {
+  margin: 12px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: rgba(188, 198, 223, 0.64);
+}
+
 .blocked {
   display: grid;
   gap: 12px;

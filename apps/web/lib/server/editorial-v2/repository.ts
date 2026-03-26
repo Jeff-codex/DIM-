@@ -17,6 +17,7 @@ import type {
   DraftGenerationRunRecord,
   FeatureBodySection,
   FeatureEntryRecord,
+  FeatureSlugAliasRecord,
   FeatureEntrySourceType,
   FeatureRevisionRecord,
   FeatureRevisionStatus,
@@ -52,6 +53,13 @@ type CmsPublishedRow = {
   cardImage: string | null;
   detailImage: string | null;
   fallbackImage: string | null;
+};
+
+export type FeatureSlugResolution = {
+  requestedSlug: string;
+  canonicalSlug: string;
+  featureEntryId: string;
+  via: "canonical" | "alias";
 };
 
 type ProposalQueueRow = {
@@ -514,6 +522,69 @@ export async function getCmsPublishedArticleBySlug(
   }
 }
 
+export async function getFeatureSlugAliasRecord(
+  aliasSlug: string,
+): Promise<FeatureSlugAliasRecord | null> {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+
+  try {
+    const row = await env.EDITORIAL_DB.prepare(
+      `SELECT
+         alias_slug AS aliasSlug,
+         feature_entry_id AS featureEntryId,
+         created_at AS createdAt,
+         retired_at AS retiredAt
+       FROM feature_slug_alias
+       WHERE alias_slug = ?
+         AND retired_at IS NULL
+       LIMIT 1`,
+    )
+      .bind(aliasSlug)
+      .first<FeatureSlugAliasRecord>();
+
+    return row ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveFeatureSlug(
+  requestedSlug: string,
+): Promise<FeatureSlugResolution | null> {
+  const canonical = await getFeatureEntryBySlug(requestedSlug);
+
+  if (canonical) {
+    return {
+      requestedSlug,
+      canonicalSlug: canonical.slug,
+      featureEntryId: canonical.id,
+      via: "canonical",
+    };
+  }
+
+  const alias = await getFeatureSlugAliasRecord(requestedSlug);
+
+  if (!alias) {
+    return null;
+  }
+
+  const featureEntry = await getFeatureEntryById(alias.featureEntryId);
+
+  if (!featureEntry) {
+    return null;
+  }
+
+  return {
+    requestedSlug,
+    canonicalSlug: featureEntry.slug,
+    featureEntryId: featureEntry.id,
+    via: "alias",
+  };
+}
+
 export async function listEditorialV2Proposals(): Promise<
   EditorialV2ProposalListItem[]
 > {
@@ -685,6 +756,51 @@ export async function getFeatureEntryBySlug(
     sourceType: normalizeFeatureEntrySourceType(row.sourceType),
     featured: row.featured === 1,
   };
+}
+
+export async function listReservedFeatureSlugs(
+  excludeFeatureEntryId?: string,
+): Promise<string[]> {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+
+  const bindArgs = excludeFeatureEntryId ? [excludeFeatureEntryId] : [];
+  const whereClause = excludeFeatureEntryId ? "WHERE id <> ?" : "";
+  const canonicalResult = await env.EDITORIAL_DB.prepare(
+    `SELECT slug
+     FROM feature_entry
+     ${whereClause}`,
+  )
+    .bind(...bindArgs)
+    .all<{ slug: string }>();
+
+  let aliasSlugs: string[] = [];
+
+  try {
+    const aliasWhereClause = excludeFeatureEntryId
+      ? "WHERE feature_entry_id <> ?"
+      : "";
+    const aliasResult = await env.EDITORIAL_DB.prepare(
+      `SELECT alias_slug AS slug
+       FROM feature_slug_alias
+       ${aliasWhereClause}`,
+    )
+      .bind(...bindArgs)
+      .all<{ slug: string }>();
+
+    aliasSlugs = (aliasResult.results ?? []).map((row) => row.slug);
+  } catch {
+    aliasSlugs = [];
+  }
+
+  return Array.from(
+    new Set([
+      ...(canonicalResult.results ?? []).map((row) => row.slug),
+      ...aliasSlugs,
+    ]),
+  );
 }
 
 export async function getFeatureEntryById(

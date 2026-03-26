@@ -8,6 +8,7 @@ import {
   type DraftVisibilityMetadata,
 } from "@/lib/editorial-draft-generation";
 import { getProposalDetail, type ProposalDetail } from "@/lib/server/editorial/admin";
+import { getLegacyPublishedArticles } from "@/lib/legacy-content";
 import {
   ensureEditorialDraftForProposal,
   regenerateEditorialDraftForProposal,
@@ -28,7 +29,10 @@ import type {
   FeatureRevisionStatus,
   VisibilityMetadata,
 } from "@/lib/server/editorial-v2/types";
-import { getAssetFamilyBundle } from "@/lib/server/editorial-v2/repository";
+import {
+  getAssetFamilyBundle,
+  listReservedFeatureSlugs,
+} from "@/lib/server/editorial-v2/repository";
 import {
   editorialV2DraftInputSchema,
   type EditorialV2DraftInput,
@@ -39,6 +43,8 @@ import {
   parseInternalIndustryAnalysisBodySections,
   parseInternalIndustryAnalysisTemplate,
 } from "@/lib/server/editorial-v2/internal-analysis-template";
+import type { SlugSystemInput } from "@/lib/server/editorial-v2/slug-generator";
+import { generateAndValidateDimSlug } from "@/lib/server/editorial-v2/slug-validator";
 
 const defaultAuthorId = "dim-editorial-team";
 
@@ -216,41 +222,37 @@ function buildSourceSnapshotHash(snapshot: DraftSourceSnapshot) {
     .digest("hex");
 }
 
-function slugifyBase(value: string) {
-  const normalized = value
-    .normalize("NFKD")
-    .replace(/[^\x00-\x7F]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-");
+function buildSlugFailureMessage(result: ReturnType<typeof generateAndValidateDimSlug>) {
+  const reasons = result.validation.reasons.join(" / ");
+  const warnings = result.validation.warnings.join(" / ");
+  const detail = [reasons, warnings].filter(Boolean).join(" / ");
 
-  return normalized || "feature";
+  return detail
+    ? `slug_generation_failed:${detail}`
+    : "slug_generation_failed:제목과 요약으로 발행 가능한 slug를 만들지 못했습니다";
 }
 
-async function buildUniqueFeatureSlug(base: string) {
-  const env = await getEditorialEnv({
-    requireBucket: false,
-    requireQueue: false,
+async function generateFeatureSlug(input: SlugSystemInput, excludeFeatureEntryId?: string) {
+  const [reservedSlugs, legacyArticles] = await Promise.all([
+    listReservedFeatureSlugs(excludeFeatureEntryId),
+    getLegacyPublishedArticles(),
+  ]);
+  const existing_slugs = Array.from(
+    new Set([
+      ...reservedSlugs,
+      ...legacyArticles.map((article) => article.slug),
+    ]),
+  );
+  const result = generateAndValidateDimSlug({
+    ...input,
+    existing_slugs,
   });
-  const normalized = slugifyBase(base).slice(0, 72);
-  let candidate = normalized;
-  let suffix = 2;
 
-  while (true) {
-    const existing = await env.EDITORIAL_DB.prepare(
-      `SELECT id FROM feature_entry WHERE slug = ? LIMIT 1`,
-    )
-      .bind(candidate)
-      .first<{ id: string }>();
-
-    if (!existing) {
-      return candidate;
-    }
-
-    candidate = `${normalized}-${suffix}`.slice(0, 80);
-    suffix += 1;
+  if (!result.recommended_slug || result.validation.status === "reject") {
+    throw new Error(buildSlugFailureMessage(result));
   }
+
+  return result.recommended_slug;
 }
 
 function buildInternalAnalysisBodyMarkdown(input: InternalAnalysisBriefInput) {
@@ -691,7 +693,14 @@ export async function createInternalIndustryAnalysisEntry(
   const featureEntryId = crypto.randomUUID();
   const revisionId = crypto.randomUUID();
   const briefId = crypto.randomUUID();
-  const slug = await buildUniqueFeatureSlug(parsed.workingTitle);
+  const slug = await generateFeatureSlug({
+    mode: "generate",
+    title: parsed.workingTitle,
+    summary: parsed.brief,
+    tags: parsed.tags,
+    category: "industry-analysis",
+    topic_keywords: [parsed.market ?? ""],
+  });
   const sourceSnapshot = buildInternalAnalysisSourceSnapshot(parsed);
   const sourceSnapshotJson = JSON.stringify(sourceSnapshot);
   const sourceSnapshotHash = buildSourceSnapshotHash(sourceSnapshot);
@@ -958,7 +967,16 @@ async function ensureFeatureEntryForProposal(proposal: ProposalDetail) {
 
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
-  const slug = await buildUniqueFeatureSlug(proposal.projectName);
+  const slug = await generateFeatureSlug({
+    mode: "generate",
+    title: proposal.projectName,
+    summary: [proposal.summary, proposal.productDescription, proposal.whyNow]
+      .filter(Boolean)
+      .join(" "),
+    entities: [proposal.projectName],
+    topic_keywords: [proposal.market ?? "", proposal.stage ?? ""],
+    category: null,
+  });
 
   await env.EDITORIAL_DB.prepare(
     `INSERT INTO feature_entry (

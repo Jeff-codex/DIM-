@@ -10,6 +10,7 @@ import {
 } from "@/lib/server/editorial-v2/repository";
 import { getEditorialV2DraftByRevisionId } from "@/lib/server/editorial-v2/workflow";
 import { parseInternalIndustryAnalysisTemplate } from "@/lib/server/editorial-v2/internal-analysis-template";
+import { getFeatureSlugPreflightByRevisionId } from "@/lib/server/editorial-v2/published";
 import { AdminAccessRequired } from "../../../../../access-required";
 import styles from "../../../../../admin.module.css";
 
@@ -70,6 +71,30 @@ function getInternalPublishStatusLabel(status: string) {
   }
 }
 
+function getSlugStatusLabel(status: "pass" | "revise" | "reject") {
+  switch (status) {
+    case "pass":
+      return "발행 가능";
+    case "revise":
+      return "수정 권장";
+    case "reject":
+    default:
+      return "발행 차단";
+  }
+}
+
+function getSlugStatusClass(status: "pass" | "revise" | "reject") {
+  switch (status) {
+    case "pass":
+      return styles.signalChipPositive;
+    case "revise":
+      return styles.signalChipWarning;
+    case "reject":
+    default:
+      return styles.signalChipDanger;
+  }
+}
+
 export default async function AdminInternalIndustryAnalysisPublishPage({
   params,
 }: {
@@ -96,10 +121,11 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
     );
   }
 
-  const [featureEntry, brief, draft] = await Promise.all([
+  const [featureEntry, brief, draft, slugPreflight] = await Promise.all([
     getFeatureEntryById(revision.featureEntryId),
     getInternalAnalysisBriefForRevision(revision.id, revision.featureEntryId),
     getEditorialV2DraftByRevisionId(revision.id),
+    getFeatureSlugPreflightByRevisionId(revision.id),
   ]);
 
   if (
@@ -238,10 +264,45 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
                 <dt>사진 출처</dt>
                 <dd>{brief.photoSource ?? "-"}</dd>
               </div>
+              {slugPreflight ? (
+                <div>
+                  <dt>slug 상태</dt>
+                  <dd>
+                    <span
+                      className={getSlugStatusClass(slugPreflight.currentValidation.status)}
+                    >
+                      {getSlugStatusLabel(slugPreflight.currentValidation.status)}
+                    </span>
+                  </dd>
+                </div>
+              ) : null}
+              {slugPreflight &&
+              slugPreflight.recommendedSlug &&
+              slugPreflight.recommendedSlug !== slugPreflight.currentSlug &&
+              slugPreflight.currentValidation.status !== "pass" ? (
+                <div>
+                  <dt>추천 slug</dt>
+                  <dd>{slugPreflight.recommendedSlug}</dd>
+                </div>
+              ) : null}
             </dl>
             <p className={styles.actionCopy}>
-              브리프 원문은 기록용으로 보관하고, 원고실/발행실 미리보기는 구조화된 본문 기준으로 확인합니다.
+              {slugPreflight?.willAutoFixOnFirstPublish
+                ? "첫 공개 발행이라면 현재 slug가 기준을 통과하지 않아도 추천 slug로 자동 교체됩니다."
+                : "브리프 원문은 기록용으로 보관하고, 원고실/발행실 미리보기는 구조화된 본문 기준으로 확인합니다."}
             </p>
+            {slugPreflight?.currentValidation.reasons.length ? (
+              <ul className={styles.slugPreflightList}>
+                {slugPreflight.currentValidation.reasons.slice(0, 2).map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            ) : null}
+            {slugPreflight?.currentValidation.warnings.length ? (
+              <p className={styles.slugPreflightHint}>
+                {slugPreflight.currentValidation.warnings.slice(0, 2).join(" / ")}
+              </p>
+            ) : null}
             <div className={`${styles.linkGrid} ${styles.internalPublishLinkGrid}`}>
               <a
                 href={`/admin/internal/industry-analysis/revisions/${revision.id}`}
