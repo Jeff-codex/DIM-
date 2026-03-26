@@ -7,14 +7,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const errorCopy: Record<string, string> = {
-  core_entities_limit:
-    "핵심 엔터티는 최대 12개까지 입력할 수 있습니다. 줄바꿈으로만 구분해 주세요.",
   source_links_limit:
     "참고 링크는 최대 12개까지 입력할 수 있습니다. 링크는 줄바꿈으로만 구분해 주세요.",
-  evidence_points_limit:
-    "근거 포인트는 최대 10개까지 입력할 수 있습니다. 줄바꿈으로만 구분해 주세요.",
+  tags_limit:
+    "핵심 태그는 최대 10개까지 입력할 수 있습니다. 태그는 줄바꿈으로만 구분해 주세요.",
   working_title_invalid: "작업 제목 길이를 다시 확인해 주세요.",
-  summary_invalid: "한 줄 요약 길이를 다시 확인해 주세요.",
+  brief_invalid: "핵심 브리프 길이를 다시 확인해 주세요.",
   create_failed: "내부 작성 entry를 만들지 못했습니다. 입력값을 다시 확인해 주세요.",
   validation: "입력값을 다시 확인해 주세요.",
 };
@@ -86,7 +84,7 @@ export default async function AdminInternalIndustryAnalysisNewPage({
                 required
               />
               <span className={styles.fieldHelp}>
-                slug와 revision 제목의 출발점이 되는 내부 작업 제목입니다.
+                이 글의 내부 작업 제목입니다. 발행 전까지 계속 다듬을 수 있습니다.
               </span>
             </label>
 
@@ -95,91 +93,64 @@ export default async function AdminInternalIndustryAnalysisNewPage({
               <input
                 name="market"
                 className={styles.textInput}
-                placeholder="예: 한국 이커머스, SaaS 인프라, B2B 유통"
+                placeholder="예: 한국 이커머스, 쿠팡·네이버·버티컬 커머스"
               />
               <span className={styles.fieldHelp}>
-                누구의 구조를 읽는 글인지 한 줄로 남깁니다.
+                어떤 시장과 플레이어를 다루는지 짧게 적습니다.
               </span>
             </label>
           </div>
 
-          <label className={styles.formField}>
-            <span className={styles.fieldLabel}>한 줄 요약</span>
+          <label className={`${styles.formField} ${styles.formFieldSpan}`}>
+            <span className={styles.fieldLabel}>핵심 브리프</span>
             <textarea
-              name="summary"
+              name="brief"
               className={styles.textArea}
-              placeholder="이 글이 무엇을 해석하고 어떤 변화에 답하려는지 짧게 적습니다"
+              placeholder={"짧은 브리프를 적거나, 아래 고정 템플릿의 완성 초안을 그대로 붙여넣어도 됩니다.\n\n제목\n\n핵심 답변\n...\n\n핵심 판단\n...\n\n섹션 제목\n...\n\nDIM의 해석\n..."}
               required
             />
+            <span className={styles.fieldHelp}>
+              한 줄 브리프를 적어도 되고, 제목·핵심 답변·핵심 판단·본문 섹션이 있는 완성 초안을 그대로 붙여넣어도 다음 원고실 preview에서 자동 인식합니다.
+            </span>
           </label>
 
-          <div className={styles.formGrid}>
-            <label className={styles.formField}>
-              <span className={styles.fieldLabel}>분석 범위</span>
-              <textarea
-                name="analysisScope"
-                className={styles.textArea}
-                placeholder="무엇을 비교하고, 어디까지 다룰지 적습니다"
-              />
-            </label>
-
-            <label className={styles.formField}>
-              <span className={styles.fieldLabel}>왜 지금 중요한가</span>
-              <textarea
-                name="whyNow"
-                className={styles.textArea}
-                placeholder="지금 써야 하는 이유와 촉발 이벤트를 적습니다"
-              />
-            </label>
-          </div>
-
-          <div className={styles.formGrid}>
-            <label className={styles.formField}>
-              <span className={styles.fieldLabel}>핵심 엔터티</span>
-              <textarea
-                name="coreEntities"
-                className={styles.textArea}
-                placeholder={"엔터티를 줄바꿈으로 적습니다\n예: 쿠팡\n네이버\n무신사"}
-              />
-              <span className={styles.fieldHelp}>
-                브랜드, 플랫폼, 제품, 제도, 지표를 줄바꿈으로 구분합니다. 최대 12개까지
-                입력할 수 있습니다.
-              </span>
-            </label>
-
-            <label className={styles.formField}>
-              <span className={styles.fieldLabel}>근거 포인트</span>
-              <textarea
-                name="evidencePoints"
-                className={styles.textArea}
-                placeholder={"핵심 근거를 줄바꿈으로 적습니다\n예: 무료 배송 경쟁 심화\n판매자 툴 통합 확대"}
-              />
-              <span className={styles.fieldHelp}>
-                줄바꿈으로 구분하며 최대 10개까지 입력할 수 있습니다.
-              </span>
-            </label>
-          </div>
-
-          <label className={styles.formField}>
+          <label className={`${styles.formField} ${styles.formFieldSpan}`}>
             <span className={styles.fieldLabel}>참고 링크</span>
             <textarea
               name="sourceLinks"
               className={styles.textArea}
-              placeholder={"공식 링크나 참고 링크를 줄바꿈으로 적습니다\nhttps://example.com"}
+              placeholder={"https://example.com/report-1\nhttps://example.com/report-2"}
             />
             <span className={styles.fieldHelp}>
-              링크는 줄바꿈으로만 구분해 주세요. 최대 12개까지 입력할 수 있습니다.
+              공식 자료나 참고 링크를 줄바꿈으로 적습니다.
             </span>
           </label>
 
-          <label className={styles.formField}>
+          <label className={`${styles.formField} ${styles.formFieldSpan}`}>
             <span className={styles.fieldLabel}>편집 메모</span>
             <textarea
               name="editorNotes"
               className={styles.textArea}
-              placeholder="첫 해석 방향, 피해야 할 문장, 내부 판단 가설을 메모합니다"
+              placeholder={"예: “시장 실체는 운영 인프라 경쟁이다”는 문장은 살릴 것\n예: 단순 점유율 경쟁 프레임으로 쓰지 말 것\n예: 커머스 운영 흐름이 보이는 다이어그램형 이미지면 좋음"}
             />
+            <span className={styles.fieldHelp}>
+              살려야 할 문장, 피해야 할 프레임, 이미지 방향까지 함께 적습니다.
+            </span>
           </label>
+
+          <div className={styles.formGrid}>
+            <label className={styles.formField}>
+              <span className={styles.fieldLabel}>핵심 태그 (선택)</span>
+              <textarea
+                name="tags"
+                className={styles.textArea}
+                placeholder={"이커머스\n플랫폼\n운영 인프라"}
+              />
+              <span className={styles.fieldHelp}>
+                검색과 정리를 위한 짧은 태그를 줄바꿈으로 적습니다.
+              </span>
+            </label>
+          </div>
 
           <div className={styles.formActions}>
             <button type="submit" className={styles.linkAction}>

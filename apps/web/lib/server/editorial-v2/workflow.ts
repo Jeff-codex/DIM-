@@ -35,6 +35,7 @@ import {
   internalAnalysisBriefInputSchema,
   type InternalAnalysisBriefInput,
 } from "@/lib/server/editorial-v2/schema";
+import { parseInternalIndustryAnalysisTemplate } from "@/lib/server/editorial-v2/internal-analysis-template";
 
 const defaultAuthorId = "dim-editorial-team";
 
@@ -250,32 +251,29 @@ async function buildUniqueFeatureSlug(base: string) {
 }
 
 function buildInternalAnalysisBodyMarkdown(input: InternalAnalysisBriefInput) {
+  const parsedTemplate = parseInternalIndustryAnalysisTemplate({
+    rawBrief: input.brief,
+    workingTitle: input.workingTitle,
+  });
+
+  if (parsedTemplate.usedStructuredTemplate) {
+    return parsedTemplate.bodyMarkdown;
+  }
+
   const sections = [
-    "# 내부 산업 구조 분석 메모",
+    "## 핵심 브리프",
     "",
-    input.summary,
-    "",
-    "## 무엇을 먼저 볼 것인가",
-    input.analysisScope || "- 분석 범위를 먼저 정리합니다.",
-    "",
-    "## 왜 지금 중요한가",
-    input.whyNow || "- why now를 더 정리합니다.",
-    "",
-    "## 핵심 엔터티",
-    ...(input.coreEntities.length > 0
-      ? input.coreEntities.map((entity) => `- ${entity}`)
-      : ["- 아직 정리 전"]),
+    input.brief,
     "",
     "## 참고 링크",
     ...(input.sourceLinks.length > 0
       ? input.sourceLinks.map((link) => `- ${link}`)
       : ["- 아직 정리 전"]),
-    "",
-    "## 근거 포인트",
-    ...(input.evidencePoints.length > 0
-      ? input.evidencePoints.map((point) => `- ${point}`)
-      : ["- 아직 정리 전"]),
   ];
+
+  if (input.tags.length > 0) {
+    sections.push("", "## 핵심 태그", ...input.tags.map((tag) => `- ${tag}`));
+  }
 
   if (input.editorNotes) {
     sections.push("", "## 편집 메모", input.editorNotes);
@@ -284,22 +282,19 @@ function buildInternalAnalysisBodyMarkdown(input: InternalAnalysisBriefInput) {
   return sections.join("\n");
 }
 
-function buildInternalAnalysisVerdict(input: InternalAnalysisBriefInput) {
-  return (
-    input.analysisScope ||
-    input.whyNow ||
-    "이 글은 산업 구조 변화를 해석하기 위한 내부 작업본입니다."
-  );
-}
-
 function buildInternalAnalysisSourceSnapshot(
   input: InternalAnalysisBriefInput,
 ): DraftSourceSnapshot {
+  const parsedTemplate = parseInternalIndustryAnalysisTemplate({
+    rawBrief: input.brief,
+    workingTitle: input.workingTitle,
+  });
+
   return {
-    projectName: input.workingTitle,
-    summary: input.summary,
-    productDescription: input.analysisScope ?? null,
-    whyNow: input.whyNow ?? null,
+    projectName: parsedTemplate.title || input.workingTitle,
+    summary: parsedTemplate.briefRecord || input.brief,
+    productDescription: null,
+    whyNow: null,
     stage: null,
     market: input.market ?? null,
     updatedAt: null,
@@ -311,6 +306,10 @@ export async function createInternalIndustryAnalysisEntry(
   editorEmail: string,
 ) {
   const parsed = internalAnalysisBriefInputSchema.parse(input);
+  const parsedTemplate = parseInternalIndustryAnalysisTemplate({
+    rawBrief: parsed.brief,
+    workingTitle: parsed.workingTitle,
+  });
   const env = await getEditorialEnv({
     requireBucket: false,
     requireQueue: false,
@@ -371,9 +370,9 @@ export async function createInternalIndustryAnalysisEntry(
     ).bind(
       revisionId,
       featureEntryId,
-      parsed.workingTitle,
-      parsed.summary,
-      buildInternalAnalysisVerdict(parsed),
+      parsedTemplate.title,
+      parsedTemplate.excerpt,
+      parsedTemplate.interpretiveFrame,
       defaultAuthorId,
       buildInternalAnalysisBodyMarkdown(parsed),
       parsed.editorNotes ?? null,
@@ -408,13 +407,13 @@ export async function createInternalIndustryAnalysisEntry(
       featureEntryId,
       revisionId,
       parsed.workingTitle,
-      parsed.summary,
-      parsed.analysisScope ?? null,
-      parsed.whyNow ?? null,
+      parsedTemplate.briefRecord,
+      null,
+      null,
       parsed.market ?? null,
-      JSON.stringify(parsed.coreEntities),
+      JSON.stringify(parsed.tags),
       JSON.stringify(parsed.sourceLinks),
-      JSON.stringify(parsed.evidencePoints),
+      JSON.stringify([]),
       parsed.editorNotes ?? null,
       editorEmail,
       editorEmail,

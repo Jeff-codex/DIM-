@@ -46,18 +46,15 @@ const briefStringList = (maxItems: number, maxLength: number) =>
 
 export const internalAnalysisBriefInputSchema = z.object({
   workingTitle: z.string().trim().min(1).max(180),
-  summary: z.string().trim().min(1).max(420),
-  analysisScope: optionalBriefString,
-  whyNow: optionalBriefString,
+  brief: z.string().trim().min(1).max(24000),
   market: z
     .string()
     .trim()
     .max(220)
     .optional()
     .transform((value) => value || undefined),
-  coreEntities: briefStringList(12, 80),
+  tags: briefStringList(10, 40),
   sourceLinks: briefStringList(12, 2048),
-  evidencePoints: briefStringList(10, 220),
   editorNotes: optionalBriefString,
 });
 

@@ -202,13 +202,10 @@ export type InternalAnalysisBriefRecord = {
   featureEntryId: string;
   currentRevisionId: string | null;
   workingTitle: string;
-  summary: string;
-  analysisScope: string | null;
-  whyNow: string | null;
+  brief: string;
   market: string | null;
-  coreEntities: string[];
+  tags: string[];
   sourceLinks: string[];
-  evidencePoints: string[];
   editorNotes: string | null;
   createdBy: string | null;
   updatedBy: string | null;

@@ -32,9 +32,9 @@ function buildInternalDraftFallback(input: {
     sourceProposalUpdatedAt: null,
     sourceSnapshot: {
       projectName: input.brief.workingTitle,
-      summary: input.brief.summary,
-      productDescription: input.brief.analysisScope,
-      whyNow: input.brief.whyNow,
+      summary: input.brief.brief,
+      productDescription: null,
+      whyNow: null,
       stage: "internal_industry_analysis",
       market: input.brief.market,
       updatedAt: input.brief.updatedAt,
@@ -211,7 +211,7 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
             </div>
             <h2 className={styles.subTitle}>{brief.workingTitle}</h2>
             <p className={styles.actionCopy}>
-              {brief.analysisScope ?? "분석 범위를 먼저 또렷하게 정리한 뒤 발행 준비 상태로 올립니다."}
+              {brief.brief}
             </p>
             <div className={styles.linkGrid}>
               <a

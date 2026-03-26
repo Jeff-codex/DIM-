@@ -94,7 +94,7 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
         <section className={styles.detailMain}>
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>브리프 요약</p>
+              <p className={styles.sectionLabel}>브리프 기록</p>
               <Link
                 href="/admin/internal/industry-analysis/new"
                 className={styles.backLink}
@@ -103,18 +103,10 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
               </Link>
             </div>
             <div className={styles.detailCard}>
-              <p className={styles.longText}>{brief.summary}</p>
+              <p className={styles.longText}>{brief.brief}</p>
               <dl className={styles.summaryGrid}>
                 <div>
-                  <dt>분석 범위</dt>
-                  <dd>{brief.analysisScope ?? "-"}</dd>
-                </div>
-                <div>
-                  <dt>왜 지금 중요한가</dt>
-                  <dd>{brief.whyNow ?? "-"}</dd>
-                </div>
-                <div>
-                  <dt>시장</dt>
+                  <dt>시장/대상</dt>
                   <dd>{brief.market ?? "-"}</dd>
                 </div>
                 <div>
@@ -127,40 +119,7 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
 
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>핵심 입력</p>
-            </div>
-            <div className={styles.assetGrid}>
-              <div>
-                <h2 className={styles.subTitle}>핵심 엔터티</h2>
-                {brief.coreEntities.length > 0 ? (
-                  <ul className={styles.simpleList}>
-                    {brief.coreEntities.map((entity) => (
-                      <li key={entity}>{entity}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className={styles.emptyCopy}>아직 정리된 엔터티가 없습니다</p>
-                )}
-              </div>
-
-              <div>
-                <h2 className={styles.subTitle}>근거 포인트</h2>
-                {brief.evidencePoints.length > 0 ? (
-                  <ul className={styles.simpleList}>
-                    {brief.evidencePoints.map((point) => (
-                      <li key={point}>{point}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className={styles.emptyCopy}>아직 정리된 근거 포인트가 없습니다</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>참고 링크와 메모</p>
+              <p className={styles.sectionLabel}>참고 링크와 편집 메모</p>
             </div>
             <div className={styles.assetGrid}>
               <div>
@@ -189,6 +148,18 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
                 <h2 className={styles.subTitle}>편집 메모</h2>
                 <p className={styles.longText}>{brief.editorNotes ?? "-"}</p>
               </div>
+            </div>
+            <div>
+              <h2 className={styles.subTitle}>핵심 태그</h2>
+              {brief.tags.length > 0 ? (
+                <ul className={styles.simpleList}>
+                  {brief.tags.map((tag) => (
+                    <li key={tag}>{tag}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={styles.emptyCopy}>아직 정리된 핵심 태그가 없습니다</p>
+              )}
             </div>
           </div>
         </section>

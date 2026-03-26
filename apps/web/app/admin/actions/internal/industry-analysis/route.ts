@@ -36,24 +36,20 @@ function getValidationErrorCode(error: ZodError) {
 
   const [path] = firstIssue.path;
 
-  if (path === "coreEntities") {
-    return "core_entities_limit";
-  }
-
   if (path === "sourceLinks") {
     return "source_links_limit";
   }
 
-  if (path === "evidencePoints") {
-    return "evidence_points_limit";
+  if (path === "tags") {
+    return "tags_limit";
   }
 
   if (path === "workingTitle") {
     return "working_title_invalid";
   }
 
-  if (path === "summary") {
-    return "summary_invalid";
+  if (path === "brief") {
+    return "brief_invalid";
   }
 
   return "validation";
@@ -76,13 +72,10 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const input = internalAnalysisBriefInputSchema.parse({
       workingTitle: getTextValue(formData.get("workingTitle")),
-      summary: getTextValue(formData.get("summary")),
-      analysisScope: getTextValue(formData.get("analysisScope")),
-      whyNow: getTextValue(formData.get("whyNow")),
+      brief: getTextValue(formData.get("brief")),
       market: getTextValue(formData.get("market")),
-      coreEntities: parseLineList(formData.get("coreEntities")),
+      tags: parseLineList(formData.get("tags")),
       sourceLinks: parseLineList(formData.get("sourceLinks")),
-      evidencePoints: parseLineList(formData.get("evidencePoints")),
       editorNotes: getTextValue(formData.get("editorNotes")),
     });
 

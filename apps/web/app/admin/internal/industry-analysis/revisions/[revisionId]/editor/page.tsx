@@ -35,9 +35,9 @@ function buildInternalDraftFallback(input: {
     sourceProposalUpdatedAt: null,
     sourceSnapshot: {
       projectName: input.brief.workingTitle,
-      summary: input.brief.summary,
-      productDescription: input.brief.analysisScope,
-      whyNow: input.brief.whyNow,
+      summary: input.brief.brief,
+      productDescription: null,
+      whyNow: null,
       stage: "internal_industry_analysis",
       market: input.brief.market,
       updatedAt: input.brief.updatedAt,
