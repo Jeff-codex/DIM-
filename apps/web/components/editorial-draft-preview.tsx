@@ -11,6 +11,7 @@ type EditorialDraftPreviewProps = {
   coverImageUrl?: string;
   bodyMarkdown: string;
   mode?: "external" | "internal";
+  sticky?: boolean;
 };
 
 function renderBlocks(bodyMarkdown: string) {
@@ -78,9 +79,14 @@ export function EditorialDraftPreview({
   coverImageUrl,
   bodyMarkdown,
   mode = "external",
+  sticky = true,
 }: EditorialDraftPreviewProps) {
   return (
-    <aside className={styles.preview}>
+    <aside
+      className={[styles.preview, !sticky ? styles.previewStatic : null]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div className={styles.chrome}>
         <span />
         <span />

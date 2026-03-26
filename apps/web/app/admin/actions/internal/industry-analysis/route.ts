@@ -76,7 +76,6 @@ export async function POST(request: Request) {
       market: getTextValue(formData.get("market")),
       tags: parseLineList(formData.get("tags")),
       sourceLinks: parseLineList(formData.get("sourceLinks")),
-      editorNotes: getTextValue(formData.get("editorNotes")),
     });
 
     const created = await createInternalIndustryAnalysisEntry(

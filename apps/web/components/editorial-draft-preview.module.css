@@ -3,6 +3,11 @@
   top: 24px;
   display: grid;
   gap: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  isolation: isolate;
   border: 1px solid rgba(145, 163, 217, 0.14);
   background:
     linear-gradient(180deg, rgba(13, 17, 28, 0.96), rgba(9, 12, 20, 0.94)),
@@ -10,6 +15,11 @@
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.previewStatic {
+  position: static;
+  top: auto;
 }
 
 .chrome {
@@ -30,12 +40,16 @@
 
 .page {
   background: #f6f8fc;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .hero {
   display: grid;
   gap: 18px;
   padding: 40px 36px 44px;
+  min-width: 0;
+  overflow: hidden;
   background:
     linear-gradient(135deg, #080a12, #101522 58%, #120d20 100%);
   color: #ffffff;
@@ -52,27 +66,36 @@
 
 .title {
   max-width: none;
+  min-width: 0;
+  max-width: 100%;
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 
 .answerGrid {
   display: grid;
   gap: 16px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .answerBlock {
   display: grid;
   gap: 8px;
   padding-top: 12px;
+  min-width: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .answerBody {
   color: rgba(232, 238, 248, 0.84);
   line-height: 1.72;
+  overflow-wrap: anywhere;
 }
 
 .coverWrap {
   padding: 28px 36px 0;
+  min-width: 0;
 }
 
 .coverFrame {
@@ -101,22 +124,28 @@
   display: grid;
   gap: 10px;
   padding: 28px 36px 0;
+  min-width: 0;
 }
 
 .trustText {
   color: rgba(17, 17, 17, 0.64);
   line-height: 1.72;
+  overflow-wrap: anywhere;
 }
 
 .body {
   display: grid;
   gap: 24px;
   padding: 36px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .contentSection {
   display: grid;
   gap: 14px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .contentSection h2 {
@@ -139,6 +168,7 @@
   margin: 0;
   color: #111111;
   line-height: 1.82;
+  overflow-wrap: anywhere;
 }
 
 .list {

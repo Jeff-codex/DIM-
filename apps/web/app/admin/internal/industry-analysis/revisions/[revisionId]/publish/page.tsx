@@ -6,7 +6,7 @@ import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import {
   getFeatureEntryById,
   getFeatureRevisionById,
-  getInternalAnalysisBriefByRevisionId,
+  getInternalAnalysisBriefForRevision,
 } from "@/lib/server/editorial-v2/repository";
 import { getEditorialV2DraftByRevisionId } from "@/lib/server/editorial-v2/workflow";
 import { AdminAccessRequired } from "../../../../../access-required";
@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 function buildInternalDraftFallback(input: {
   revision: NonNullable<Awaited<ReturnType<typeof getFeatureRevisionById>>>;
-  brief: NonNullable<Awaited<ReturnType<typeof getInternalAnalysisBriefByRevisionId>>>;
+  brief: NonNullable<Awaited<ReturnType<typeof getInternalAnalysisBriefForRevision>>>;
 }) {
   return {
     proposalId: "",
@@ -97,7 +97,7 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
 
   const [featureEntry, brief, draft] = await Promise.all([
     getFeatureEntryById(revision.featureEntryId),
-    getInternalAnalysisBriefByRevisionId(revision.id),
+    getInternalAnalysisBriefForRevision(revision.id, revision.featureEntryId),
     getEditorialV2DraftByRevisionId(revision.id),
   ]);
 
@@ -151,8 +151,8 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
 
       <InternalAnalysisWorkflowNav revisionId={revision.id} active="publish" />
 
-      <div className={styles.detailLayout}>
-        <section className={styles.detailMain}>
+      <div className={`${styles.detailLayout} ${styles.internalPublishLayout}`}>
+        <section className={`${styles.detailMain} ${styles.internalPublishMain}`}>
           <EditorialDraftPreview
             title={resolvedDraft.title}
             displayTitleLines={resolvedDraft.displayTitleLines}
@@ -162,10 +162,11 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
             coverImageUrl={resolvedDraft.coverImageUrl}
             bodyMarkdown={resolvedDraft.bodyMarkdown}
             mode="internal"
+            sticky={false}
           />
         </section>
 
-        <aside className={styles.detailRail}>
+        <aside className={`${styles.detailRail} ${styles.internalPublishRail}`}>
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <p className={styles.sectionLabel}>발행실 액션</p>
@@ -185,7 +186,7 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
             <div className={styles.cardHeader}>
               <p className={styles.sectionLabel}>내부 작성 기준</p>
             </div>
-            <dl className={styles.summaryGrid}>
+            <dl className={`${styles.summaryGrid} ${styles.internalPublishSummaryGrid}`}>
               <div>
                 <dt>소스</dt>
                 <dd>내부 작성</dd>
@@ -213,7 +214,7 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
             <p className={styles.actionCopy}>
               {brief.brief}
             </p>
-            <div className={styles.linkGrid}>
+            <div className={`${styles.linkGrid} ${styles.internalPublishLinkGrid}`}>
               <a
                 href={`/admin/internal/industry-analysis/revisions/${revision.id}`}
                 className={styles.linkActionSecondary}

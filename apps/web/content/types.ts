@@ -55,6 +55,14 @@ export type PublishedArticleSummary = ArticleSummary & {
   status: "published";
 };
 
+export type IndustryAnalysisMeta = {
+  market: string | null;
+  sourceLinks: string[];
+  firstPublishedAt: string;
+  lastUpdatedAt: string;
+};
+
 export type ArticleDetail = PublishedArticleSummary & {
   bodyHtml: string;
+  analysisMeta?: IndustryAnalysisMeta;
 };

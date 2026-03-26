@@ -65,6 +65,18 @@ export async function generateMetadata({
   };
 }
 
+function formatDotDate(value: string) {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}.${month}.${day}`;
+}
+
+function isHttpUrl(value: string) {
+  return /^https?:\/\//i.test(value.trim());
+}
+
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
@@ -148,20 +160,56 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           />
         </div>
 
-        <div className={`reading-width ${styles.trustWrap}`}>
-          <div className={styles.trustBlock}>
-            <p className={styles.answerLabel}>검토 기준</p>
-            <p className={styles.trustText}>
-              이 피처는 공개된 제품 정보와 공식 링크를 우선 확인해 작성했고,
-              설명과 링크는 공개 시점 기준으로 다시 점검합니다
-            </p>
-          </div>
-        </div>
-
         <div
           className={`reading-width ${styles.articleBody}`}
           dangerouslySetInnerHTML={{ __html: article.bodyHtml }}
         />
+
+        {article.analysisMeta ? (
+          <div className={`reading-width ${styles.analysisMetaWrap}`}>
+            <div className={styles.analysisMetaBlock}>
+              <div className={styles.analysisMetaRow}>
+                <p className={styles.analysisMetaLabel}>다루는 시장/플레이어</p>
+                <p className={styles.analysisMetaValue}>
+                  {article.analysisMeta.market ?? "-"}
+                </p>
+              </div>
+              <div className={styles.analysisMetaRow}>
+                <p className={styles.analysisMetaLabel}>작성 기준</p>
+                <p className={styles.analysisMetaValue}>
+                  공식 문서·1차 자료 우선 검토, DIM 편집부 최종 검토 반영
+                </p>
+              </div>
+              <div className={styles.analysisMetaRow}>
+                <p className={styles.analysisMetaLabel}>최초 발행 / 최종 업데이트</p>
+                <p className={styles.analysisMetaValue}>
+                  {formatDotDate(article.analysisMeta.firstPublishedAt)} /{" "}
+                  {formatDotDate(article.analysisMeta.lastUpdatedAt)}
+                </p>
+              </div>
+              <div className={styles.analysisMetaRow}>
+                <p className={styles.analysisMetaLabel}>참고 링크</p>
+                {article.analysisMeta.sourceLinks.length > 0 ? (
+                  <ul className={styles.analysisMetaList}>
+                    {article.analysisMeta.sourceLinks.map((entry) => (
+                      <li key={entry}>
+                        {isHttpUrl(entry) ? (
+                          <a href={entry} target="_blank" rel="noreferrer">
+                            {entry}
+                          </a>
+                        ) : (
+                          <span>{entry}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={styles.analysisMetaValue}>-</p>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </article>
 
       <section className={styles.relatedSection}>

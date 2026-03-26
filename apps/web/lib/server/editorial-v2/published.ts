@@ -7,7 +7,10 @@ import {
   listCmsPublishedArticles,
   listPublishEventsForEntry,
 } from "@/lib/server/editorial-v2/repository";
-import type { FeatureRevisionStatus } from "@/lib/server/editorial-v2/types";
+import type {
+  FeatureEntrySourceType,
+  FeatureRevisionStatus,
+} from "@/lib/server/editorial-v2/types";
 
 type WorkingRevisionStatus = Extract<
   FeatureRevisionStatus,
@@ -59,10 +62,19 @@ type WorkingRevisionRow = {
 
 function buildWorkingRevisionState(
   row: WorkingRevisionRow | null,
+  sourceType: FeatureEntrySourceType = "proposal_intake",
 ): PublishedFeatureV2AdminItem["revision"] {
   if (!row) {
     return null;
   }
+
+  const isInternal = sourceType === "internal_industry_analysis";
+  const editorHref = isInternal
+    ? `/admin/internal/industry-analysis/revisions/${row.id}/editor`
+    : `/admin/editor/revisions/${row.id}`;
+  const publishHref = isInternal
+    ? `/admin/internal/industry-analysis/revisions/${row.id}/publish`
+    : `/admin/publish/revisions/${row.id}`;
 
   return {
     revisionId: row.id,
@@ -72,10 +84,10 @@ function buildWorkingRevisionState(
     assigneeEmail: row.assigneeEmail,
     hasDraft: true,
     hasSnapshot: row.status === "ready_to_publish",
-    reviewHref: row.proposalId ? `/admin/review/${row.proposalId}` : null,
-    editorHref: `/admin/editor/revisions/${row.id}`,
-    previewHref: `/admin/editor/revisions/${row.id}`,
-    publishHref: `/admin/publish/revisions/${row.id}`,
+    reviewHref: !isInternal && row.proposalId ? `/admin/review/${row.proposalId}` : null,
+    editorHref,
+    previewHref: editorHref,
+    publishHref,
   };
 }
 
@@ -197,22 +209,29 @@ export async function listPublishedFeaturesForAdminV2(): Promise<
   PublishedFeatureV2AdminItem[]
 > {
   const articles = await listCmsPublishedArticles();
-  const revisions = await Promise.all(
-    articles.map((article) => getLatestWorkingRevisionByFeatureEntryId(article.featureEntryId)),
-  );
+  const [revisions, featureEntries] = await Promise.all([
+    Promise.all(
+      articles.map((article) => getLatestWorkingRevisionByFeatureEntryId(article.featureEntryId)),
+    ),
+    Promise.all(articles.map((article) => getFeatureEntryBySlug(article.slug))),
+  ]);
 
-  return articles.map((article, index) => ({
-    id: article.id,
-    slug: article.slug,
-    title: article.title,
-    excerpt: article.excerpt,
-    interpretiveFrame: article.interpretiveFrame,
-    coverImage: article.coverImage,
-    categoryName: article.category.name,
-    publishedAt: article.publishedAt,
-    featured: article.featured,
-    revision: buildWorkingRevisionState(revisions[index] ?? null),
-  }));
+  return articles.map((article, index) => {
+    const sourceType = featureEntries[index]?.sourceType ?? "proposal_intake";
+
+    return {
+      id: article.id,
+      slug: article.slug,
+      title: article.title,
+      excerpt: article.excerpt,
+      interpretiveFrame: article.interpretiveFrame,
+      coverImage: article.coverImage,
+      categoryName: article.category.name,
+      publishedAt: article.publishedAt,
+      featured: article.featured,
+      revision: buildWorkingRevisionState(revisions[index] ?? null, sourceType),
+    };
+  });
 }
 
 export async function getPublishedFeatureDetailForAdminV2(
@@ -240,7 +259,7 @@ export async function getPublishedFeatureDetailForAdminV2(
     categoryName: article.category.name,
     publishedAt: article.publishedAt,
     featured: article.featured,
-    revision: buildWorkingRevisionState(revision ?? null),
+    revision: buildWorkingRevisionState(revision ?? null, featureEntry?.sourceType ?? "proposal_intake"),
     bodyHtml: article.bodyHtml,
     bodyMarkdown:
       (featureEntry?.currentPublishedRevisionId
@@ -248,7 +267,7 @@ export async function getPublishedFeatureDetailForAdminV2(
         : null) ?? "",
     authorName: article.author.name,
     publishEvents,
-    revisionDetail: buildWorkingRevisionState(revision ?? null),
+    revisionDetail: buildWorkingRevisionState(revision ?? null, featureEntry?.sourceType ?? "proposal_intake"),
   };
 }
 
@@ -265,12 +284,34 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
   const existing = await getLatestWorkingRevisionByFeatureEntryId(featureEntry.id);
 
   if (existing) {
+    const isInternal = featureEntry.sourceType === "internal_industry_analysis";
+    if (isInternal) {
+      const env = await getEditorialEnv({
+        requireBucket: false,
+        requireQueue: false,
+      });
+      const now = new Date().toISOString();
+      await env.EDITORIAL_DB.prepare(
+        `UPDATE internal_analysis_brief
+         SET current_revision_id = ?,
+             updated_by = ?,
+             updated_at = ?
+         WHERE feature_entry_id = ?`,
+      )
+        .bind(existing.id, editorEmail, now, featureEntry.id)
+        .run();
+    }
+
     return {
       mode: "existing" as const,
       revisionId: existing.id,
       proposalId: existing.proposalId,
-      draftHref: `/admin/editor/revisions/${existing.id}`,
-      publishHref: `/admin/publish/revisions/${existing.id}`,
+      draftHref: isInternal
+        ? `/admin/internal/industry-analysis/revisions/${existing.id}/editor`
+        : `/admin/editor/revisions/${existing.id}`,
+      publishHref: isInternal
+        ? `/admin/internal/industry-analysis/revisions/${existing.id}/publish`
+        : `/admin/publish/revisions/${existing.id}`,
     };
   }
 
@@ -281,10 +322,7 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
   if (!currentPublishedRevision) {
     throw new Error("current_published_revision_not_found");
   }
-
-  if (!currentPublishedRevision.proposalId) {
-    throw new Error("current_published_revision_has_no_proposal");
-  }
+  const isInternal = featureEntry.sourceType === "internal_industry_analysis";
 
   const env = await getEditorialEnv({
     requireBucket: false,
@@ -354,6 +392,13 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
       now,
     ),
     env.EDITORIAL_DB.prepare(
+      `UPDATE internal_analysis_brief
+       SET current_revision_id = ?,
+           updated_by = ?,
+           updated_at = ?
+       WHERE feature_entry_id = ?`,
+    ).bind(revisionId, editorEmail, now, featureEntry.id),
+    env.EDITORIAL_DB.prepare(
       `INSERT INTO publish_event (
          id,
          feature_entry_id,
@@ -382,8 +427,12 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
     mode: "new" as const,
     revisionId,
     proposalId: currentPublishedRevision.proposalId,
-    draftHref: `/admin/editor/revisions/${revisionId}`,
-    publishHref: `/admin/publish/revisions/${revisionId}`,
+    draftHref: isInternal
+      ? `/admin/internal/industry-analysis/revisions/${revisionId}/editor`
+      : `/admin/editor/revisions/${revisionId}`,
+    publishHref: isInternal
+      ? `/admin/internal/industry-analysis/revisions/${revisionId}/publish`
+      : `/admin/publish/revisions/${revisionId}`,
   };
 }
 

@@ -9,7 +9,7 @@ import {
 import {
   getFeatureEntryById,
   getFeatureRevisionById,
-  getInternalAnalysisBriefByRevisionId,
+  getInternalAnalysisBriefForRevision,
 } from "@/lib/server/editorial-v2/repository";
 import { AdminAccessRequired } from "../../../../../access-required";
 import styles from "../../../../../admin.module.css";
@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 function buildInternalDraftFallback(input: {
   revision: NonNullable<Awaited<ReturnType<typeof getFeatureRevisionById>>>;
   featureEntry: NonNullable<Awaited<ReturnType<typeof getFeatureEntryById>>>;
-  brief: NonNullable<Awaited<ReturnType<typeof getInternalAnalysisBriefByRevisionId>>>;
+  brief: NonNullable<Awaited<ReturnType<typeof getInternalAnalysisBriefForRevision>>>;
 }) {
   return {
     proposalId: "",
@@ -74,7 +74,7 @@ export default async function AdminInternalIndustryAnalysisEditorPage({
 
   const [featureEntry, brief, draft, editorialAssets] = await Promise.all([
     getFeatureEntryById(revision.featureEntryId),
-    getInternalAnalysisBriefByRevisionId(revision.id),
+    getInternalAnalysisBriefForRevision(revision.id, revision.featureEntryId),
     getEditorialV2DraftByRevisionId(revision.id),
     listEditorialV2AssetFamiliesByRevisionId(revision.id),
   ]);

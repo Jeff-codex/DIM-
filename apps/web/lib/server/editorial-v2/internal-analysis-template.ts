@@ -7,6 +7,7 @@ type ParsedInternalIndustryAnalysisTemplate = {
   interpretiveFrame: string;
   bodyMarkdown: string;
   briefRecord: string;
+  sourceLinks: string[];
   usedStructuredTemplate: boolean;
 };
 
@@ -94,25 +95,21 @@ function normalizeParagraphBlock(block: string) {
   return lines.join("\n");
 }
 
-function buildSourceListMarkdown(blocks: string[]) {
-  const items = blocks
+function parseSourceListItems(blocks: string[]) {
+  return blocks
     .flatMap((block) =>
       normalizeBlock(block)
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean),
     )
-    .map((line) => (line.startsWith("- ") ? line : `- ${line}`));
-
-  if (items.length === 0) {
-    return "";
-  }
-
-  return ["## 참고한 링크 출처", "", ...items].join("\n");
+    .map((line) => line.replace(/^- /, "").trim())
+    .filter(Boolean);
 }
 
 function buildStructuredBodyMarkdown(blocks: string[]) {
   const sections: string[] = [];
+  const sourceLinks: string[] = [];
   let cursor = 0;
 
   while (cursor < blocks.length) {
@@ -124,10 +121,7 @@ function buildStructuredBodyMarkdown(blocks: string[]) {
     }
 
     if (isExactLabel(current, "참고한 링크 출처")) {
-      const sourceMarkdown = buildSourceListMarkdown(blocks.slice(cursor + 1));
-      if (sourceMarkdown) {
-        sections.push(sourceMarkdown);
-      }
+      sourceLinks.push(...parseSourceListItems(blocks.slice(cursor + 1)));
       break;
     }
 
@@ -171,7 +165,10 @@ function buildStructuredBodyMarkdown(blocks: string[]) {
     cursor += 1;
   }
 
-  return sections.filter(Boolean).join("\n\n");
+  return {
+    bodyMarkdown: sections.filter(Boolean).join("\n\n"),
+    sourceLinks,
+  };
 }
 
 function consumeLabeledContent(
@@ -232,6 +229,7 @@ export function parseInternalIndustryAnalysisTemplate(input: {
       interpretiveFrame: truncateText(rawBrief, 320),
       bodyMarkdown: ["## 핵심 브리프", "", rawBrief].join("\n"),
       briefRecord: rawBrief,
+      sourceLinks: [],
       usedStructuredTemplate: false,
     } satisfies ParsedInternalIndustryAnalysisTemplate;
   }
@@ -280,11 +278,12 @@ export function parseInternalIndustryAnalysisTemplate(input: {
       interpretiveFrame,
       bodyMarkdown: ["## 핵심 브리프", "", rawBrief].join("\n"),
       briefRecord: rawBrief,
+      sourceLinks: [],
       usedStructuredTemplate: false,
     } satisfies ParsedInternalIndustryAnalysisTemplate;
   }
 
-  const bodyMarkdown = buildStructuredBodyMarkdown(remainingBlocks);
+  const structuredBody = buildStructuredBodyMarkdown(remainingBlocks);
   const briefRecord = [answer.value, verdict.value].filter(Boolean).join("\n\n");
 
   return {
@@ -292,8 +291,10 @@ export function parseInternalIndustryAnalysisTemplate(input: {
     displayTitleLines: [],
     excerpt: answer.value,
     interpretiveFrame: verdict.value,
-    bodyMarkdown: bodyMarkdown || ["## 핵심 브리프", "", rawBrief].join("\n"),
+    bodyMarkdown:
+      structuredBody.bodyMarkdown || ["## 핵심 브리프", "", rawBrief].join("\n"),
     briefRecord: briefRecord || rawBrief,
+    sourceLinks: structuredBody.sourceLinks,
     usedStructuredTemplate: true,
   } satisfies ParsedInternalIndustryAnalysisTemplate;
 }

@@ -5,7 +5,7 @@ import { requireAdminIdentity } from "@/lib/server/editorial/admin";
 import {
   getFeatureEntryById,
   getFeatureRevisionById,
-  getInternalAnalysisBriefByRevisionId,
+  getInternalAnalysisBriefForRevision,
 } from "@/lib/server/editorial-v2/repository";
 import { listEditorialV2AssetFamiliesByRevisionId } from "@/lib/server/editorial-v2/workflow";
 import { AdminAccessRequired } from "../../../../access-required";
@@ -55,7 +55,7 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
 
   const [featureEntry, brief, editorialAssets] = await Promise.all([
     getFeatureEntryById(revision.featureEntryId),
-    getInternalAnalysisBriefByRevisionId(revision.id),
+    getInternalAnalysisBriefForRevision(revision.id, revision.featureEntryId),
     listEditorialV2AssetFamiliesByRevisionId(revision.id),
   ]);
 
@@ -119,7 +119,7 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
 
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <p className={styles.sectionLabel}>참고 링크와 편집 메모</p>
+              <p className={styles.sectionLabel}>참고 링크와 핵심 태그</p>
             </div>
             <div className={styles.assetGrid}>
               <div>
@@ -145,21 +145,17 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
               </div>
 
               <div>
-                <h2 className={styles.subTitle}>편집 메모</h2>
-                <p className={styles.longText}>{brief.editorNotes ?? "-"}</p>
+                <h2 className={styles.subTitle}>핵심 태그</h2>
+                {brief.tags.length > 0 ? (
+                  <ul className={styles.simpleList}>
+                    {brief.tags.map((tag) => (
+                      <li key={tag}>{tag}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={styles.emptyCopy}>아직 정리된 핵심 태그가 없습니다</p>
+                )}
               </div>
-            </div>
-            <div>
-              <h2 className={styles.subTitle}>핵심 태그</h2>
-              {brief.tags.length > 0 ? (
-                <ul className={styles.simpleList}>
-                  {brief.tags.map((tag) => (
-                    <li key={tag}>{tag}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={styles.emptyCopy}>아직 정리된 핵심 태그가 없습니다</p>
-              )}
             </div>
           </div>
         </section>

@@ -206,7 +206,6 @@ export type InternalAnalysisBriefRecord = {
   market: string | null;
   tags: string[];
   sourceLinks: string[];
-  editorNotes: string | null;
   createdBy: string | null;
   updatedBy: string | null;
   createdAt: string;

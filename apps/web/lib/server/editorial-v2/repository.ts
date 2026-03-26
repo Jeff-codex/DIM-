@@ -36,6 +36,7 @@ type CmsPublishedRow = {
   featureEntryId: string;
   featureRevisionId: string;
   slug: string;
+  sourceType: string;
   featured: number;
   title: string;
   displayTitleLinesJson: string | null;
@@ -46,6 +47,7 @@ type CmsPublishedRow = {
   tagIdsJson: string;
   bodyMarkdown: string;
   publishedAt: string;
+  updatedAt: string;
   cardImage: string | null;
   detailImage: string | null;
   fallbackImage: string | null;
@@ -276,6 +278,43 @@ function normalizeProposalStatus(status: string) {
   }
 }
 
+function stripInternalReferenceSection(bodyMarkdown: string) {
+  const blocks = bodyMarkdown
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+  const bodyBlocks: string[] = [];
+  const sourceLinks: string[] = [];
+  let inSourceSection = false;
+
+  for (const block of blocks) {
+    const lines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const heading = lines[0]?.replace(/^##\s+/, "").trim();
+
+    if (!inSourceSection && heading === "참고한 링크 출처") {
+      inSourceSection = true;
+      continue;
+    }
+
+    if (inSourceSection) {
+      sourceLinks.push(
+        ...lines.map((line) => line.replace(/^- /, "").trim()).filter(Boolean),
+      );
+      continue;
+    }
+
+    bodyBlocks.push(block);
+  }
+
+  return {
+    bodyMarkdown: bodyBlocks.join("\n\n"),
+    sourceLinks,
+  };
+}
+
 export async function listCmsPublishedArticles(): Promise<CmsPublishedArticle[]> {
   try {
     const env = await getEditorialEnv({
@@ -288,6 +327,7 @@ export async function listCmsPublishedArticles(): Promise<CmsPublishedArticle[]>
          fe.id AS featureEntryId,
          fr.id AS featureRevisionId,
          fe.slug,
+         fe.source_type AS sourceType,
          fe.featured,
          fr.title,
          fr.display_title_lines_json AS displayTitleLinesJson,
@@ -298,6 +338,7 @@ export async function listCmsPublishedArticles(): Promise<CmsPublishedArticle[]>
          fr.tag_ids_json AS tagIdsJson,
          fr.body_markdown AS bodyMarkdown,
          fr.published_at AS publishedAt,
+         fr.updated_at AS updatedAt,
          card.public_url AS cardImage,
          detail.public_url AS detailImage,
          fallback.public_url AS fallbackImage
@@ -340,6 +381,7 @@ export async function getCmsPublishedArticleBySlug(
          fe.id AS featureEntryId,
          fr.id AS featureRevisionId,
          fe.slug,
+         fe.source_type AS sourceType,
          fe.featured,
          fr.title,
          fr.display_title_lines_json AS displayTitleLinesJson,
@@ -350,6 +392,7 @@ export async function getCmsPublishedArticleBySlug(
          fr.tag_ids_json AS tagIdsJson,
          fr.body_markdown AS bodyMarkdown,
          fr.published_at AS publishedAt,
+         fr.updated_at AS updatedAt,
          card.public_url AS cardImage,
          detail.public_url AS detailImage,
          fallback.public_url AS fallbackImage
@@ -383,9 +426,34 @@ export async function getCmsPublishedArticleBySlug(
       return null;
     }
 
+    const isInternalIndustryAnalysis =
+      normalizeFeatureEntrySourceType(row.sourceType) === "internal_industry_analysis" &&
+      row.categoryId === "industry-analysis";
+    const strippedBody = isInternalIndustryAnalysis
+      ? stripInternalReferenceSection(row.bodyMarkdown)
+      : { bodyMarkdown: row.bodyMarkdown, sourceLinks: [] as string[] };
+    const brief = isInternalIndustryAnalysis
+      ? await getInternalAnalysisBriefForRevision(
+          row.featureRevisionId,
+          row.featureEntryId,
+        )
+      : null;
+    const sourceLinks =
+      brief?.sourceLinks && brief.sourceLinks.length > 0
+        ? brief.sourceLinks
+        : strippedBody.sourceLinks;
+
     return {
       ...summary,
-      bodyHtml: await renderEditorialMarkdown(row.bodyMarkdown),
+      bodyHtml: await renderEditorialMarkdown(strippedBody.bodyMarkdown),
+      analysisMeta: isInternalIndustryAnalysis
+        ? {
+            market: brief?.market ?? null,
+            sourceLinks,
+            firstPublishedAt: row.publishedAt,
+            lastUpdatedAt: row.updatedAt,
+          }
+        : undefined,
     };
   } catch {
     return null;
@@ -767,7 +835,6 @@ export async function getInternalAnalysisBriefByRevisionId(
        core_entities_json AS coreEntitiesJson,
        source_links_json AS sourceLinksJson,
        evidence_points_json AS evidencePointsJson,
-       editor_notes AS editorNotes,
        created_by AS createdBy,
        updated_by AS updatedBy,
        created_at AS createdAt,
@@ -789,7 +856,6 @@ export async function getInternalAnalysisBriefByRevisionId(
       coreEntitiesJson: string | null;
       sourceLinksJson: string | null;
       evidencePointsJson: string | null;
-      editorNotes: string | null;
       createdBy: string | null;
       updatedBy: string | null;
       createdAt: string;
@@ -809,12 +875,88 @@ export async function getInternalAnalysisBriefByRevisionId(
     market: row.market,
     tags: parseStringArray(row.coreEntitiesJson),
     sourceLinks: parseStringArray(row.sourceLinksJson),
-    editorNotes: row.editorNotes,
     createdBy: row.createdBy,
     updatedBy: row.updatedBy,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+export async function getInternalAnalysisBriefByFeatureEntryId(
+  featureEntryId: string,
+): Promise<InternalAnalysisBriefRecord | null> {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+  const row = await env.EDITORIAL_DB.prepare(
+    `SELECT
+       id,
+       feature_entry_id AS featureEntryId,
+       current_revision_id AS currentRevisionId,
+       working_title AS workingTitle,
+       summary,
+       analysis_scope AS analysisScope,
+       why_now AS whyNow,
+       market,
+       core_entities_json AS coreEntitiesJson,
+       source_links_json AS sourceLinksJson,
+       evidence_points_json AS evidencePointsJson,
+       created_by AS createdBy,
+       updated_by AS updatedBy,
+       created_at AS createdAt,
+       updated_at AS updatedAt
+     FROM internal_analysis_brief
+     WHERE feature_entry_id = ?
+     LIMIT 1`,
+  )
+    .bind(featureEntryId)
+    .first<{
+      id: string;
+      featureEntryId: string;
+      currentRevisionId: string | null;
+      workingTitle: string;
+      summary: string;
+      analysisScope: string | null;
+      whyNow: string | null;
+      market: string | null;
+      coreEntitiesJson: string | null;
+      sourceLinksJson: string | null;
+      evidencePointsJson: string | null;
+      createdBy: string | null;
+      updatedBy: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    featureEntryId: row.featureEntryId,
+    currentRevisionId: row.currentRevisionId,
+    workingTitle: row.workingTitle,
+    brief: row.summary,
+    market: row.market,
+    tags: parseStringArray(row.coreEntitiesJson),
+    sourceLinks: parseStringArray(row.sourceLinksJson),
+    createdBy: row.createdBy,
+    updatedBy: row.updatedBy,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+export async function getInternalAnalysisBriefForRevision(
+  revisionId: string,
+  featureEntryId: string,
+): Promise<InternalAnalysisBriefRecord | null> {
+  return (
+    (await getInternalAnalysisBriefByRevisionId(revisionId)) ??
+    (await getInternalAnalysisBriefByFeatureEntryId(featureEntryId))
+  );
 }
 
 export async function listInternalIndustryAnalysisEntries(): Promise<

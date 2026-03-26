@@ -126,18 +126,6 @@ export default async function AdminInternalIndustryAnalysisNewPage({
             </span>
           </label>
 
-          <label className={`${styles.formField} ${styles.formFieldSpan}`}>
-            <span className={styles.fieldLabel}>편집 메모</span>
-            <textarea
-              name="editorNotes"
-              className={styles.textArea}
-              placeholder={"예: “시장 실체는 운영 인프라 경쟁이다”는 문장은 살릴 것\n예: 단순 점유율 경쟁 프레임으로 쓰지 말 것\n예: 커머스 운영 흐름이 보이는 다이어그램형 이미지면 좋음"}
-            />
-            <span className={styles.fieldHelp}>
-              살려야 할 문장, 피해야 할 프레임, 이미지 방향까지 함께 적습니다.
-            </span>
-          </label>
-
           <div className={styles.formGrid}>
             <label className={styles.formField}>
               <span className={styles.fieldLabel}>핵심 태그 (선택)</span>

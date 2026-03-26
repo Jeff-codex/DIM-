@@ -260,26 +260,7 @@ function buildInternalAnalysisBodyMarkdown(input: InternalAnalysisBriefInput) {
     return parsedTemplate.bodyMarkdown;
   }
 
-  const sections = [
-    "## 핵심 브리프",
-    "",
-    input.brief,
-    "",
-    "## 참고 링크",
-    ...(input.sourceLinks.length > 0
-      ? input.sourceLinks.map((link) => `- ${link}`)
-      : ["- 아직 정리 전"]),
-  ];
-
-  if (input.tags.length > 0) {
-    sections.push("", "## 핵심 태그", ...input.tags.map((tag) => `- ${tag}`));
-  }
-
-  if (input.editorNotes) {
-    sections.push("", "## 편집 메모", input.editorNotes);
-  }
-
-  return sections.join("\n");
+  return ["## 핵심 브리프", "", input.brief].join("\n");
 }
 
 function buildInternalAnalysisSourceSnapshot(
@@ -322,6 +303,9 @@ export async function createInternalIndustryAnalysisEntry(
   const sourceSnapshot = buildInternalAnalysisSourceSnapshot(parsed);
   const sourceSnapshotJson = JSON.stringify(sourceSnapshot);
   const sourceSnapshotHash = buildSourceSnapshotHash(sourceSnapshot);
+  const sourceLinks = Array.from(
+    new Set([...parsed.sourceLinks, ...parsedTemplate.sourceLinks].map((entry) => entry.trim()).filter(Boolean)),
+  );
 
   await env.EDITORIAL_DB.batch([
     env.EDITORIAL_DB.prepare(
@@ -375,7 +359,7 @@ export async function createInternalIndustryAnalysisEntry(
       parsedTemplate.interpretiveFrame,
       defaultAuthorId,
       buildInternalAnalysisBodyMarkdown(parsed),
-      parsed.editorNotes ?? null,
+      null,
       sourceSnapshotHash,
       sourceSnapshotJson,
       editorEmail,
@@ -412,9 +396,9 @@ export async function createInternalIndustryAnalysisEntry(
       null,
       parsed.market ?? null,
       JSON.stringify(parsed.tags),
-      JSON.stringify(parsed.sourceLinks),
+      JSON.stringify(sourceLinks),
       JSON.stringify([]),
-      parsed.editorNotes ?? null,
+      null,
       editorEmail,
       editorEmail,
       now,

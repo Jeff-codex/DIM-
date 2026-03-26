@@ -30,13 +30,6 @@ export const editorialV2DraftInputSchema = z.object({
 
 export type EditorialV2DraftInput = z.infer<typeof editorialV2DraftInputSchema>;
 
-const optionalBriefString = z
-  .string()
-  .trim()
-  .max(2400)
-  .optional()
-  .transform((value) => value || undefined);
-
 const briefStringList = (maxItems: number, maxLength: number) =>
   z
     .array(z.string().trim().min(1).max(maxLength))
@@ -55,7 +48,6 @@ export const internalAnalysisBriefInputSchema = z.object({
     .transform((value) => value || undefined),
   tags: briefStringList(10, 40),
   sourceLinks: briefStringList(12, 2048),
-  editorNotes: optionalBriefString,
 });
 
 export type InternalAnalysisBriefInput = z.infer<

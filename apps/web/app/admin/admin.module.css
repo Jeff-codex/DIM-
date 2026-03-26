@@ -514,6 +514,29 @@
   align-items: start;
 }
 
+.internalPublishLayout {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.internalPublishMain,
+.internalPublishRail {
+  min-width: 0;
+}
+
+.internalPublishMain {
+  overflow: hidden;
+}
+
+.internalPublishRail {
+  position: relative;
+  z-index: 1;
+}
+
+.internalPublishSummaryGrid,
+.internalPublishLinkGrid {
+  grid-template-columns: 1fr;
+}
+
 .fullWidthPanel {
   display: grid;
 }
@@ -899,6 +922,10 @@
   .row,
   .actionBar,
   .queueStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .internalPublishLayout {
     grid-template-columns: 1fr;
   }
 
