@@ -4,6 +4,7 @@ import { categories } from "@/content/categories";
 import { tags } from "@/content/tags";
 import { renderEditorialMarkdown } from "@/lib/server/editorial/markdown";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
+import { parseInternalIndustryAnalysisTemplate } from "@/lib/server/editorial-v2/internal-analysis-template";
 import type {
   AssetFamilyBundle,
   AssetFamilyRecord,
@@ -315,6 +316,39 @@ function stripInternalReferenceSection(bodyMarkdown: string) {
   };
 }
 
+function isInternalAnalysisFallbackBody(bodyMarkdown: string) {
+  return bodyMarkdown.trimStart().startsWith("## 핵심 브리프");
+}
+
+function repairInternalIndustryAnalysisContent(input: {
+  title: string;
+  bodyMarkdown: string;
+  brief: string | null;
+  workingTitle: string | null;
+}) {
+  if (!input.brief || !isInternalAnalysisFallbackBody(input.bodyMarkdown)) {
+    return null;
+  }
+
+  const parsed = parseInternalIndustryAnalysisTemplate({
+    rawBrief: input.brief,
+    workingTitle: input.workingTitle?.trim() || input.title,
+  });
+
+  if (!parsed.usedStructuredTemplate) {
+    return null;
+  }
+
+  return {
+    title: parsed.title || input.title,
+    displayTitleLines: parsed.displayTitleLines,
+    excerpt: parsed.excerpt,
+    interpretiveFrame: parsed.interpretiveFrame,
+    bodyMarkdown: parsed.bodyMarkdown,
+    sourceLinks: parsed.sourceLinks,
+  };
+}
+
 export async function listCmsPublishedArticles(): Promise<CmsPublishedArticle[]> {
   try {
     const env = await getEditorialEnv({
@@ -426,28 +460,47 @@ export async function getCmsPublishedArticleBySlug(
       return null;
     }
 
-    const isInternalIndustryAnalysis =
-      normalizeFeatureEntrySourceType(row.sourceType) === "internal_industry_analysis" &&
-      row.categoryId === "industry-analysis";
-    const strippedBody = isInternalIndustryAnalysis
-      ? stripInternalReferenceSection(row.bodyMarkdown)
-      : { bodyMarkdown: row.bodyMarkdown, sourceLinks: [] as string[] };
-    const brief = isInternalIndustryAnalysis
-      ? await getInternalAnalysisBriefForRevision(
-          row.featureRevisionId,
-          row.featureEntryId,
-        )
-      : null;
-    const sourceLinks =
-      brief?.sourceLinks && brief.sourceLinks.length > 0
-        ? brief.sourceLinks
-        : strippedBody.sourceLinks;
+      const isInternalIndustryAnalysis =
+        normalizeFeatureEntrySourceType(row.sourceType) === "internal_industry_analysis" &&
+        row.categoryId === "industry-analysis";
+      const brief = isInternalIndustryAnalysis
+        ? await getInternalAnalysisBriefForRevision(
+            row.featureRevisionId,
+            row.featureEntryId,
+          )
+        : null;
+      const repairedContent =
+        isInternalIndustryAnalysis && brief
+          ? repairInternalIndustryAnalysisContent({
+              title: row.title,
+              bodyMarkdown: row.bodyMarkdown,
+              brief: brief.brief,
+              workingTitle: brief.workingTitle,
+            })
+          : null;
+      const strippedBody = isInternalIndustryAnalysis
+        ? stripInternalReferenceSection(
+            repairedContent?.bodyMarkdown ?? row.bodyMarkdown,
+          )
+        : { bodyMarkdown: row.bodyMarkdown, sourceLinks: [] as string[] };
+      const sourceLinks =
+        brief?.sourceLinks && brief.sourceLinks.length > 0
+          ? brief.sourceLinks
+          : repairedContent?.sourceLinks && repairedContent.sourceLinks.length > 0
+            ? repairedContent.sourceLinks
+            : strippedBody.sourceLinks;
 
-    return {
-      ...summary,
-      bodyHtml: await renderEditorialMarkdown(strippedBody.bodyMarkdown),
-      analysisMeta: isInternalIndustryAnalysis
-        ? {
+      return {
+        ...summary,
+        title: repairedContent?.title ?? summary.title,
+        displayTitleLines:
+          repairedContent?.displayTitleLines ?? summary.displayTitleLines,
+        excerpt: repairedContent?.excerpt ?? summary.excerpt,
+        interpretiveFrame:
+          repairedContent?.interpretiveFrame ?? summary.interpretiveFrame,
+        bodyHtml: await renderEditorialMarkdown(strippedBody.bodyMarkdown),
+        analysisMeta: isInternalIndustryAnalysis
+          ? {
             market: brief?.market ?? null,
             photoSource: brief?.photoSource ?? null,
             sourceLinks,

@@ -86,6 +86,30 @@ function isHeadingCandidate(block: string) {
   return !endsWithSentenceMark(singleLine);
 }
 
+function isTitleCandidate(block: string) {
+  const normalized = normalizeBlock(block);
+
+  if (!normalized) {
+    return false;
+  }
+
+  const lines = normalized.split("\n").filter(Boolean);
+  if (lines.length !== 1) {
+    return false;
+  }
+
+  const singleLine = lines[0].trim();
+  if (!singleLine || singleLine.length > 120) {
+    return false;
+  }
+
+  if (labeledSections.has(stripLabelDecoration(singleLine))) {
+    return false;
+  }
+
+  return !endsWithSentenceMark(singleLine);
+}
+
 function normalizeParagraphBlock(block: string) {
   const lines = normalizeBlock(block)
     .split("\n")
@@ -171,6 +195,54 @@ function buildStructuredBodyMarkdown(blocks: string[]) {
   };
 }
 
+function inferStructuredTemplate(input: {
+  rawBrief: string;
+  workingTitle: string;
+  blocks: string[];
+}) {
+  let cursor = 0;
+  let title = input.workingTitle;
+
+  if (isTitleCandidate(input.blocks[0] ?? "")) {
+    title = normalizeBlock(input.blocks[0] ?? "");
+    cursor = 1;
+  }
+
+  while (cursor < input.blocks.length && isDateMetaBlock(input.blocks[cursor] ?? "")) {
+    cursor += 1;
+  }
+
+  const remainingBlocks = input.blocks.slice(cursor);
+  const paragraphBlocks = remainingBlocks
+    .map((block) => normalizeParagraphBlock(block))
+    .filter(Boolean);
+
+  const excerptBlock = paragraphBlocks[0] ?? "";
+  const verdictBlock = paragraphBlocks[1] ?? "";
+
+  if (!excerptBlock || !verdictBlock) {
+    return null;
+  }
+
+  const structuredBody = buildStructuredBodyMarkdown(remainingBlocks.slice(2));
+  const hasStructuredSections = /(^|\n)##\s+/m.test(structuredBody.bodyMarkdown);
+
+  if (!hasStructuredSections) {
+    return null;
+  }
+
+  return {
+    title,
+    displayTitleLines: [],
+    excerpt: truncateText(excerptBlock, 320),
+    interpretiveFrame: truncateText(verdictBlock, 320),
+    bodyMarkdown: structuredBody.bodyMarkdown,
+    briefRecord: [excerptBlock, verdictBlock].join("\n\n"),
+    sourceLinks: structuredBody.sourceLinks,
+    usedStructuredTemplate: true,
+  } satisfies ParsedInternalIndustryAnalysisTemplate;
+}
+
 function consumeLabeledContent(
   blocks: string[],
   startIndex: number,
@@ -237,7 +309,7 @@ export function parseInternalIndustryAnalysisTemplate(input: {
   let cursor = 0;
   let title = input.workingTitle;
 
-  if (!labeledSections.has(stripLabelDecoration(blocks[0])) && !isDateMetaBlock(blocks[0])) {
+  if (isTitleCandidate(blocks[0] ?? "")) {
     title = blocks[0];
     cursor = 1;
   }
@@ -261,6 +333,16 @@ export function parseInternalIndustryAnalysisTemplate(input: {
     title.trim().length > 0 && answer.found && verdict.found && remainingBlocks.length > 0;
 
   if (!hasStructuredTop) {
+    const inferredTemplate = inferStructuredTemplate({
+      rawBrief,
+      workingTitle: input.workingTitle,
+      blocks,
+    });
+
+    if (inferredTemplate) {
+      return inferredTemplate;
+    }
+
     const paragraphBlocks = rawBrief
       .split(/\n{2,}/)
       .map((block) => normalizeParagraphBlock(block))

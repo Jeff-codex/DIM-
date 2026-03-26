@@ -243,14 +243,14 @@
   }
 
   .analysisMetaLabel {
-    font-size: 0.64rem;
-    letter-spacing: 0.08em;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
   }
 
   .analysisMetaValue,
   .analysisMetaList {
-    font-size: 0.84rem;
-    line-height: 1.62;
+    font-size: 0.74rem;
+    line-height: 1.5;
   }
 
   .analysisMetaList {

@@ -266,20 +266,253 @@ function buildInternalAnalysisBodyMarkdown(input: InternalAnalysisBriefInput) {
 function buildInternalAnalysisSourceSnapshot(
   input: InternalAnalysisBriefInput,
 ): DraftSourceSnapshot {
-  const parsedTemplate = parseInternalIndustryAnalysisTemplate({
-    rawBrief: input.brief,
-    workingTitle: input.workingTitle,
-  });
-
   return {
-    projectName: parsedTemplate.title || input.workingTitle,
-    summary: parsedTemplate.briefRecord || input.brief,
+    projectName: input.workingTitle,
+    summary: input.brief,
     productDescription: null,
     whyNow: null,
     stage: null,
     market: input.market ?? null,
     updatedAt: null,
   };
+}
+
+type InternalAnalysisRepairContext = {
+  workingTitle: string;
+  brief: string;
+  market: string | null;
+};
+
+function isInternalAnalysisFallbackBody(bodyMarkdown: string) {
+  return bodyMarkdown.trimStart().startsWith("## 핵심 브리프");
+}
+
+async function getInternalAnalysisRepairContext(
+  featureEntryId: string,
+  revisionId: string,
+) {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+  const featureEntry = await env.EDITORIAL_DB.prepare(
+    `SELECT source_type AS sourceType
+     FROM feature_entry
+     WHERE id = ?
+     LIMIT 1`,
+  )
+    .bind(featureEntryId)
+    .first<{ sourceType: string | null }>();
+
+  if (featureEntry?.sourceType !== "internal_industry_analysis") {
+    return null;
+  }
+
+  const brief =
+    (await env.EDITORIAL_DB.prepare(
+      `SELECT
+         working_title AS workingTitle,
+         summary AS brief,
+         market
+       FROM internal_analysis_brief
+       WHERE feature_entry_id = ?
+         AND current_revision_id = ?
+       LIMIT 1`,
+    )
+      .bind(featureEntryId, revisionId)
+      .first<InternalAnalysisRepairContext>()) ??
+    (await env.EDITORIAL_DB.prepare(
+      `SELECT
+         working_title AS workingTitle,
+         summary AS brief,
+         market
+       FROM internal_analysis_brief
+       WHERE feature_entry_id = ?
+       ORDER BY datetime(updated_at) DESC
+       LIMIT 1`,
+    )
+      .bind(featureEntryId)
+      .first<InternalAnalysisRepairContext>());
+
+  return brief ?? null;
+}
+
+function buildInternalAnalysisRepairPayload(input: {
+  revision: FeatureRevisionRow;
+  brief: InternalAnalysisRepairContext;
+}) {
+  if (!isInternalAnalysisFallbackBody(input.revision.bodyMarkdown)) {
+    return null;
+  }
+
+  const rawBrief = input.brief.brief.trim();
+
+  if (!rawBrief) {
+    return null;
+  }
+
+  const parsed = parseInternalIndustryAnalysisTemplate({
+    rawBrief,
+    workingTitle: input.brief.workingTitle || input.revision.title,
+  });
+
+  if (!parsed.usedStructuredTemplate) {
+    return null;
+  }
+
+  const sourceSnapshot = {
+    projectName: parsed.title || input.brief.workingTitle || input.revision.title,
+    summary: rawBrief,
+    productDescription: null,
+    whyNow: null,
+    stage: null,
+    market: input.brief.market,
+    updatedAt: null,
+  } satisfies DraftSourceSnapshot;
+
+  return {
+    title: parsed.title || input.revision.title,
+    displayTitleLinesJson: JSON.stringify(parsed.displayTitleLines),
+    dek: parsed.excerpt,
+    verdict: parsed.interpretiveFrame,
+    bodyMarkdown: parsed.bodyMarkdown,
+    sourceSnapshotHash: buildSourceSnapshotHash(sourceSnapshot),
+    sourceSnapshotJson: JSON.stringify(sourceSnapshot),
+  };
+}
+
+async function getInternalAnalysisRepairedRevision<
+  TRevision extends FeatureRevisionRow,
+>(revision: TRevision): Promise<TRevision | null> {
+  const brief = await getInternalAnalysisRepairContext(
+    revision.featureEntryId,
+    revision.id,
+  );
+
+  if (!brief) {
+    return null;
+  }
+
+  const repair = buildInternalAnalysisRepairPayload({
+    revision,
+    brief,
+  });
+
+  if (!repair) {
+    return null;
+  }
+
+  return {
+    ...revision,
+    title: repair.title,
+    displayTitleLinesJson: repair.displayTitleLinesJson,
+    dek: repair.dek,
+    verdict: repair.verdict,
+    bodyMarkdown: repair.bodyMarkdown,
+    sourceSnapshotHash: repair.sourceSnapshotHash,
+    sourceSnapshotJson: repair.sourceSnapshotJson,
+  };
+}
+
+async function getRevisionByIdWithSlugAnyStatus(revisionId: string) {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+
+  return env.EDITORIAL_DB.prepare(
+    `SELECT
+       fr.id,
+       fr.feature_entry_id AS featureEntryId,
+       fr.proposal_id AS proposalId,
+       fr.status,
+       fr.revision_number AS revisionNumber,
+       fr.title,
+       fr.display_title_lines_json AS displayTitleLinesJson,
+       fr.dek,
+       fr.verdict,
+       fr.category_id AS categoryId,
+       fr.author_id AS authorId,
+       fr.tag_ids_json AS tagIdsJson,
+       fr.cover_asset_family_id AS coverAssetFamilyId,
+       fr.body_markdown AS bodyMarkdown,
+       fr.source_snapshot_hash AS sourceSnapshotHash,
+       fr.source_snapshot_json AS sourceSnapshotJson,
+       fr.created_at AS createdAt,
+       fr.updated_at AS updatedAt,
+       fe.slug
+     FROM feature_revision fr
+     JOIN feature_entry fe
+       ON fe.id = fr.feature_entry_id
+     WHERE fr.id = ?
+     LIMIT 1`,
+  )
+    .bind(revisionId)
+    .first<FeatureRevisionRow & { slug: string }>();
+}
+
+export async function repairInternalIndustryAnalysisRevisionById(
+  revisionId: string,
+  editorEmail: string,
+) {
+  const env = await getEditorialEnv({
+    requireBucket: false,
+    requireQueue: false,
+  });
+  const revision = await getRevisionByIdWithSlugAnyStatus(revisionId);
+
+  if (!revision) {
+    return null;
+  }
+
+  const brief = await getInternalAnalysisRepairContext(
+    revision.featureEntryId,
+    revision.id,
+  );
+
+  if (!brief) {
+    return revision;
+  }
+
+  const repair = buildInternalAnalysisRepairPayload({
+    revision,
+    brief,
+  });
+
+  if (!repair) {
+    return revision;
+  }
+
+  const now = new Date().toISOString();
+
+  await env.EDITORIAL_DB.prepare(
+    `UPDATE feature_revision
+     SET title = ?,
+         display_title_lines_json = ?,
+         dek = ?,
+         verdict = ?,
+         body_markdown = ?,
+         source_snapshot_hash = ?,
+         source_snapshot_json = ?,
+         updated_by = ?,
+         updated_at = ?
+     WHERE id = ?`,
+  )
+    .bind(
+      repair.title,
+      repair.displayTitleLinesJson,
+      repair.dek,
+      repair.verdict,
+      repair.bodyMarkdown,
+      repair.sourceSnapshotHash,
+      repair.sourceSnapshotJson,
+      editorEmail,
+      now,
+      revision.id,
+    )
+    .run();
+
+  return getRevisionByIdWithSlugAnyStatus(revisionId);
 }
 
 export async function createInternalIndustryAnalysisEntry(
@@ -392,7 +625,7 @@ export async function createInternalIndustryAnalysisEntry(
       featureEntryId,
       revisionId,
       parsed.workingTitle,
-      parsedTemplate.briefRecord,
+      parsed.brief,
       null,
       null,
       parsed.market ?? null,
@@ -1148,13 +1381,16 @@ export async function getEditorialV2DraftByRevisionId(revisionId: string) {
     return null;
   }
 
+  const repairedRevision =
+    (await getInternalAnalysisRepairedRevision(revision)) ?? revision;
+
   const coverImageUrl = await resolveCoverImageUrlForRevision(
-    revision.coverAssetFamilyId,
+    repairedRevision.coverAssetFamilyId,
   );
 
   return mapRevisionToDraftView({
-    revision,
-    articleSlug: revision.slug,
+    revision: repairedRevision,
+    articleSlug: repairedRevision.slug,
     coverImageUrl,
   });
 }
@@ -1419,6 +1655,7 @@ export async function prepareEditorialV2RevisionForPublishByRevisionId(
     requireBucket: false,
     requireQueue: false,
   });
+  await repairInternalIndustryAnalysisRevisionById(revisionId, editorEmail);
   const revision = await getDraftRevisionById(revisionId);
 
   if (!revision) {

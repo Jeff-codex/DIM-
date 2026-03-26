@@ -9,6 +9,7 @@ import {
   getInternalAnalysisBriefForRevision,
 } from "@/lib/server/editorial-v2/repository";
 import { getEditorialV2DraftByRevisionId } from "@/lib/server/editorial-v2/workflow";
+import { parseInternalIndustryAnalysisTemplate } from "@/lib/server/editorial-v2/internal-analysis-template";
 import { AdminAccessRequired } from "../../../../../access-required";
 import styles from "../../../../../admin.module.css";
 
@@ -123,6 +124,14 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
       revision,
       brief,
     });
+  const parsedBrief = parseInternalIndustryAnalysisTemplate({
+    rawBrief: brief.brief,
+    workingTitle: brief.workingTitle,
+  });
+  const structuredSectionCount = parsedBrief.bodyMarkdown
+    .split(/\n(?=##\s+)/)
+    .filter((section) => section.trim().startsWith("## "))
+    .length;
 
   const isReadyToPublish = resolvedDraft.status === "ready_to_publish";
   const categoryName =
@@ -212,8 +221,26 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
               <p className={styles.sectionLabel}>브리프 기준</p>
             </div>
             <h2 className={styles.subTitle}>{brief.workingTitle}</h2>
+            <dl className={`${styles.summaryGrid} ${styles.internalPublishSummaryGrid}`}>
+              <div>
+                <dt>시장/대상</dt>
+                <dd>{brief.market ?? "-"}</dd>
+              </div>
+              <div>
+                <dt>섹션 수</dt>
+                <dd>{structuredSectionCount > 0 ? `${structuredSectionCount}개` : "미인식"}</dd>
+              </div>
+              <div>
+                <dt>참고 링크</dt>
+                <dd>{brief.sourceLinks.length > 0 ? `${brief.sourceLinks.length}개` : "없음"}</dd>
+              </div>
+              <div>
+                <dt>사진 출처</dt>
+                <dd>{brief.photoSource ?? "-"}</dd>
+              </div>
+            </dl>
             <p className={styles.actionCopy}>
-              {brief.brief}
+              브리프 원문은 기록용으로 보관하고, 원고실/발행실 미리보기는 구조화된 본문 기준으로 확인합니다.
             </p>
             <div className={`${styles.linkGrid} ${styles.internalPublishLinkGrid}`}>
               <a

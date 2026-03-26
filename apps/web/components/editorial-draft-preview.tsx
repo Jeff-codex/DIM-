@@ -100,7 +100,7 @@ export function EditorialDraftPreview({
           <p className={styles.kicker}>{categoryName}</p>
           <EditorialHeading
             as="h2"
-            variant="detail"
+            variant={mode === "internal" ? "section" : "detail"}
             title={title}
             lines={displayTitleLines}
             className={styles.title}

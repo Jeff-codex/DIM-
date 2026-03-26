@@ -68,8 +68,9 @@
   max-width: none;
   min-width: 0;
   max-width: 100%;
-  word-break: normal;
-  overflow-wrap: anywhere;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal;
 }
 
 .answerGrid {

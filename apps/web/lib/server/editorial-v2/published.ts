@@ -7,6 +7,7 @@ import {
   listCmsPublishedArticles,
   listPublishEventsForEntry,
 } from "@/lib/server/editorial-v2/repository";
+import { repairInternalIndustryAnalysisRevisionById } from "@/lib/server/editorial-v2/workflow";
 import type {
   FeatureEntrySourceType,
   FeatureRevisionStatus,
@@ -286,6 +287,7 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
   if (existing) {
     const isInternal = featureEntry.sourceType === "internal_industry_analysis";
     if (isInternal) {
+      await repairInternalIndustryAnalysisRevisionById(existing.id, editorEmail);
       const env = await getEditorialEnv({
         requireBucket: false,
         requireQueue: false,
@@ -323,6 +325,16 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
     throw new Error("current_published_revision_not_found");
   }
   const isInternal = featureEntry.sourceType === "internal_industry_analysis";
+  if (isInternal) {
+    await repairInternalIndustryAnalysisRevisionById(
+      featureEntry.currentPublishedRevisionId,
+      editorEmail,
+    );
+  }
+  const sourceRevision = isInternal
+    ? ((await getFeatureRevisionById(featureEntry.currentPublishedRevisionId)) ??
+      currentPublishedRevision)
+    : currentPublishedRevision;
 
   const env = await getEditorialEnv({
     requireBucket: false,
@@ -366,25 +378,25 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
     ).bind(
       revisionId,
       featureEntry.id,
-      currentPublishedRevision.proposalId,
+      sourceRevision.proposalId,
       revisionNumber,
-      currentPublishedRevision.title,
-      JSON.stringify(currentPublishedRevision.displayTitleLines),
-      currentPublishedRevision.dek,
-      currentPublishedRevision.verdict,
-      currentPublishedRevision.categoryId,
-      currentPublishedRevision.authorId,
-      JSON.stringify(currentPublishedRevision.tagIds),
-      currentPublishedRevision.coverAssetFamilyId,
-      currentPublishedRevision.bodyMarkdown,
-      JSON.stringify(currentPublishedRevision.bodySections),
-      JSON.stringify(currentPublishedRevision.visibilityMetadata),
-      JSON.stringify(currentPublishedRevision.citations),
-      JSON.stringify(currentPublishedRevision.entityMap),
-      currentPublishedRevision.editorNotes,
-      currentPublishedRevision.sourceSnapshotHash,
+      sourceRevision.title,
+      JSON.stringify(sourceRevision.displayTitleLines),
+      sourceRevision.dek,
+      sourceRevision.verdict,
+      sourceRevision.categoryId,
+      sourceRevision.authorId,
+      JSON.stringify(sourceRevision.tagIds),
+      sourceRevision.coverAssetFamilyId,
+      sourceRevision.bodyMarkdown,
+      JSON.stringify(sourceRevision.bodySections),
+      JSON.stringify(sourceRevision.visibilityMetadata),
+      JSON.stringify(sourceRevision.citations),
+      JSON.stringify(sourceRevision.entityMap),
+      sourceRevision.editorNotes,
+      sourceRevision.sourceSnapshotHash,
       JSON.stringify(
-        currentPublishedRevision.sourceSnapshotHash ? { clonedFromRevisionId: currentPublishedRevision.id } : null,
+        sourceRevision.sourceSnapshotHash ? { clonedFromRevisionId: sourceRevision.id } : null,
       ),
       editorEmail,
       editorEmail,
@@ -417,7 +429,7 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
       "발행 관리에서 개정 revision을 열었습니다",
       JSON.stringify({
         slug,
-        sourceRevisionId: currentPublishedRevision.id,
+        sourceRevisionId: sourceRevision.id,
       }),
       now,
     ),
@@ -426,7 +438,7 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
   return {
     mode: "new" as const,
     revisionId,
-    proposalId: currentPublishedRevision.proposalId,
+    proposalId: sourceRevision.proposalId,
     draftHref: isInternal
       ? `/admin/internal/industry-analysis/revisions/${revisionId}/editor`
       : `/admin/editor/revisions/${revisionId}`,
@@ -544,6 +556,7 @@ export async function publishFeatureRevisionById(
   revisionId: string,
   editorEmail: string,
 ) {
+  await repairInternalIndustryAnalysisRevisionById(revisionId, editorEmail);
   const revision = await getFeatureRevisionById(revisionId);
 
   if (!revision) {
