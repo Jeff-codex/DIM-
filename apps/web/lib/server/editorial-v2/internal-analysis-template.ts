@@ -60,6 +60,32 @@ function endsWithSentenceMark(value: string) {
   return /[.!?。？！]$/.test(value.trim());
 }
 
+function isHeadingLineCandidate(line: string) {
+  const normalized = stripLabelDecoration(line.trim());
+
+  if (!normalized) {
+    return false;
+  }
+
+  if (labeledSections.has(normalized)) {
+    return false;
+  }
+
+  if (normalized.length > 80) {
+    return false;
+  }
+
+  if (normalized.startsWith("- ") || normalized.startsWith("•")) {
+    return false;
+  }
+
+  if (/https?:\/\//i.test(normalized)) {
+    return false;
+  }
+
+  return !endsWithSentenceMark(normalized);
+}
+
 function isHeadingCandidate(block: string) {
   const normalized = normalizeBlock(block);
   if (!normalized) {
@@ -84,7 +110,7 @@ function isHeadingCandidate(block: string) {
     return false;
   }
 
-  return !endsWithSentenceMark(singleLine);
+  return isHeadingLineCandidate(singleLine);
 }
 
 function isTitleCandidate(block: string) {
@@ -130,6 +156,53 @@ function parseSourceListItems(blocks: string[]) {
     )
     .map((line) => line.replace(/^- /, "").trim())
     .filter(Boolean);
+}
+
+function expandInlineStructuredBlocks(blocks: string[]) {
+  return blocks.flatMap((block) => {
+    const normalized = normalizeBlock(block);
+
+    if (!normalized) {
+      return [];
+    }
+
+    const lines = normalized
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length < 2) {
+      return [normalized];
+    }
+
+    const [firstLine, ...restLines] = lines;
+    const rest = restLines.join("\n").trim();
+
+    if (!rest) {
+      return [normalized];
+    }
+
+    const firstLabel = stripLabelDecoration(firstLine);
+
+    if (
+      firstLabel === "제목" ||
+      labeledSections.has(firstLabel) ||
+      isHeadingLineCandidate(firstLine)
+    ) {
+      return [firstLine, rest];
+    }
+
+    return [normalized];
+  });
+}
+
+function getTemplateBlocks(rawBrief: string) {
+  const rawBlocks = rawBrief
+    .split(/\n{2,}/)
+    .map((block) => normalizeBlock(block))
+    .filter(Boolean);
+
+  return expandInlineStructuredBlocks(rawBlocks);
 }
 
 function buildStructuredBodyMarkdown(blocks: string[]) {
@@ -193,6 +266,27 @@ function buildStructuredBodyMarkdown(blocks: string[]) {
   return {
     bodyMarkdown: sections.filter(Boolean).join("\n\n"),
     sourceLinks,
+  };
+}
+
+export function parseInternalIndustryAnalysisBodySections(rawBody: string) {
+  const normalizedBody = normalizeBlock(rawBody);
+
+  if (!normalizedBody) {
+    return {
+      bodyMarkdown: "",
+      sourceLinks: [] as string[],
+      usedStructuredBody: false,
+    };
+  }
+
+  const structured = buildStructuredBodyMarkdown(getTemplateBlocks(normalizedBody));
+  const usedStructuredBody = /(^|\n)##\s+/m.test(structured.bodyMarkdown);
+
+  return {
+    bodyMarkdown: structured.bodyMarkdown,
+    sourceLinks: structured.sourceLinks,
+    usedStructuredBody,
   };
 }
 
@@ -350,10 +444,7 @@ export function parseInternalIndustryAnalysisTemplate(input: {
   workingTitle: string;
 }) {
   const rawBrief = normalizeBlock(input.rawBrief);
-  const blocks = rawBrief
-    .split(/\n{2,}/)
-    .map((block) => normalizeBlock(block))
-    .filter(Boolean);
+  const blocks = getTemplateBlocks(rawBrief);
 
   if (blocks.length === 0) {
     return {

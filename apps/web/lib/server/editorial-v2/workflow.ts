@@ -35,7 +35,10 @@ import {
   internalAnalysisBriefInputSchema,
   type InternalAnalysisBriefInput,
 } from "@/lib/server/editorial-v2/schema";
-import { parseInternalIndustryAnalysisTemplate } from "@/lib/server/editorial-v2/internal-analysis-template";
+import {
+  parseInternalIndustryAnalysisBodySections,
+  parseInternalIndustryAnalysisTemplate,
+} from "@/lib/server/editorial-v2/internal-analysis-template";
 
 const defaultAuthorId = "dim-editorial-team";
 
@@ -291,6 +294,10 @@ function normalizeInternalAnalysisTemplateSource(value: string) {
   return value.replace(/\r\n?/g, "\n").trim();
 }
 
+function normalizeInternalAnalysisComparisonText(value: string) {
+  return value.replace(/\r\n?/g, "\n").replace(/\s+/g, " ").trim();
+}
+
 function stripInternalAnalysisFallbackHeading(bodyMarkdown: string) {
   const normalized = normalizeInternalAnalysisTemplateSource(bodyMarkdown);
 
@@ -303,6 +310,29 @@ function stripInternalAnalysisFallbackHeading(bodyMarkdown: string) {
   }
 
   return normalized.replace(/^##\s*핵심 브리프\s*/u, "").trim();
+}
+
+function stripInternalAnalysisDuplicateVerdictBlock(
+  bodyMarkdown: string,
+  verdict: string,
+) {
+  const normalizedBody = normalizeInternalAnalysisTemplateSource(bodyMarkdown);
+  const normalizedVerdict = normalizeInternalAnalysisComparisonText(verdict);
+
+  if (!normalizedBody || !normalizedVerdict) {
+    return normalizedBody;
+  }
+
+  const filteredBlocks = normalizedBody
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .filter(
+      (block) =>
+        normalizeInternalAnalysisComparisonText(block) !== normalizedVerdict,
+    );
+
+  return filteredBlocks.join("\n\n").trim();
 }
 
 function looksLikeInternalAnalysisStructuredTemplate(value: string) {
@@ -379,7 +409,26 @@ function buildInternalAnalysisRepairPayload(input: {
     return null;
   }
 
+  const revisionBodyCandidate = stripInternalAnalysisDuplicateVerdictBlock(
+    stripInternalAnalysisFallbackHeading(input.revision.bodyMarkdown),
+    input.revision.verdict,
+  );
   const rawBrief = input.brief.brief.trim();
+  const repairedBody = parseInternalIndustryAnalysisBodySections(
+    revisionBodyCandidate || rawBrief,
+  );
+
+  if (repairedBody.usedStructuredBody) {
+    return {
+      title: input.revision.title,
+      displayTitleLinesJson: input.revision.displayTitleLinesJson,
+      dek: input.revision.dek,
+      verdict: input.revision.verdict,
+      bodyMarkdown: repairedBody.bodyMarkdown,
+      sourceSnapshotHash: input.revision.sourceSnapshotHash,
+      sourceSnapshotJson: input.revision.sourceSnapshotJson,
+    };
+  }
 
   if (!rawBrief) {
     return null;
@@ -428,47 +477,66 @@ async function buildCanonicalInternalIndustryAnalysisDraftInput(input: {
     return input.parsed;
   }
 
-  const bodyCandidate = stripInternalAnalysisFallbackHeading(input.parsed.bodyMarkdown);
-  const shouldNormalize =
-    isInternalAnalysisFallbackBody(input.parsed.bodyMarkdown) ||
-    looksLikeInternalAnalysisStructuredTemplate(bodyCandidate);
+  const bodyCandidate = stripInternalAnalysisDuplicateVerdictBlock(
+    stripInternalAnalysisFallbackHeading(input.parsed.bodyMarkdown),
+    input.parsed.interpretiveFrame,
+  );
+  const briefCandidate = brief.brief.trim();
 
-  if (!shouldNormalize) {
+  if (looksLikeInternalAnalysisStructuredTemplate(bodyCandidate)) {
+    const parsedTemplate = parseInternalIndustryAnalysisTemplate({
+      rawBrief: bodyCandidate,
+      workingTitle: brief.workingTitle || input.parsed.title || input.revision.title,
+    });
+
+    if (parsedTemplate.usedStructuredTemplate) {
+      return {
+        ...input.parsed,
+        title: parsedTemplate.title,
+        displayTitleLines: parsedTemplate.displayTitleLines,
+        excerpt: parsedTemplate.excerpt,
+        interpretiveFrame: parsedTemplate.interpretiveFrame,
+        categoryId: "industry-analysis",
+        bodyMarkdown: parsedTemplate.bodyMarkdown,
+      } satisfies EditorialV2DraftInput;
+    }
+  }
+
+  const repairedBody = parseInternalIndustryAnalysisBodySections(bodyCandidate);
+
+  if (repairedBody.usedStructuredBody) {
     return {
       ...input.parsed,
       categoryId: "industry-analysis",
+      bodyMarkdown: repairedBody.bodyMarkdown,
     } satisfies EditorialV2DraftInput;
   }
 
-  const rawBrief = bodyCandidate || brief.brief.trim();
+  if (
+    isInternalAnalysisFallbackBody(input.parsed.bodyMarkdown) &&
+    looksLikeInternalAnalysisStructuredTemplate(briefCandidate)
+  ) {
+    const parsedTemplate = parseInternalIndustryAnalysisTemplate({
+      rawBrief: briefCandidate,
+      workingTitle: brief.workingTitle || input.parsed.title || input.revision.title,
+    });
 
-  if (!rawBrief) {
-    return {
-      ...input.parsed,
-      categoryId: "industry-analysis",
-    } satisfies EditorialV2DraftInput;
-  }
-
-  const parsedTemplate = parseInternalIndustryAnalysisTemplate({
-    rawBrief,
-    workingTitle: brief.workingTitle || input.parsed.title || input.revision.title,
-  });
-
-  if (!parsedTemplate.usedStructuredTemplate) {
-    return {
-      ...input.parsed,
-      categoryId: "industry-analysis",
-    } satisfies EditorialV2DraftInput;
+    if (parsedTemplate.usedStructuredTemplate) {
+      return {
+        ...input.parsed,
+        title: parsedTemplate.title,
+        displayTitleLines: parsedTemplate.displayTitleLines,
+        excerpt: parsedTemplate.excerpt,
+        interpretiveFrame: parsedTemplate.interpretiveFrame,
+        categoryId: "industry-analysis",
+        bodyMarkdown: parsedTemplate.bodyMarkdown,
+      } satisfies EditorialV2DraftInput;
+    }
   }
 
   return {
     ...input.parsed,
-    title: parsedTemplate.title,
-    displayTitleLines: parsedTemplate.displayTitleLines,
-    excerpt: parsedTemplate.excerpt,
-    interpretiveFrame: parsedTemplate.interpretiveFrame,
     categoryId: "industry-analysis",
-    bodyMarkdown: parsedTemplate.bodyMarkdown,
   } satisfies EditorialV2DraftInput;
 }
 
