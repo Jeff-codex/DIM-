@@ -57,6 +57,7 @@ export type PublishedArticleSummary = ArticleSummary & {
 
 export type IndustryAnalysisMeta = {
   market: string | null;
+  photoSource: string | null;
   sourceLinks: string[];
   firstPublishedAt: string;
   lastUpdatedAt: string;

@@ -111,6 +111,7 @@ type EditorialDraftEditorProps = {
   forceAssetShelf?: boolean;
   sourceDescriptor?: string;
   coverImageHint?: string;
+  previewImageSource?: string;
 };
 
 type EditorialAssetFamilyRecord = EditorialDraftEditorProps["editorialAssets"][number];
@@ -165,6 +166,7 @@ export function EditorialDraftEditor({
   forceAssetShelf = false,
   sourceDescriptor = "원본 제안",
   coverImageHint = "새 이미지를 올리거나 제안 첨부를 커버로 올릴 수 있습니다. 권장 규격은 1600 × 1200px 이상, 4:3입니다.",
+  previewImageSource,
 }: EditorialDraftEditorProps) {
   const router = useRouter();
   const [draft, setDraft] = useState(initialDraft);
@@ -1081,6 +1083,7 @@ export function EditorialDraftEditor({
           interpretiveFrame={draft.interpretiveFrame}
           categoryName={selectedCategoryName}
           coverImageUrl={draft.coverImageUrl}
+          imageSource={previewImageSource}
           bodyMarkdown={draft.bodyMarkdown}
           mode={isInternalWorkflow ? "internal" : "external"}
         />

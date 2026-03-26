@@ -13,6 +13,7 @@ const errorCopy: Record<string, string> = {
     "핵심 태그는 최대 10개까지 입력할 수 있습니다. 태그는 줄바꿈으로만 구분해 주세요.",
   working_title_invalid: "작업 제목 길이를 다시 확인해 주세요.",
   brief_invalid: "핵심 브리프 길이를 다시 확인해 주세요.",
+  photo_source_invalid: "사진 출처 길이를 다시 확인해 주세요.",
   create_failed: "내부 작성 entry를 만들지 못했습니다. 입력값을 다시 확인해 주세요.",
   validation: "입력값을 다시 확인해 주세요.",
 };
@@ -127,6 +128,18 @@ export default async function AdminInternalIndustryAnalysisNewPage({
           </label>
 
           <div className={styles.formGrid}>
+            <label className={styles.formField}>
+              <span className={styles.fieldLabel}>사진 출처 (선택)</span>
+              <input
+                name="photoSource"
+                className={styles.textInput}
+                placeholder="예: OpenAI 공식 이미지 / Photo by Microsoft"
+              />
+              <span className={styles.fieldHelp}>
+                커버 이미지 아래에 아주 작은 폰트로 표기할 출처를 적습니다.
+              </span>
+            </label>
+
             <label className={styles.formField}>
               <span className={styles.fieldLabel}>핵심 태그 (선택)</span>
               <textarea

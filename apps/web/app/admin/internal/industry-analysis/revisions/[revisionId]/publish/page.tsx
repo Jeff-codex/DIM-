@@ -160,6 +160,7 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
             interpretiveFrame={resolvedDraft.interpretiveFrame}
             categoryName={categoryName}
             coverImageUrl={resolvedDraft.coverImageUrl}
+            imageSource={brief.photoSource ?? undefined}
             bodyMarkdown={resolvedDraft.bodyMarkdown}
             mode="internal"
             sticky={false}

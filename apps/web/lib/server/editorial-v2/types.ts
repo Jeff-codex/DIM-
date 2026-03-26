@@ -204,6 +204,7 @@ export type InternalAnalysisBriefRecord = {
   workingTitle: string;
   brief: string;
   market: string | null;
+  photoSource: string | null;
   tags: string[];
   sourceLinks: string[];
   createdBy: string | null;

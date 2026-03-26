@@ -138,6 +138,7 @@ export default async function AdminInternalIndustryAnalysisEditorPage({
         forceAssetShelf
         sourceDescriptor="입력 브리프"
         coverImageHint="새 이미지를 올려 커버 이미지를 정리할 수 있습니다. 권장 규격은 1600 × 1200px 이상, 4:3입니다."
+        previewImageSource={brief.photoSource ?? undefined}
       />
     </div>
   );

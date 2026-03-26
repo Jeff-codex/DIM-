@@ -158,6 +158,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             variant="detail"
             priority
           />
+          {article.analysisMeta?.photoSource ? (
+            <p className={styles.coverSource}>
+              사진 출처 · {article.analysisMeta.photoSource}
+            </p>
+          ) : null}
         </div>
 
         <div

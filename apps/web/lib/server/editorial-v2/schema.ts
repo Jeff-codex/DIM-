@@ -46,6 +46,12 @@ export const internalAnalysisBriefInputSchema = z.object({
     .max(220)
     .optional()
     .transform((value) => value || undefined),
+  photoSource: z
+    .string()
+    .trim()
+    .max(240)
+    .optional()
+    .transform((value) => value || undefined),
   tags: briefStringList(10, 40),
   sourceLinks: briefStringList(12, 2048),
 });

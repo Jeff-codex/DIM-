@@ -9,6 +9,7 @@ type EditorialDraftPreviewProps = {
   interpretiveFrame: string;
   categoryName: string;
   coverImageUrl?: string;
+  imageSource?: string;
   bodyMarkdown: string;
   mode?: "external" | "internal";
   sticky?: boolean;
@@ -77,6 +78,7 @@ export function EditorialDraftPreview({
   interpretiveFrame,
   categoryName,
   coverImageUrl,
+  imageSource,
   bodyMarkdown,
   mode = "external",
   sticky = true,
@@ -125,6 +127,9 @@ export function EditorialDraftPreview({
               커버 이미지를 넣으면 public feature와 비슷한 비율로 이 영역에 보입니다
             </div>
           )}
+          {coverImageUrl && imageSource ? (
+            <p className={styles.coverSource}>사진 출처 · {imageSource}</p>
+          ) : null}
         </div>
 
         <div className={styles.trustBlock}>

@@ -110,6 +110,10 @@ export default async function AdminInternalIndustryAnalysisRevisionPage({
                   <dd>{brief.market ?? "-"}</dd>
                 </div>
                 <div>
+                  <dt>사진 출처</dt>
+                  <dd>{brief.photoSource ?? "-"}</dd>
+                </div>
+                <div>
                   <dt>작업 ID</dt>
                   <dd>{revision.id}</dd>
                 </div>

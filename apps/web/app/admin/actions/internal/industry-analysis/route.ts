@@ -52,6 +52,10 @@ function getValidationErrorCode(error: ZodError) {
     return "brief_invalid";
   }
 
+  if (path === "photoSource") {
+    return "photo_source_invalid";
+  }
+
   return "validation";
 }
 
@@ -74,6 +78,7 @@ export async function POST(request: Request) {
       workingTitle: getTextValue(formData.get("workingTitle")),
       brief: getTextValue(formData.get("brief")),
       market: getTextValue(formData.get("market")),
+      photoSource: getTextValue(formData.get("photoSource")),
       tags: parseLineList(formData.get("tags")),
       sourceLinks: parseLineList(formData.get("sourceLinks")),
     });

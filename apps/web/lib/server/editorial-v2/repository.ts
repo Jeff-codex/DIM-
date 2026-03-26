@@ -449,6 +449,7 @@ export async function getCmsPublishedArticleBySlug(
       analysisMeta: isInternalIndustryAnalysis
         ? {
             market: brief?.market ?? null,
+            photoSource: brief?.photoSource ?? null,
             sourceLinks,
             firstPublishedAt: row.publishedAt,
             lastUpdatedAt: row.updatedAt,
@@ -829,12 +830,10 @@ export async function getInternalAnalysisBriefByRevisionId(
        current_revision_id AS currentRevisionId,
        working_title AS workingTitle,
        summary,
-       analysis_scope AS analysisScope,
-       why_now AS whyNow,
        market,
+       photo_source AS photoSource,
        core_entities_json AS coreEntitiesJson,
        source_links_json AS sourceLinksJson,
-       evidence_points_json AS evidencePointsJson,
        created_by AS createdBy,
        updated_by AS updatedBy,
        created_at AS createdAt,
@@ -850,12 +849,10 @@ export async function getInternalAnalysisBriefByRevisionId(
       currentRevisionId: string | null;
       workingTitle: string;
       summary: string;
-      analysisScope: string | null;
-      whyNow: string | null;
       market: string | null;
+      photoSource: string | null;
       coreEntitiesJson: string | null;
       sourceLinksJson: string | null;
-      evidencePointsJson: string | null;
       createdBy: string | null;
       updatedBy: string | null;
       createdAt: string;
@@ -873,6 +870,7 @@ export async function getInternalAnalysisBriefByRevisionId(
     workingTitle: row.workingTitle,
     brief: row.summary,
     market: row.market,
+    photoSource: row.photoSource,
     tags: parseStringArray(row.coreEntitiesJson),
     sourceLinks: parseStringArray(row.sourceLinksJson),
     createdBy: row.createdBy,
@@ -896,12 +894,10 @@ export async function getInternalAnalysisBriefByFeatureEntryId(
        current_revision_id AS currentRevisionId,
        working_title AS workingTitle,
        summary,
-       analysis_scope AS analysisScope,
-       why_now AS whyNow,
        market,
+       photo_source AS photoSource,
        core_entities_json AS coreEntitiesJson,
        source_links_json AS sourceLinksJson,
-       evidence_points_json AS evidencePointsJson,
        created_by AS createdBy,
        updated_by AS updatedBy,
        created_at AS createdAt,
@@ -917,12 +913,10 @@ export async function getInternalAnalysisBriefByFeatureEntryId(
       currentRevisionId: string | null;
       workingTitle: string;
       summary: string;
-      analysisScope: string | null;
-      whyNow: string | null;
       market: string | null;
+      photoSource: string | null;
       coreEntitiesJson: string | null;
       sourceLinksJson: string | null;
-      evidencePointsJson: string | null;
       createdBy: string | null;
       updatedBy: string | null;
       createdAt: string;
@@ -940,6 +934,7 @@ export async function getInternalAnalysisBriefByFeatureEntryId(
     workingTitle: row.workingTitle,
     brief: row.summary,
     market: row.market,
+    photoSource: row.photoSource,
     tags: parseStringArray(row.coreEntitiesJson),
     sourceLinks: parseStringArray(row.sourceLinksJson),
     createdBy: row.createdBy,
