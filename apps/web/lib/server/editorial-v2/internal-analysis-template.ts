@@ -12,6 +12,7 @@ type ParsedInternalIndustryAnalysisTemplate = {
 };
 
 const labeledSections = new Set([
+  "제목",
   "핵심 답변",
   "핵심 판단",
   "DIM의 해석",
@@ -283,6 +284,67 @@ function consumeLabeledContent(
   };
 }
 
+function consumeTitleContent(
+  blocks: string[],
+  startIndex: number,
+  fallbackTitle: string,
+) {
+  const current = normalizeBlock(blocks[startIndex] ?? "");
+
+  if (!current) {
+    return {
+      value: fallbackTitle,
+      nextIndex: startIndex,
+      found: false,
+    };
+  }
+
+  if (isExactLabel(current, "제목")) {
+    const nextBlock = normalizeBlock(blocks[startIndex + 1] ?? "");
+
+    if (nextBlock && isTitleCandidate(nextBlock)) {
+      return {
+        value: nextBlock,
+        nextIndex: startIndex + 2,
+        found: true,
+      };
+    }
+
+    return {
+      value: fallbackTitle,
+      nextIndex: startIndex + 1,
+      found: true,
+    };
+  }
+
+  const lines = current.split("\n").map((line) => line.trim()).filter(Boolean);
+  if (lines.length >= 2 && stripLabelDecoration(lines[0]) === "제목") {
+    const inlineTitle = lines.slice(1).join("\n").trim();
+
+    if (inlineTitle) {
+      return {
+        value: inlineTitle,
+        nextIndex: startIndex + 1,
+        found: true,
+      };
+    }
+  }
+
+  if (isTitleCandidate(current)) {
+    return {
+      value: current,
+      nextIndex: startIndex + 1,
+      found: true,
+    };
+  }
+
+  return {
+    value: fallbackTitle,
+    nextIndex: startIndex,
+    found: false,
+  };
+}
+
 export function parseInternalIndustryAnalysisTemplate(input: {
   rawBrief: string;
   workingTitle: string;
@@ -308,10 +370,10 @@ export function parseInternalIndustryAnalysisTemplate(input: {
 
   let cursor = 0;
   let title = input.workingTitle;
-
-  if (isTitleCandidate(blocks[0] ?? "")) {
-    title = blocks[0];
-    cursor = 1;
+  const titleResult = consumeTitleContent(blocks, cursor, input.workingTitle);
+  title = titleResult.value;
+  if (titleResult.found) {
+    cursor = titleResult.nextIndex;
   }
 
   const answer = consumeLabeledContent(blocks, cursor, "핵심 답변");

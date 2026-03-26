@@ -287,6 +287,40 @@ function isInternalAnalysisFallbackBody(bodyMarkdown: string) {
   return bodyMarkdown.trimStart().startsWith("## 핵심 브리프");
 }
 
+function normalizeInternalAnalysisTemplateSource(value: string) {
+  return value.replace(/\r\n?/g, "\n").trim();
+}
+
+function stripInternalAnalysisFallbackHeading(bodyMarkdown: string) {
+  const normalized = normalizeInternalAnalysisTemplateSource(bodyMarkdown);
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (!normalized.startsWith("## 핵심 브리프")) {
+    return normalized;
+  }
+
+  return normalized.replace(/^##\s*핵심 브리프\s*/u, "").trim();
+}
+
+function looksLikeInternalAnalysisStructuredTemplate(value: string) {
+  const normalized = normalizeInternalAnalysisTemplateSource(value);
+
+  if (!normalized) {
+    return false;
+  }
+
+  return (
+    /(^|\n\n)제목(\n|$)/u.test(normalized) ||
+    /(^|\n\n)핵심 답변(\n|$)/u.test(normalized) ||
+    /(^|\n\n)핵심 판단(\n|$)/u.test(normalized) ||
+    /(^|\n\n)DIM의 해석(\n|$)/u.test(normalized) ||
+    /(^|\n\n)참고한 링크 출처(\n|$)/u.test(normalized)
+  );
+}
+
 async function getInternalAnalysisRepairContext(
   featureEntryId: string,
   revisionId: string,
@@ -379,6 +413,63 @@ function buildInternalAnalysisRepairPayload(input: {
     sourceSnapshotHash: buildSourceSnapshotHash(sourceSnapshot),
     sourceSnapshotJson: JSON.stringify(sourceSnapshot),
   };
+}
+
+async function buildCanonicalInternalIndustryAnalysisDraftInput(input: {
+  revision: FeatureRevisionRow;
+  parsed: EditorialV2DraftInput;
+}) {
+  const brief = await getInternalAnalysisRepairContext(
+    input.revision.featureEntryId,
+    input.revision.id,
+  );
+
+  if (!brief) {
+    return input.parsed;
+  }
+
+  const bodyCandidate = stripInternalAnalysisFallbackHeading(input.parsed.bodyMarkdown);
+  const shouldNormalize =
+    isInternalAnalysisFallbackBody(input.parsed.bodyMarkdown) ||
+    looksLikeInternalAnalysisStructuredTemplate(bodyCandidate);
+
+  if (!shouldNormalize) {
+    return {
+      ...input.parsed,
+      categoryId: "industry-analysis",
+    } satisfies EditorialV2DraftInput;
+  }
+
+  const rawBrief = bodyCandidate || brief.brief.trim();
+
+  if (!rawBrief) {
+    return {
+      ...input.parsed,
+      categoryId: "industry-analysis",
+    } satisfies EditorialV2DraftInput;
+  }
+
+  const parsedTemplate = parseInternalIndustryAnalysisTemplate({
+    rawBrief,
+    workingTitle: brief.workingTitle || input.parsed.title || input.revision.title,
+  });
+
+  if (!parsedTemplate.usedStructuredTemplate) {
+    return {
+      ...input.parsed,
+      categoryId: "industry-analysis",
+    } satisfies EditorialV2DraftInput;
+  }
+
+  return {
+    ...input.parsed,
+    title: parsedTemplate.title,
+    displayTitleLines: parsedTemplate.displayTitleLines,
+    excerpt: parsedTemplate.excerpt,
+    interpretiveFrame: parsedTemplate.interpretiveFrame,
+    categoryId: "industry-analysis",
+    bodyMarkdown: parsedTemplate.bodyMarkdown,
+  } satisfies EditorialV2DraftInput;
 }
 
 async function getInternalAnalysisRepairedRevision<
@@ -1547,6 +1638,11 @@ export async function updateEditorialV2DraftByRevisionId(
     return null;
   }
 
+  const canonicalParsed = await buildCanonicalInternalIndustryAnalysisDraftInput({
+    revision: context.revision,
+    parsed,
+  });
+
   let sourceSnapshotJson = context.revision.sourceSnapshotJson;
   let sourceSnapshotHash = context.revision.sourceSnapshotHash;
 
@@ -1578,12 +1674,12 @@ export async function updateEditorialV2DraftByRevisionId(
      WHERE id = ?`,
   )
     .bind(
-      parsed.title,
-      JSON.stringify(parsed.displayTitleLines),
-      parsed.excerpt,
-      parsed.interpretiveFrame,
-      parsed.categoryId,
-      parsed.bodyMarkdown,
+      canonicalParsed.title,
+      JSON.stringify(canonicalParsed.displayTitleLines),
+      canonicalParsed.excerpt,
+      canonicalParsed.interpretiveFrame,
+      canonicalParsed.categoryId,
+      canonicalParsed.bodyMarkdown,
       sourceSnapshotHash,
       sourceSnapshotJson,
       editorEmail,
