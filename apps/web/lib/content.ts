@@ -1,10 +1,8 @@
 import { cache } from "react";
-import {
-  listCmsPublishedArticles,
-  getCmsPublishedArticleBySlug,
-  resolveFeatureSlug,
-} from "@/lib/server/editorial-v2/repository";
+import { authors } from "@/content/authors";
 import { getCategoryById } from "@/content/categories";
+import { generatedCmsStaticArticles } from "@/content/generated/cms-static.generated";
+import { tags } from "@/content/tags";
 import {
   getLegacyArticleBySlug,
   getLegacyPublishedArticles,
@@ -13,8 +11,19 @@ import {
 import type {
   ArticleDetail,
   ArticleSummary,
+  Author,
+  Category,
+  IndustryAnalysisMeta,
   PublishedArticleSummary,
+  Tag,
 } from "@/content/types";
+
+const isStaticExport = process.env.NEXT_STATIC_EXPORT === "true";
+
+const authorsById = new Map(authors.map((author) => [author.id, author]));
+const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
+
+type StaticCmsArticle = (typeof generatedCmsStaticArticles)[number];
 
 function compareByPublishedAtDesc(a: ArticleSummary, b: ArticleSummary) {
   return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
@@ -37,14 +46,121 @@ function mergePublishedArticles(
   return Array.from(merged.values()).sort(compareByPublishedAtDesc);
 }
 
+function resolveAuthor(authorId: string, slug: string): Author {
+  const author = authorsById.get(authorId);
+
+  if (!author) {
+    throw new Error(`Unknown authorId "${authorId}" for article "${slug}"`);
+  }
+
+  return author;
+}
+
+function resolveCategory(categoryId: string, slug: string): Category {
+  const category = getCategoryById(categoryId);
+
+  if (!category) {
+    throw new Error(`Unknown categoryId "${categoryId}" for article "${slug}"`);
+  }
+
+  return category;
+}
+
+function resolveTags(tagIds: string[], slug: string): Tag[] {
+  return tagIds.map((tagId) => {
+    const tag = tagsById.get(tagId);
+
+    if (!tag) {
+      throw new Error(`Unknown tagId "${tagId}" for article "${slug}"`);
+    }
+
+    return tag;
+  });
+}
+
+function buildStaticAnalysisMeta(
+  article: StaticCmsArticle,
+): IndustryAnalysisMeta | undefined {
+  if (!article.analysisMeta) {
+    return undefined;
+  }
+
+  return {
+    market: article.analysisMeta.market,
+    photoSource: article.analysisMeta.photoSource,
+    sourceLinks: article.analysisMeta.sourceLinks,
+    firstPublishedAt: article.analysisMeta.firstPublishedAt,
+    lastUpdatedAt: article.analysisMeta.lastUpdatedAt,
+  };
+}
+
+function buildStaticCmsSummary(article: StaticCmsArticle): PublishedArticleSummary {
+  return {
+    id: article.featureEntryId,
+    slug: article.slug,
+    title: article.title,
+    displayTitleLines: article.displayTitleLines,
+    excerpt: article.dek,
+    interpretiveFrame: article.verdict,
+    coverImage: article.coverImage,
+    category: resolveCategory(article.categoryId, article.slug),
+    author: resolveAuthor(article.authorId, article.slug),
+    tags: resolveTags(article.tagIds, article.slug),
+    status: "published",
+    categoryId: article.categoryId,
+    tagIds: article.tagIds,
+    authorId: article.authorId,
+    publishedAt: article.publishedAt,
+    featured: article.featured,
+  };
+}
+
+function buildStaticCmsDetail(article: StaticCmsArticle): ArticleDetail {
+  const summary = buildStaticCmsSummary(article);
+
+  return {
+    ...summary,
+    bodyHtml: article.bodyHtml,
+    analysisMeta: buildStaticAnalysisMeta(article),
+  };
+}
+
+const getStaticCmsPublishedArticles = cache(async (): Promise<
+  PublishedArticleSummary[]
+> => {
+  return generatedCmsStaticArticles
+    .map(buildStaticCmsSummary)
+    .sort(compareByPublishedAtDesc);
+});
+
+const getStaticCmsArticleBySlug = cache(
+  async (slug: string): Promise<ArticleDetail | null> => {
+    const article = generatedCmsStaticArticles.find((entry) => entry.slug === slug);
+
+    if (!article) {
+      return null;
+    }
+
+    return buildStaticCmsDetail(article);
+  },
+);
+
+async function loadCmsRuntimeRepository() {
+  return import("@/lib/server/editorial-v2/repository");
+}
+
 export const getPublishedArticles = cache(async (): Promise<
   PublishedArticleSummary[]
 > => {
-  const [cmsArticles, legacyArticles] = await Promise.all([
-    listCmsPublishedArticles(),
-    getLegacyPublishedArticles(),
-  ]);
+  const legacyArticles = await getLegacyPublishedArticles();
 
+  if (isStaticExport) {
+    const cmsArticles = await getStaticCmsPublishedArticles();
+    return mergePublishedArticles(cmsArticles, legacyArticles);
+  }
+
+  const { listCmsPublishedArticles } = await loadCmsRuntimeRepository();
+  const cmsArticles = await listCmsPublishedArticles();
   return mergePublishedArticles(cmsArticles, legacyArticles);
 });
 
@@ -90,17 +206,33 @@ export const resolveArticleBySlug = cache(
     canonicalSlug: string;
     via: "canonical" | "alias" | "legacy";
   } | null> => {
-    const cmsResolution = await resolveFeatureSlug(slug);
+    if (isStaticExport) {
+      const staticArticle = await getStaticCmsArticleBySlug(slug);
 
-    if (cmsResolution) {
-      const cmsArticle = await getCmsPublishedArticleBySlug(cmsResolution.canonicalSlug);
-
-      if (cmsArticle) {
+      if (staticArticle) {
         return {
-          article: cmsArticle,
-          canonicalSlug: cmsResolution.canonicalSlug,
-          via: cmsResolution.via,
+          article: staticArticle,
+          canonicalSlug: staticArticle.slug,
+          via: "canonical",
         };
+      }
+    } else {
+      const { getCmsPublishedArticleBySlug, resolveFeatureSlug } =
+        await loadCmsRuntimeRepository();
+      const cmsResolution = await resolveFeatureSlug(slug);
+
+      if (cmsResolution) {
+        const cmsArticle = await getCmsPublishedArticleBySlug(
+          cmsResolution.canonicalSlug,
+        );
+
+        if (cmsArticle) {
+          return {
+            article: cmsArticle,
+            canonicalSlug: cmsResolution.canonicalSlug,
+            via: cmsResolution.via,
+          };
+        }
       }
     }
 

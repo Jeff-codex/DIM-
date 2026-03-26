@@ -63,6 +63,26 @@ function prepareWorktree() {
   }
 }
 
+function runWorktreeCommand(command, args, extraEnv = {}) {
+  const result = spawnSync(command, args, {
+    cwd: worktreeRoot,
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      ...extraEnv,
+    },
+  });
+
+  if (result.error) {
+    console.error(result.error);
+    process.exit(1);
+  }
+
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}
+
 function copyStaticOutput() {
   const builtOutputRoot = resolve(worktreeRoot, "out");
 
@@ -85,24 +105,10 @@ const args =
 prepareWorktree();
 
 try {
-  const result = spawnSync(command, args, {
-    cwd: worktreeRoot,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      NEXT_STATIC_EXPORT: "true",
-    },
+  runWorktreeCommand(process.execPath, ["./scripts/generate-static-cms-content.mjs"]);
+  runWorktreeCommand(command, args, {
+    NEXT_STATIC_EXPORT: "true",
   });
-
-  if (result.error) {
-    console.error(result.error);
-    process.exit(1);
-  }
-
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
-
   copyStaticOutput();
 } finally {
   rmSync(worktreeRoot, { recursive: true, force: true });
