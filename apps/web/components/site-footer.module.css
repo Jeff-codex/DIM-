@@ -28,6 +28,22 @@
   text-transform: uppercase;
 }
 
+.company {
+  display: grid;
+  gap: 4px;
+  padding-top: 4px;
+  font-size: 0.88rem;
+  line-height: 1.72;
+}
+
+.company a {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.company a:hover {
+  color: #ffffff;
+}
+
 .links {
   display: flex;
   flex-wrap: wrap;

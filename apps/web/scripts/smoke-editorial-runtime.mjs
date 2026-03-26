@@ -32,6 +32,8 @@ const proposalPayload = {
   whyNow: "Validate submit and editorial runtime flow",
   references: [],
   locale: "ko-KR",
+  consentToReview: true,
+  confirmSubmissionRights: true,
 };
 
 const publicConfigResponse = await expectStatus(

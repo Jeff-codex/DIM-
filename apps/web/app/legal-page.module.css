@@ -1,0 +1,116 @@
+.page {
+  background: #ffffff;
+}
+
+.contentSection {
+  padding: 62px 0 140px;
+}
+
+.inner {
+  display: grid;
+  gap: 56px;
+}
+
+.section {
+  display: grid;
+  gap: 24px;
+  padding-top: 28px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.sectionHeader {
+  display: grid;
+  gap: 10px;
+  max-width: 36rem;
+}
+
+.sectionLabel {
+  color: var(--color-text-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sectionTitle {
+  max-width: none;
+}
+
+.body {
+  display: grid;
+  gap: 18px;
+  max-width: 52rem;
+  color: var(--color-text-secondary);
+  line-height: 1.86;
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 1.25rem;
+  max-width: 52rem;
+  color: var(--color-text-secondary);
+  line-height: 1.86;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 28px;
+  align-items: start;
+}
+
+.card {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.cardTitle {
+  color: var(--color-text-primary);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.note {
+  color: var(--color-text-primary);
+  font-size: 0.96rem;
+  line-height: 1.82;
+}
+
+.linkList {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.linkList a {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-decoration-color: rgba(17, 17, 17, 0.22);
+  text-underline-offset: 0.18em;
+  overflow-wrap: anywhere;
+}
+
+.linkList a:hover {
+  text-decoration-color: rgba(17, 17, 17, 0.52);
+}
+
+@media (max-width: 760px) {
+  .contentSection {
+    padding: 44px 0 108px;
+  }
+
+  .inner {
+    gap: 44px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

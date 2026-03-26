@@ -211,6 +211,11 @@ export function ProposalPrepActions({
       return;
     }
 
+    if (!form.reportValidity()) {
+      setStatus("개인정보 안내와 제출자료 처리조건 확인이 필요합니다");
+      return;
+    }
+
     const draft = getDraft(form);
 
     if (!draft.projectName || !draft.summary || !draft.whyNow) {
@@ -221,6 +226,17 @@ export function ProposalPrepActions({
     setSubmitting(true);
 
     try {
+      const privacyConsentField = form.elements.namedItem("privacyConsent");
+      const submissionTermsField = form.elements.namedItem("submissionTermsConsent");
+      const consentToReview =
+        privacyConsentField instanceof HTMLInputElement
+          ? privacyConsentField.checked
+          : false;
+      const confirmSubmissionRights =
+        submissionTermsField instanceof HTMLInputElement
+          ? submissionTermsField.checked
+          : false;
+
       const payload = {
         schemaVersion: 1,
         projectName: draft.projectName,
@@ -235,6 +251,8 @@ export function ProposalPrepActions({
         referencesText: draft.references,
         references: extractReferenceUrls(draft.references),
         locale: document.documentElement.lang || navigator.language || "ko-KR",
+        consentToReview,
+        confirmSubmissionRights,
       };
 
       const body = new FormData(form);
@@ -253,6 +271,8 @@ export function ProposalPrepActions({
           | null;
 
         switch (errorData?.error) {
+          case "proposal_consent_required":
+            throw new Error("proposal-consent-required");
           case "proposal_rate_limited":
             throw new Error("proposal-rate-limited");
           case "turnstile_required":
@@ -275,6 +295,11 @@ export function ProposalPrepActions({
       setStatus(data.proposalId ? "제안을 접수했습니다" : "제안을 접수했습니다");
     } catch (error) {
       if (error instanceof Error) {
+        if (error.message === "proposal-consent-required") {
+          setStatus("개인정보 안내와 제출자료 처리조건 확인이 필요합니다");
+          return;
+        }
+
         if (error.message === "proposal-rate-limited") {
           setStatus("짧은 시간에 너무 많이 제출되었습니다. 잠시 후 다시 시도해 주세요");
           return;

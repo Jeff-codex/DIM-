@@ -377,6 +377,62 @@
   padding-top: 30px;
 }
 
+.legalNotice {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: rgba(17, 17, 17, 0.02);
+}
+
+.legalHeading {
+  color: var(--color-text-primary);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.legalCopy,
+.legalContact {
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.78;
+}
+
+.legalNotice a,
+.legalContact a,
+.consentItem a {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-decoration-color: rgba(17, 17, 17, 0.22);
+  text-underline-offset: 0.18em;
+}
+
+.legalNotice a:hover,
+.legalContact a:hover,
+.consentItem a:hover {
+  text-decoration-color: rgba(17, 17, 17, 0.52);
+}
+
+.consentList {
+  display: grid;
+  gap: 12px;
+}
+
+.consentItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  color: var(--color-text-primary);
+  font-size: 0.92rem;
+  line-height: 1.72;
+}
+
+.consentItem input {
+  margin-top: 0.22rem;
+}
+
 .formStatus {
   font-size: 0.92rem;
 }
@@ -453,6 +509,10 @@
 
   .formSurface {
     padding: 24px 20px 26px;
+  }
+
+  .legalNotice {
+    padding: 16px 16px 18px;
   }
 
   .chapterHeader,

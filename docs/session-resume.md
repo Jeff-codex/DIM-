@@ -96,7 +96,7 @@
   - `/articles/startups`
   - `/articles/product-launches`
   - `/articles/industry-analysis`
-  - `/articles/ai-work-tools-are-becoming-management-layers`
+  - `/articles/ai`
 
 ## Guardrails
 
@@ -134,7 +134,7 @@
 12. Verify public review paths:
    - `/`
    - `/articles`
-   - `/articles/ai-work-tools-are-becoming-management-layers`
+   - `/articles/ai`
    - `/about`
    - `/submit`
 13. Share only the verified external preview URL. Never hand off localhost.

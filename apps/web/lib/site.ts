@@ -3,6 +3,11 @@ export const siteConfig = {
   url: "https://depthintelligence.kr",
   description:
     "스타트업 분석, 서비스 분석, 제품 출시 분석, 산업 구조 분석을 통해 무엇이 바뀌는지 설명하는 비즈니스 구조 매거진",
+  company: {
+    legalName: "뎁스코퍼레이션",
+    representative: "강경현",
+    proposalEmail: "magazine@depthintelligence.kr",
+  },
   publisher: {
     id: "https://depthintelligence.kr/#organization",
     name: "Depth Intelligence Magazine",

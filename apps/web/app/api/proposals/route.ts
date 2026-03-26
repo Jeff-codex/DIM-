@@ -83,6 +83,10 @@ export async function POST(request: Request) {
 
     await enforceProposalSubmitSecurity(request, turnstileToken);
 
+    if (!payload.consentToReview || !payload.confirmSubmissionRights) {
+      throw new EditorialIntakeError("proposal_consent_required");
+    }
+
     const validatedFiles = validateProposalAttachments(files);
     const now = new Date().toISOString();
     const proposalId = crypto.randomUUID();

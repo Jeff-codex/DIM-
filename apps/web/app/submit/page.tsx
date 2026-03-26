@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import styles from "./page.module.css";
 import { CTAButton } from "@/components/cta-button";
 import { EditorialHeading } from "@/components/editorial-heading";
@@ -6,6 +7,7 @@ import { MagazineIntro } from "@/components/magazine-intro";
 import { ProposalPrepActions } from "@/components/proposal-prep-actions";
 import { SubmitSecurityGate } from "@/components/submit-security-gate";
 import { submissionFields } from "@/content/intelligence-loop";
+import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "피처 제안",
@@ -367,8 +369,60 @@ export default function SubmitPage() {
 
                 <div className={styles.formFooter}>
                   <SubmitSecurityGate />
+                  <div className={styles.legalNotice}>
+                    <p className={styles.legalHeading}>개인정보 수집·이용 안내</p>
+                    <p className={styles.legalCopy}>
+                      DIM은 제안 검토, 필요한 사실 확인, 후속 연락, 내부 편집
+                      판단을 위해 담당자명, 이메일, 링크, 첨부 자료를 처리합니다.
+                      자세한 내용은{" "}
+                      <Link href="/privacy">개인정보처리방침</Link>에서 확인할 수
+                      있습니다.
+                    </p>
+                    <p className={styles.legalCopy}>
+                      제출자료는 검토와 편집 판단을 위한 자료로만 사용하며, 권한
+                      있는 자료만 제출해야 합니다. 자세한 기준은{" "}
+                      <Link href="/proposal-terms">제출자료 처리조건</Link>에서
+                      확인할 수 있습니다.
+                    </p>
+                    <p className={styles.legalCopy}>
+                      제안 검토와 필요한 후속 연락이 끝나면 지체 없이 삭제를
+                      원칙으로 하며, 동의를 거부할 수 있으나 이 경우 제출이
+                      제한됩니다.
+                    </p>
+                  </div>
+                  <div className={styles.consentList}>
+                    <label className={styles.consentItem}>
+                      <input
+                        type="checkbox"
+                        name="privacyConsent"
+                        required
+                      />
+                      <span>
+                        <Link href="/privacy">개인정보처리방침</Link>을 확인했고,
+                        개인정보 수집·이용 안내에 동의합니다.
+                      </span>
+                    </label>
+                    <label className={styles.consentItem}>
+                      <input
+                        type="checkbox"
+                        name="submissionTermsConsent"
+                        required
+                      />
+                      <span>
+                        <Link href="/proposal-terms">제출자료 처리조건</Link>을
+                        확인했고, 업로드 자료에 필요한 권한이 있음을 확인합니다.
+                      </span>
+                    </label>
+                  </div>
                   <p className={styles.formStatus}>
                     보낸 자료는 필요한 맥락과 함께 하나의 피처로 정리합니다
+                  </p>
+                  <p className={styles.legalContact}>
+                    문의: {siteConfig.company.legalName} / 대표자{" "}
+                    {siteConfig.company.representative} /{" "}
+                    <a href={`mailto:${siteConfig.company.proposalEmail}`}>
+                      {siteConfig.company.proposalEmail}
+                    </a>
                   </p>
                   <ProposalPrepActions formId="proposal-prep-form" />
                 </div>

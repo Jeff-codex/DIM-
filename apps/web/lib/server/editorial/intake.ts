@@ -56,6 +56,8 @@ export const proposalPayloadSchema = z.object({
     .max(20)
     .default([]),
   locale: z.string().trim().max(32).default("ko-KR"),
+  consentToReview: z.coerce.boolean().default(false),
+  confirmSubmissionRights: z.coerce.boolean().default(false),
 });
 
 export const proposalDraftPayloadSchema = z.object({

@@ -18,7 +18,7 @@ const publicRoutes = [
   "/articles",
   "/about",
   "/submit",
-  "/articles/ai-work-tools-are-becoming-management-layers",
+  "/articles/ai",
 ];
 
 async function expectStatus(url, expected, options) {

@@ -21,7 +21,7 @@ Run from `apps/web`.
 4. Verify successful responses for:
    - `/`
    - `/articles`
-   - `/articles/ai-work-tools-are-becoming-management-layers`
+   - `/articles/everyonepr`
    - `/about`
    - `/submit`
    - if editorial runtime is part of the task, also run:
