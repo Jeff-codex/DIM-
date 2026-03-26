@@ -13,13 +13,15 @@ if (!["candidate", "production"].includes(mode)) {
   process.exit(1);
 }
 
-const publicRoutes = [
+const shellRoutes = [
   "/",
   "/articles",
   "/about",
   "/submit",
-  "/articles/ai",
 ];
+
+const productionCanonicalArticleRoute = "/articles/ai-browser-interface-power";
+const productionAliasArticleRoute = "/articles/ai";
 
 async function expectStatus(url, expected, options) {
   const response = await fetch(url, {
@@ -36,8 +38,26 @@ async function expectStatus(url, expected, options) {
 }
 
 async function expectRouteStatuses() {
-  for (const route of publicRoutes) {
+  for (const route of shellRoutes) {
     await expectStatus(`${baseUrl}${route}`, 200);
+  }
+
+  if (mode !== "production") {
+    return;
+  }
+
+  await expectStatus(`${baseUrl}${productionCanonicalArticleRoute}`, 200);
+
+  const aliasResponse = await expectStatus(
+    `${baseUrl}${productionAliasArticleRoute}`,
+    308,
+  );
+  const location = aliasResponse.headers.get("location") ?? "";
+
+  if (location !== productionCanonicalArticleRoute) {
+    throw new Error(
+      `${baseUrl}${productionAliasArticleRoute} expected location ${productionCanonicalArticleRoute} but received ${location}`,
+    );
   }
 }
 

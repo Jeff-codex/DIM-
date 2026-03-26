@@ -421,7 +421,6 @@ function writeOutput(outputPath: string | null, payload: unknown) {
 
 function buildApplySql(mapping: ApprovedMapping, now: string) {
   return [
-    "BEGIN TRANSACTION;",
     `UPDATE feature_entry SET slug = ${sqlString(mapping.canonicalSlug)}, updated_at = ${sqlString(now)} WHERE id = ${sqlString(mapping.featureEntryId)} AND slug = ${sqlString(mapping.currentSlug)};`,
     `INSERT INTO feature_slug_alias (alias_slug, feature_entry_id, created_at, retired_at)
 SELECT ${sqlString(mapping.currentSlug)}, ${sqlString(mapping.featureEntryId)}, ${sqlString(now)}, NULL
@@ -436,7 +435,6 @@ WHERE EXISTS (
     FROM feature_slug_alias
     WHERE alias_slug = ${sqlString(mapping.currentSlug)}
   );`,
-    "COMMIT;",
   ].join("\n");
 }
 
