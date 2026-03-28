@@ -1,7 +1,7 @@
-import { categories } from "@/content/categories";
 import { EditorialDraftEditor } from "@/components/editorial-draft-editor";
 import { InternalAnalysisWorkflowNav } from "@/components/internal-analysis-workflow-nav";
 import { requireAdminIdentity } from "@/lib/server/editorial/admin";
+import { getInternalAnalysisCategoryOptions } from "@/lib/server/editorial-v2/internal-analysis-categories";
 import {
   getEditorialV2DraftByRevisionId,
   listEditorialV2AssetFamiliesByRevisionId,
@@ -110,12 +110,10 @@ export default async function AdminInternalIndustryAnalysisEditorPage({
       <EditorialDraftEditor
         proposalId={resolvedDraft.proposalId}
         routeContextId={revision.id}
-        categories={categories
-          .filter((category) => category.id === "industry-analysis")
-          .map((category) => ({
-            id: category.id,
-            name: category.name,
-          }))}
+        categories={getInternalAnalysisCategoryOptions().map((category) => ({
+          id: category.id,
+          name: category.name,
+        }))}
         initialDraft={resolvedDraft}
         sourceAssets={[]}
         editorialAssets={editorialAssets}

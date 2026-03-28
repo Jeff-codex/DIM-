@@ -469,8 +469,7 @@ export async function getCmsPublishedArticleBySlug(
     }
 
       const isInternalIndustryAnalysis =
-        normalizeFeatureEntrySourceType(row.sourceType) === "internal_industry_analysis" &&
-        row.categoryId === "industry-analysis";
+        normalizeFeatureEntrySourceType(row.sourceType) === "internal_industry_analysis";
       const brief = isInternalIndustryAnalysis
         ? await getInternalAnalysisBriefForRevision(
             row.featureRevisionId,

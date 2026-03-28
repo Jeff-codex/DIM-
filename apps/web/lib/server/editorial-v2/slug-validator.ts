@@ -20,6 +20,12 @@ function tokenize(value: string) {
   return value.split("-").map((entry) => entry.trim()).filter(Boolean);
 }
 
+function containsAllTokens(tokens: string[], signal: string) {
+  const signalTokens = tokenize(signal);
+
+  return signalTokens.length > 0 && signalTokens.every((token) => tokens.includes(token));
+}
+
 function determineStatus(score: number, hardReject: boolean): SlugValidationStatus {
   if (hardReject || score < 50) {
     return "reject";
@@ -108,6 +114,15 @@ export function validateDimSlugCandidate(
   if (!hasStructureSignal) {
     warnings.push("구조 변화 신호가 약합니다");
     score -= 15;
+  }
+
+  if (
+    normalization.primary_entity &&
+    !isOverlyBroadSlugTerm(normalization.primary_entity) &&
+    !containsAllTokens(tokens, normalization.primary_entity)
+  ) {
+    reasons.push("핵심 플레이어 신호가 slug에 반영되지 않았습니다");
+    score -= 18;
   }
 
   const existing = new Set(input.existing_slugs ?? []);

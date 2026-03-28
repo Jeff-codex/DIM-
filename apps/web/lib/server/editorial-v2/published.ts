@@ -1,5 +1,4 @@
 import "server-only";
-import { getCategoryById } from "@/content/categories";
 import { tags } from "@/content/tags";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
 import { getProposalDetail } from "@/lib/server/editorial/admin";
@@ -129,7 +128,6 @@ async function buildSlugSystemInputForRevision(
   revision: FeatureRevisionRecord,
   featureEntry: FeatureEntryRecord,
 ): Promise<SlugSystemInput> {
-  const categoryName = getCategoryById(revision.categoryId)?.name ?? revision.categoryId;
   const tagNames = revision.tagIds
     .map((tagId) => tagsById.get(tagId)?.name)
     .filter((tagName): tagName is string => Boolean(tagName));
@@ -149,9 +147,9 @@ async function buildSlugSystemInputForRevision(
         brief?.market ?? "",
       ]),
       tags: Array.from(new Set([...tagNames, ...(brief?.tags ?? [])])),
-      category: categoryName,
-      entities: [],
-      topic_keywords: [brief?.market ?? "", categoryName],
+      category: revision.categoryId,
+      entities: [brief?.workingTitle ?? "", revision.title].filter(Boolean),
+      topic_keywords: [brief?.market ?? "", revision.categoryId],
       structural_keywords: [revision.verdict],
     };
   }
@@ -174,9 +172,9 @@ async function buildSlugSystemInputForRevision(
       proposal?.stage ?? "",
     ]),
     tags: tagNames,
-    category: categoryName,
+    category: revision.categoryId,
     entities: [proposal?.projectName ?? "", revision.title].filter(Boolean),
-    topic_keywords: [proposal?.market ?? "", proposal?.stage ?? "", categoryName],
+    topic_keywords: [proposal?.market ?? "", proposal?.stage ?? "", revision.categoryId],
     structural_keywords: [revision.verdict],
   };
 }

@@ -1,4 +1,8 @@
 import "server-only";
+import {
+  clampEditorialDraftExcerpt,
+  clampEditorialDraftInterpretiveFrame,
+} from "@/lib/server/editorial-v2/draft-limits";
 
 type ParsedInternalIndustryAnalysisTemplate = {
   title: string;
@@ -18,15 +22,6 @@ const labeledSections = new Set([
   "DIM의 해석",
   "참고한 링크 출처",
 ]);
-
-function truncateText(value: string, maxLength: number) {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (normalized.length <= maxLength) {
-    return normalized;
-  }
-
-  return `${normalized.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…`;
-}
 
 function normalizeBlock(value: string) {
   return value.replace(/\r\n?/g, "\n").trim();
@@ -329,8 +324,8 @@ function inferStructuredTemplate(input: {
   return {
     title,
     displayTitleLines: [],
-    excerpt: truncateText(excerptBlock, 320),
-    interpretiveFrame: truncateText(verdictBlock, 320),
+    excerpt: clampEditorialDraftExcerpt(excerptBlock),
+    interpretiveFrame: clampEditorialDraftInterpretiveFrame(verdictBlock),
     bodyMarkdown: structuredBody.bodyMarkdown,
     briefRecord: [excerptBlock, verdictBlock].join("\n\n"),
     sourceLinks: structuredBody.sourceLinks,
@@ -450,8 +445,8 @@ export function parseInternalIndustryAnalysisTemplate(input: {
     return {
       title: input.workingTitle,
       displayTitleLines: [],
-      excerpt: truncateText(rawBrief, 320),
-      interpretiveFrame: truncateText(rawBrief, 320),
+      excerpt: clampEditorialDraftExcerpt(rawBrief),
+      interpretiveFrame: clampEditorialDraftInterpretiveFrame(rawBrief),
       bodyMarkdown: ["## 핵심 브리프", "", rawBrief].join("\n"),
       briefRecord: rawBrief,
       sourceLinks: [],
@@ -500,10 +495,9 @@ export function parseInternalIndustryAnalysisTemplate(input: {
       .split(/\n{2,}/)
       .map((block) => normalizeParagraphBlock(block))
       .filter(Boolean);
-    const excerpt = truncateText(paragraphBlocks[0] ?? rawBrief, 320);
-    const interpretiveFrame = truncateText(
+    const excerpt = clampEditorialDraftExcerpt(paragraphBlocks[0] ?? rawBrief);
+    const interpretiveFrame = clampEditorialDraftInterpretiveFrame(
       paragraphBlocks[1] ?? paragraphBlocks[0] ?? rawBrief,
-      320,
     );
 
     return {
@@ -524,8 +518,8 @@ export function parseInternalIndustryAnalysisTemplate(input: {
   return {
     title,
     displayTitleLines: [],
-    excerpt: answer.value,
-    interpretiveFrame: verdict.value,
+    excerpt: clampEditorialDraftExcerpt(answer.value),
+    interpretiveFrame: clampEditorialDraftInterpretiveFrame(verdict.value),
     bodyMarkdown:
       structuredBody.bodyMarkdown || ["## 핵심 브리프", "", rawBrief].join("\n"),
     briefRecord: briefRecord || rawBrief,

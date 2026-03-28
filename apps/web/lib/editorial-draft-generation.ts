@@ -181,6 +181,10 @@ export function humanizeDraftGenerationErrorMessage(raw?: string | null) {
     return "AI 호출 한도에 걸려 초안 생성을 잠시 완료하지 못했습니다. 잠시 뒤 다시 시도해야 합니다.";
   }
 
+  if (trimmed.includes("internal_analysis_category_not_allowed")) {
+    return "내부 작성 원고 카테고리는 스타트업 분석, 제품 출시 분석, 산업 구조 분석 중 하나만 선택할 수 있습니다.";
+  }
+
   if (trimmed.includes("editorial_image_generator_not_configured")) {
     return "이미지 파생본 생성기가 연결되지 않아 새 이미지 적용을 마치지 못했습니다.";
   }

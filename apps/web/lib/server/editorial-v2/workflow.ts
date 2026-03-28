@@ -40,9 +40,17 @@ import {
   type InternalAnalysisBriefInput,
 } from "@/lib/server/editorial-v2/schema";
 import {
+  clampEditorialDraftExcerpt,
+  clampEditorialDraftInterpretiveFrame,
+} from "@/lib/server/editorial-v2/draft-limits";
+import {
   parseInternalIndustryAnalysisBodySections,
   parseInternalIndustryAnalysisTemplate,
 } from "@/lib/server/editorial-v2/internal-analysis-template";
+import {
+  assertInternalAnalysisCategoryId,
+  defaultInternalAnalysisCategoryId,
+} from "@/lib/server/editorial-v2/internal-analysis-categories";
 import type { SlugSystemInput } from "@/lib/server/editorial-v2/slug-generator";
 import { generateAndValidateDimSlug } from "@/lib/server/editorial-v2/slug-validator";
 
@@ -479,6 +487,8 @@ async function buildCanonicalInternalIndustryAnalysisDraftInput(input: {
     return input.parsed;
   }
 
+  const categoryId = assertInternalAnalysisCategoryId(input.parsed.categoryId);
+
   const bodyCandidate = stripInternalAnalysisDuplicateVerdictBlock(
     stripInternalAnalysisFallbackHeading(input.parsed.bodyMarkdown),
     input.parsed.interpretiveFrame,
@@ -498,7 +508,7 @@ async function buildCanonicalInternalIndustryAnalysisDraftInput(input: {
         displayTitleLines: parsedTemplate.displayTitleLines,
         excerpt: parsedTemplate.excerpt,
         interpretiveFrame: parsedTemplate.interpretiveFrame,
-        categoryId: "industry-analysis",
+        categoryId,
         bodyMarkdown: parsedTemplate.bodyMarkdown,
       } satisfies EditorialV2DraftInput;
     }
@@ -509,7 +519,7 @@ async function buildCanonicalInternalIndustryAnalysisDraftInput(input: {
   if (repairedBody.usedStructuredBody) {
     return {
       ...input.parsed,
-      categoryId: "industry-analysis",
+      categoryId,
       bodyMarkdown: repairedBody.bodyMarkdown,
     } satisfies EditorialV2DraftInput;
   }
@@ -530,7 +540,7 @@ async function buildCanonicalInternalIndustryAnalysisDraftInput(input: {
         displayTitleLines: parsedTemplate.displayTitleLines,
         excerpt: parsedTemplate.excerpt,
         interpretiveFrame: parsedTemplate.interpretiveFrame,
-        categoryId: "industry-analysis",
+        categoryId,
         bodyMarkdown: parsedTemplate.bodyMarkdown,
       } satisfies EditorialV2DraftInput;
     }
@@ -538,7 +548,7 @@ async function buildCanonicalInternalIndustryAnalysisDraftInput(input: {
 
   return {
     ...input.parsed,
-    categoryId: "industry-analysis",
+    categoryId,
   } satisfies EditorialV2DraftInput;
 }
 
@@ -698,7 +708,7 @@ export async function createInternalIndustryAnalysisEntry(
     title: parsed.workingTitle,
     summary: parsed.brief,
     tags: parsed.tags,
-    category: "industry-analysis",
+    category: defaultInternalAnalysisCategoryId,
     topic_keywords: [parsed.market ?? ""],
   });
   const sourceSnapshot = buildInternalAnalysisSourceSnapshot(parsed);
@@ -751,13 +761,14 @@ export async function createInternalIndustryAnalysisEntry(
          updated_by,
          created_at,
          updated_at
-       ) VALUES (?, ?, NULL, 'editing', 1, ?, '[]', ?, ?, 'industry-analysis', ?, '[]', NULL, ?, '[]', NULL, '[]', '[]', ?, ?, ?, NULL, NULL, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, NULL, 'editing', 1, ?, '[]', ?, ?, ?, ?, '[]', NULL, ?, '[]', NULL, '[]', '[]', ?, ?, ?, NULL, NULL, ?, ?, ?, ?)`,
     ).bind(
       revisionId,
       featureEntryId,
       parsedTemplate.title,
       parsedTemplate.excerpt,
       parsedTemplate.interpretiveFrame,
+      defaultInternalAnalysisCategoryId,
       defaultAuthorId,
       buildInternalAnalysisBodyMarkdown(parsed),
       null,
@@ -1102,8 +1113,8 @@ function mapRevisionToDraftView(input: {
     proposalId: input.revision.proposalId ?? "",
     title: input.revision.title,
     displayTitleLines: parseJsonArray(input.revision.displayTitleLinesJson),
-    excerpt: input.revision.dek,
-    interpretiveFrame: input.revision.verdict,
+    excerpt: clampEditorialDraftExcerpt(input.revision.dek),
+    interpretiveFrame: clampEditorialDraftInterpretiveFrame(input.revision.verdict),
     categoryId: input.revision.categoryId,
     coverImageUrl: input.coverImageUrl,
     bodyMarkdown: input.revision.bodyMarkdown,
@@ -1837,7 +1848,15 @@ export async function prepareEditorialV2RevisionForPublishByRevisionId(
     requireBucket: false,
     requireQueue: false,
   });
+  console.info("Preparing editorial revision for publish", {
+    revisionId,
+    stage: "repair",
+  });
   await repairInternalIndustryAnalysisRevisionById(revisionId, editorEmail);
+  console.info("Preparing editorial revision for publish", {
+    revisionId,
+    stage: "repair_complete",
+  });
   const revision = await getDraftRevisionById(revisionId);
 
   if (!revision) {
@@ -1845,6 +1864,10 @@ export async function prepareEditorialV2RevisionForPublishByRevisionId(
   }
 
   const now = new Date().toISOString();
+  console.info("Preparing editorial revision for publish", {
+    revisionId,
+    stage: "status_update",
+  });
 
   await env.EDITORIAL_DB.batch([
     env.EDITORIAL_DB.prepare(
@@ -1879,6 +1902,12 @@ export async function prepareEditorialV2RevisionForPublishByRevisionId(
       now,
     ),
   ]);
+
+  console.info("Preparing editorial revision for publish", {
+    revisionId,
+    stage: "publish_event_insert_complete",
+    status: "ready_to_publish",
+  });
 
   return getEditorialV2DraftByRevisionId(revisionId);
 }

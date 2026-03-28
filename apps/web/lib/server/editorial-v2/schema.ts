@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { categories } from "@/content/categories";
+import {
+  editorialDraftBodyMaxLength,
+  editorialDraftExcerptMaxLength,
+  editorialDraftInterpretiveFrameMaxLength,
+  editorialDraftTitleMaxLength,
+} from "@/lib/server/editorial-v2/draft-limits";
 
 const optionalLineArray = z
   .array(z.string().trim().min(1).max(120))
@@ -8,10 +14,10 @@ const optionalLineArray = z
   .transform((value) => value.filter(Boolean));
 
 export const editorialV2DraftInputSchema = z.object({
-  title: z.string().trim().min(1).max(200),
+  title: z.string().trim().min(1).max(editorialDraftTitleMaxLength),
   displayTitleLines: optionalLineArray,
-  excerpt: z.string().trim().min(1).max(320),
-  interpretiveFrame: z.string().trim().min(1).max(320),
+  excerpt: z.string().trim().min(1).max(editorialDraftExcerptMaxLength),
+  interpretiveFrame: z.string().trim().min(1).max(editorialDraftInterpretiveFrameMaxLength),
   categoryId: z
     .string()
     .trim()
@@ -25,7 +31,7 @@ export const editorialV2DraftInputSchema = z.object({
     .max(2048)
     .optional()
     .transform((value) => value || undefined),
-  bodyMarkdown: z.string().trim().min(1).max(24000),
+  bodyMarkdown: z.string().trim().min(1).max(editorialDraftBodyMaxLength),
 });
 
 export type EditorialV2DraftInput = z.infer<typeof editorialV2DraftInputSchema>;

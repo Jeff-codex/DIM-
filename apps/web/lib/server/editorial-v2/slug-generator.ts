@@ -77,7 +77,7 @@ const aliasRules: AliasRule[] = [
   { patterns: ["마이크로소프트", "microsoft"], slug: "microsoft", kind: "entity", strength: "specific" },
   { patterns: ["엣지", "edge"], slug: "edge", kind: "entity", strength: "specific" },
   { patterns: ["퍼플렉시티", "perplexity"], slug: "perplexity", kind: "entity", strength: "specific" },
-  { patterns: ["오픈ai", "openai", "chatgpt atlas", "atlas"], slug: "atlas", kind: "entity", strength: "specific" },
+  { patterns: ["chatgpt atlas", "atlas"], slug: "atlas", kind: "entity", strength: "specific" },
   { patterns: ["comet"], slug: "comet", kind: "entity", strength: "specific" },
   { patterns: ["brex"], slug: "brex", kind: "entity", strength: "specific" },
   { patterns: ["the realreal", "realreal"], slug: "realreal", kind: "entity", strength: "specific" },

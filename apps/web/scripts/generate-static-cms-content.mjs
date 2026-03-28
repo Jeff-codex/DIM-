@@ -195,8 +195,7 @@ async function main() {
       coverImageCard: row.cardImage ?? undefined,
       coverImageDetail: row.detailImage ?? undefined,
       analysisMeta:
-        row.sourceType === "internal_industry_analysis" &&
-        row.categoryId === "industry-analysis"
+        row.sourceType === "internal_industry_analysis"
           ? {
               market: row.analysisMarket ?? null,
               photoSource: row.photoSource ?? null,
