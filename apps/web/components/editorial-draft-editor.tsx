@@ -267,17 +267,35 @@ export function EditorialDraftEditor({
   const ensureAdminActionResponse = (response: Response) => {
     const contentType = response.headers.get("content-type") ?? "";
 
-    if (response.redirected || contentType.includes("text/html")) {
-      throw new Error(
-        "편집 권한 또는 Access 세션이 끊겨 작업을 이어가지 못했습니다. 다시 로그인한 뒤 시도해 주세요",
-      );
+    if (response.redirected) {
+      throw new Error("admin_access_expired");
     }
+
+    if (contentType.includes("text/html")) {
+      throw new Error("admin_unexpected_html_response");
+    }
+  };
+
+  const resolveActionFailureMessage = (error: unknown, fallback: string) => {
+    if (error instanceof Error) {
+      if (error.message === "admin_access_expired") {
+        return "편집 권한 또는 Access 세션이 끊겨 작업을 이어가지 못했습니다. 다시 로그인한 뒤 시도해 주세요";
+      }
+
+      if (error.message === "admin_unexpected_html_response") {
+        return "예상치 못한 HTML 응답이 돌아왔습니다. 서버 상태를 확인해 주세요";
+      }
+
+      return error.message || fallback;
+    }
+
+    return fallback;
   };
 
   const persistDraft = async (
     nextDraft: EditorialDraftRecord,
     messages: {
-      success: string;
+      success: string | null;
       failure: string;
     },
   ) => {
@@ -316,17 +334,16 @@ export function EditorialDraftEditor({
 
       setDraft(persistedDraft);
       setLastSavedSnapshot(serializeDraft(persistedDraft));
-      setStatus(messages.success);
+
+      if (messages.success) {
+        setStatus(messages.success);
+      }
       router.refresh();
 
       return persistedDraft;
     } catch (error) {
       setDraft(previousDraft);
-      setStatus(
-        error instanceof Error && error.message
-          ? error.message
-          : messages.failure,
-      );
+      setStatus(resolveActionFailureMessage(error, messages.failure));
       return null;
     }
   };
@@ -335,31 +352,10 @@ export function EditorialDraftEditor({
     setSaving(true);
 
     try {
-      const response = await fetch(resolvedDraftActionPath, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(draft),
+      await persistDraft(draft, {
+        success: "저장했습니다",
+        failure: "저장하지 못했습니다. 연결 상태와 입력 형식을 다시 확인해 주세요",
       });
-      ensureAdminActionResponse(response);
-
-      if (!response.ok) {
-        throw new Error("draft-save-failed");
-      }
-
-      const data = (await response.json()) as {
-        draft?: EditorialDraftRecord;
-      };
-
-      if (data.draft) {
-        setDraft(data.draft);
-        setLastSavedSnapshot(serializeDraft(data.draft));
-      }
-
-      setStatus("저장했습니다");
-    } catch {
-      setStatus("저장하지 못했습니다. 연결 상태와 입력 형식을 다시 확인해 주세요");
     } finally {
       setSaving(false);
     }
@@ -369,26 +365,13 @@ export function EditorialDraftEditor({
     setSnapshotting(true);
 
     try {
-      const saveResponse = await fetch(resolvedDraftActionPath, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(draft),
+      const persistedDraft = await persistDraft(draft, {
+        success: null,
+        failure: "발행 준비본을 만들지 못했습니다. 저장 상태를 먼저 확인해 주세요",
       });
-      ensureAdminActionResponse(saveResponse);
 
-      if (!saveResponse.ok) {
-        throw new Error("draft-save-before-snapshot-failed");
-      }
-
-      const saveData = (await saveResponse.json()) as {
-        draft?: EditorialDraftRecord;
-      };
-
-      if (saveData.draft) {
-        setDraft(saveData.draft);
-        setLastSavedSnapshot(serializeDraft(saveData.draft));
+      if (!persistedDraft) {
+        return;
       }
 
       const snapshotResponse = await fetch(resolvedDraftSnapshotActionPath, {
@@ -397,12 +380,28 @@ export function EditorialDraftEditor({
       ensureAdminActionResponse(snapshotResponse);
 
       if (!snapshotResponse.ok) {
-        throw new Error("publication-snapshot-failed");
+        const payload = (await snapshotResponse.json().catch(() => null)) as
+          | {
+              detail?: string;
+              rawDetail?: string | null;
+            }
+          | null;
+
+        throw new Error(
+          payload?.detail ??
+            humanizeDraftGenerationErrorMessage(payload?.rawDetail ?? null) ??
+            "발행 준비본을 만들지 못했습니다. 저장 상태를 먼저 확인해 주세요",
+        );
       }
 
       setStatus("발행실로 넘길 준비를 마쳤습니다");
-    } catch {
-      setStatus("발행 준비본을 만들지 못했습니다. 저장 상태를 먼저 확인해 주세요");
+    } catch (error) {
+      setStatus(
+        resolveActionFailureMessage(
+          error,
+          "발행 준비본을 만들지 못했습니다. 저장 상태를 먼저 확인해 주세요",
+        ),
+      );
     } finally {
       setSnapshotting(false);
     }
