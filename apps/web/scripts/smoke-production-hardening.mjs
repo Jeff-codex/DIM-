@@ -94,6 +94,25 @@ async function expectRouteStatuses() {
   }
 }
 
+async function expectRedirect(url, expectedLocation) {
+  const response = await expectStatus(url, 308);
+  const location = response.headers.get("location") ?? "";
+
+  if (location !== expectedLocation) {
+    throw new Error(`${url} expected location ${expectedLocation} but received ${location}`);
+  }
+}
+
+async function verifyProductionHostCanonicalization() {
+  if (mode !== "production") {
+    return;
+  }
+
+  await expectRedirect("http://depthintelligence.kr/", `${canonicalHost}/`);
+  await expectRedirect("http://www.depthintelligence.kr/", `${canonicalHost}/`);
+  await expectRedirect("https://www.depthintelligence.kr/", `${canonicalHost}/`);
+}
+
 async function verifySeoSurface() {
   const articles = await expectHtml(`${baseUrl}/articles`);
   expectSingleCanonical(articles.html, `${canonicalHost}/articles`, "/articles");
@@ -252,6 +271,7 @@ async function verifyAdminProtection() {
 
 const publicConfig = await verifyPublicSubmitConfig();
 await expectRouteStatuses();
+await verifyProductionHostCanonicalization();
 await verifySeoSurface();
 const submitProtection = await verifySubmitProtection();
 const adminProtection = await verifyAdminProtection();
