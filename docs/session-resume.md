@@ -2,9 +2,9 @@
 
 ## Current checkpoint
 
-- Date: `2026-03-24`
+- Date: `2026-03-30`
 - Branch: `main`
-- Commit: `a5157de` (`refactor: polish DIM public archive navigation`)
+- Commit: `bf28cdc` (`Enforce canonical host redirects`)
 - Remote: `origin -> https://github.com/Jeff-codex/DIM-.git`
 - Public app: `apps/web`
 - Runtime target: `Cloudflare Workers`
@@ -83,6 +83,30 @@
   - local filter search bar on `/articles` and category landing pages
   - grayscale/black hover-active treatment aligned to DIM brand mood
 - favicon/app icons were replaced with DIM logo-based assets.
+- Production article detail outage caused by article route param sealing was fixed.
+  - production canonical article routes now return `200`
+  - old weak slugs now return `308` to canonical slugs
+  - production smoke passes again after the hotfix
+- SEO/GEO public remediation batch is now live on production:
+  - `/articles` now emits `CollectionPage + BreadcrumbList + ItemList`
+  - article detail pages emit `BreadcrumbList`
+  - article schema now uses `dateModified = lastUpdatedAt ?? publishedAt`
+  - `DIM 편집부` is represented as `Organization` in article schema
+  - `/about` now carries stronger OG/Twitter metadata and editorial-policy copy
+- Host and protocol canonicalization is now enforced live:
+  - `http://depthintelligence.kr/*` -> `https://depthintelligence.kr/*`
+  - `http://www.depthintelligence.kr/*` -> `https://depthintelligence.kr/*`
+  - `https://www.depthintelligence.kr/*` -> `https://depthintelligence.kr/*`
+- Cloudflare managed robots override has been turned off, so live `robots.txt` is again app-authored and permissive:
+  - `User-Agent: *`
+  - `Allow: /`
+- Production slug migration for the Microsoft deeptech article is complete:
+  - canonical slug: `/articles/deeptech-korea-first-customer`
+  - alias redirect: `/articles/microsoft-korea-profit-pool` -> `308` -> canonical
+  - sitemap and RSS now reference the canonical slug
+- Route reconcile was reverified with a valid `CLOUDFLARE_SECURITY_TOKEN`; production routes remain:
+  - `depthintelligence.kr/* -> dim-web`
+  - `www.depthintelligence.kr/* -> dim-web`
 
 ## Latest verified preview
 
@@ -114,7 +138,7 @@
 2. Read `docs/production-hardening-rounds.md` only if the task returns to infra hardening.
 3. If the task needs planning or prioritization, read `docs/agent-kit/README.md` and `docs/agent-kit/dim/WEEKLY_BRIEF.md`.
 4. Check repository state with `git status --short`.
-5. Confirm the current checkpoint is still `main` at or ahead of `a5157de`.
+5. Confirm the current checkpoint is still `main` at or ahead of `bf28cdc`.
 6. Reuse the existing DIM agents first and continue from the latest integrated findings rather than starting fresh.
 7. If code changed, run from `apps/web`:
    - `npm run lint`
@@ -131,13 +155,21 @@
    - `CLOUDFLARE_WORKERS_TOKEN`
    - `CLOUDFLARE_SECURITY_TOKEN`
    - optional `CLOUDFLARE_ZONE_ID`
+   - if `CLOUDFLARE_ZONE_ID` is not set, `CLOUDFLARE_SECURITY_TOKEN` must also be able to read the zone
 12. Verify public review paths:
    - `/`
    - `/articles`
-   - `/articles/ai`
+   - `/articles/deeptech-korea-first-customer`
+   - `/articles/microsoft-korea-profit-pool`
    - `/about`
    - `/submit`
+   - `/robots.txt`
+   - `/sitemap.xml`
 13. Share only the verified external preview URL. Never hand off localhost.
+14. Next likely infra follow-ups:
+   - expand production smoke so canonical/alias article samples cover more than one slug pair
+   - decide whether future slug changes should be exposed in CMS or continue to use the explicit backfill path only
+   - make production-candidate include published article rows so article detail routes can be verified before real-domain deploy
 
 ## Next queued product checklist
 
@@ -149,6 +181,8 @@
   - publish-room handoff for that internal content type
   - publication path that lands in the existing public `산업 구조 분석` category
 - Keep the current external proposal workflow intact while adding the internal authoring path.
+- Expand `smoke:production-runtime` article coverage so canonical/alias article samples are broader and regressions are caught earlier.
+- Seed or mirror published article rows into production-candidate so candidate review can verify article detail routes, not just shell routes.
 
 ## Most likely next product tasks
 

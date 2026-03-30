@@ -24,6 +24,9 @@ Run from `apps/web`.
    - `/articles/everyonepr`
    - `/about`
    - `/submit`
+   - if the task touched article routing, also verify at least:
+     - one current canonical article slug returns `200`
+     - one legacy/alias article slug returns `308` to canonical
    - if editorial runtime is part of the task, also run:
      - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-editorial_preview.depthintelligence.workers.dev`
    - if production hardening is part of the task, use the candidate runtime instead of the stale legacy worker:
@@ -48,6 +51,9 @@ Run from `apps/web`.
    - `CLOUDFLARE_SECURITY_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID`
    - optional `CLOUDFLARE_ZONE_ID`
+   - if `CLOUDFLARE_ZONE_ID` is not set, `CLOUDFLARE_SECURITY_TOKEN` must include:
+     - `Zone: Workers Routes Write`
+     - `Zone: Zone Read`
 5. Confirm production hardening prerequisites:
    - `TURNSTILE_SITE_KEY`
    - `TURNSTILE_SECRET_KEY`
@@ -68,10 +74,14 @@ Run from `apps/web`.
    - home page
    - articles page
    - one article detail page
+   - one alias/legacy article slug redirect if slug logic changed
    - about page
    - submit page
    - `/api/public-config/submit`
    - `/admin/inbox` under Cloudflare Access
+   - if bot or GEO policy changed, also verify:
+     - `/robots.txt`
+     - `/sitemap.xml`
 9. If the real domain is part of the task, verify `depthintelligence.kr` after the Cloudflare deployment completes.
 
 ## Notes
@@ -86,4 +96,14 @@ Run from `apps/web`.
 - Use `dim-web-production_candidate.depthintelligence.workers.dev` for pre-production hardening until the user explicitly approves the real-domain deployment.
 - Use verified external URLs only; do not share `localhost`.
 - Current product rule: do not deploy to the real domain until final sign-off; preview first, then production.
+- Current live production SEO/GEO baseline:
+  - host canonicalization is enforced to `https://depthintelligence.kr`
+  - app-authored `robots.txt` is permissive again because Cloudflare managed robots is disabled
+  - current canonical/alias article verification pair:
+    - canonical: `/articles/deeptech-korea-first-customer`
+    - alias redirect: `/articles/microsoft-korea-profit-pool`
 - The remaining post-preview work is production hardening, not additional public IA change, unless the user explicitly reopens design work.
+- Follow-up hardening item:
+  - candidate currently validates shell routes but may not contain published article rows; when article routing changes, article-detail parity on candidate must be treated as a separate data-readiness check.
+- Follow-up hardening item:
+  - production smoke should eventually sample multiple canonical/alias article pairs, not just a single detail route.
