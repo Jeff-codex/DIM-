@@ -94,22 +94,67 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const relatedArticles = await getRelatedArticles(article.slug, 3);
   const canonical = `${siteConfig.url}/articles/${article.slug}`;
   const image = `${siteConfig.url}${article.coverImage}`;
+  const authorId = `${siteConfig.url}/authors/${article.author.id}`;
+  const articleAuthor =
+    article.author.schemaType === "Organization"
+      ? {
+          "@type": "Organization",
+          "@id": authorId,
+          name: article.author.name,
+          description: article.author.bio,
+          url: article.author.url ?? siteConfig.url,
+        }
+      : {
+          "@type": "Person",
+          "@id": authorId,
+          name: article.author.name,
+          description: article.author.bio,
+          url: article.author.url,
+        };
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "@id": `${canonical}#breadcrumb`,
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "홈",
+        item: siteConfig.url,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "피처",
+        item: `${siteConfig.url}/articles`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: article.category.name,
+        item: `${siteConfig.url}/articles/${article.category.slug}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 4,
+        name: article.displayTitle ?? article.title,
+        item: canonical,
+      },
+    ],
+  };
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: article.title,
     description: article.excerpt,
     datePublished: article.publishedAt,
-    dateModified: article.publishedAt,
+    dateModified: article.analysisMeta?.lastUpdatedAt ?? article.publishedAt,
     inLanguage: "ko-KR",
     isAccessibleForFree: true,
     image: [image],
     articleSection: article.category.name,
     mainEntityOfPage: canonical,
-    author: {
-      "@type": "Person",
-      name: article.author.name,
-    },
+    author: articleAuthor,
     publisher: {
       "@type": "Organization",
       "@id": siteConfig.publisher.id,
@@ -124,6 +169,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   return (
     <div className={styles.page}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd),
+        }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

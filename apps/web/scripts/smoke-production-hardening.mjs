@@ -2,6 +2,7 @@ const baseArg = process.argv.find((arg) => arg.startsWith("--base-url="));
 const modeArg = process.argv.find((arg) => arg.startsWith("--mode="));
 const baseUrl = (baseArg?.split("=")[1] ?? "").replace(/\/$/, "");
 const mode = modeArg?.split("=")[1] ?? "candidate";
+const canonicalHost = "https://depthintelligence.kr";
 
 if (!baseUrl) {
   console.error("Missing --base-url=<url>");
@@ -37,6 +38,38 @@ async function expectStatus(url, expected, options) {
   return response;
 }
 
+async function expectHtml(url, expectedStatus = 200) {
+  const response = await expectStatus(url, expectedStatus);
+  const html = await response.text();
+  return { response, html };
+}
+
+function expectIncludes(haystack, needle, label) {
+  if (!haystack.includes(needle)) {
+    throw new Error(`Expected ${label} to include ${needle}`);
+  }
+}
+
+function expectSingleCanonical(html, expectedHref, routeLabel) {
+  const canonicalMatches = Array.from(
+    html.matchAll(/<link rel="canonical" href="([^"]+)"/g),
+  );
+
+  if (canonicalMatches.length !== 1) {
+    throw new Error(
+      `${routeLabel} expected exactly 1 canonical link but found ${canonicalMatches.length}`,
+    );
+  }
+
+  const href = canonicalMatches[0]?.[1] ?? "";
+
+  if (href !== expectedHref) {
+    throw new Error(
+      `${routeLabel} expected canonical ${expectedHref} but received ${href}`,
+    );
+  }
+}
+
 async function expectRouteStatuses() {
   for (const route of shellRoutes) {
     await expectStatus(`${baseUrl}${route}`, 200);
@@ -59,6 +92,48 @@ async function expectRouteStatuses() {
       `${baseUrl}${productionAliasArticleRoute} expected location ${productionCanonicalArticleRoute} but received ${location}`,
     );
   }
+}
+
+async function verifySeoSurface() {
+  const articles = await expectHtml(`${baseUrl}/articles`);
+  expectSingleCanonical(articles.html, `${canonicalHost}/articles`, "/articles");
+  expectIncludes(
+    articles.html,
+    '"@type":"CollectionPage"',
+    "/articles structured data",
+  );
+  expectIncludes(
+    articles.html,
+    '"@type":"BreadcrumbList"',
+    "/articles structured data",
+  );
+  expectIncludes(
+    articles.html,
+    '"@type":"ItemList"',
+    "/articles structured data",
+  );
+
+  const about = await expectHtml(`${baseUrl}/about`);
+  expectSingleCanonical(about.html, `${canonicalHost}/about`, "/about");
+  expectIncludes(
+    about.html,
+    '<meta property="og:title" content="소개 | DIM"',
+    "/about og:title",
+  );
+
+  const canonicalArticle = await expectHtml(
+    `${baseUrl}${productionCanonicalArticleRoute}`,
+  );
+  expectSingleCanonical(
+    canonicalArticle.html,
+    `${canonicalHost}${productionCanonicalArticleRoute}`,
+    productionCanonicalArticleRoute,
+  );
+  expectIncludes(
+    canonicalArticle.html,
+    '"@type":"BreadcrumbList"',
+    `${productionCanonicalArticleRoute} structured data`,
+  );
 }
 
 async function verifyPublicSubmitConfig() {
@@ -177,6 +252,7 @@ async function verifyAdminProtection() {
 
 const publicConfig = await verifyPublicSubmitConfig();
 await expectRouteStatuses();
+await verifySeoSurface();
 const submitProtection = await verifySubmitProtection();
 const adminProtection = await verifyAdminProtection();
 

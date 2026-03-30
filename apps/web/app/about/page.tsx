@@ -13,6 +13,18 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/about",
   },
+  openGraph: {
+    title: "소개 | DIM",
+    description:
+      "DIM이 어떤 기준으로 변화를 읽고, 무엇을 확인해 피처로 정리하는지 소개합니다.",
+    url: "/about",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "소개 | DIM",
+    description:
+      "DIM이 어떤 기준으로 변화를 읽고, 무엇을 확인해 피처로 정리하는지 소개합니다.",
+  },
 };
 
 const principles = [
@@ -56,16 +68,79 @@ const trustSignals = [
   },
 ] as const;
 
+const editorialPolicy = [
+  {
+    title: "출처 원칙",
+    description:
+      "공식 문서와 서비스 화면, 공개 자료를 먼저 확인하고 2차 해석은 그 뒤에 붙입니다",
+  },
+  {
+    title: "판단 원칙",
+    description:
+      "사실 요약으로 끝내지 않고 지금 왜 중요한지에 대한 DIM의 판단을 별도로 남깁니다",
+  },
+  {
+    title: "업데이트 원칙",
+    description:
+      "핵심 링크와 제품 상태, 공개 정보가 바뀌면 설명과 해석도 다시 맞춥니다",
+  },
+] as const;
+
 export default function AboutPage() {
+  const aboutJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    "@id": `${siteConfig.url}/about#about`,
+    url: `${siteConfig.url}/about`,
+    name: "소개 | DIM",
+    description:
+      "DIM이 어떤 기준으로 변화를 읽고, 무엇을 확인해 피처로 정리하는지 소개합니다.",
+    inLanguage: "ko-KR",
+    isPartOf: {
+      "@id": `${siteConfig.url}/#website`,
+    },
+  };
+
+  const webPageJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `${siteConfig.url}/about#webpage`,
+    url: `${siteConfig.url}/about`,
+    name: "소개 | DIM",
+    description:
+      "DIM이 어떤 기준으로 변화를 읽고, 무엇을 확인해 피처로 정리하는지 소개합니다.",
+    inLanguage: "ko-KR",
+    about: [
+      "스타트업 분석",
+      "제품 출시 분석",
+      "산업 구조 분석",
+    ],
+    isPartOf: {
+      "@id": `${siteConfig.url}/#website`,
+    },
+  };
+
   return (
     <div className={styles.page}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(aboutJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(webPageJsonLd),
+        }}
+      />
       <MagazineIntro
         eyebrow="About DIM"
         title={siteConfig.aboutTitle}
         titleLines={siteConfig.aboutTitleLines}
         body={[
-          siteConfig.aboutLead,
-          "DIM은 스타트업과 서비스, 런칭을 소개하는 데서 멈추지 않고 그 변화가 비즈니스 구조에 남기는 흔적까지 함께 읽습니다",
+          "DIM은 스타트업, 제품 출시, 산업 구조를 읽는 데서 멈추지 않고 그 변화가 비즈니스 구조에 남기는 흔적까지 함께 읽습니다",
+          "각 피처는 소개보다 구조 변화와 판단의 근거를 먼저 정리합니다",
         ]}
       />
 
@@ -137,11 +212,32 @@ export default function AboutPage() {
 
           <section className={styles.chapter}>
             <div className={styles.chapterHeader}>
+              <p className={styles.chapterLabel}>편집 원칙</p>
+              <EditorialHeading
+                as="h2"
+                variant="section"
+                title="DIM은 출처와 판단, 업데이트 기준을 함께 공개합니다"
+                lines={["DIM은 출처와 판단,", "업데이트 기준을 함께 공개합니다"]}
+                className={styles.chapterTitle}
+              />
+            </div>
+            <div className={styles.trustGrid}>
+              {editorialPolicy.map((item) => (
+                <article key={item.title} className={styles.trustItem}>
+                  <strong>{item.title}</strong>
+                  <p>{item.description}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className={styles.chapter}>
+            <div className={styles.chapterHeader}>
               <p className={styles.chapterLabel}>먼저 보는 변화</p>
               <EditorialHeading
                 as="h2"
                 variant="section"
-                title="DIM이 자주 마주하는 네 가지 축"
+                title="DIM이 자주 마주하는 세 가지 축"
                 className={styles.chapterTitle}
               />
             </div>
@@ -176,7 +272,7 @@ export default function AboutPage() {
             </div>
             <div className={styles.closing}>
               <p>
-                브랜드와 제품, 서비스와 운영 변화에 관한 자료가 있다면 DIM이
+                브랜드와 제품, 런칭과 산업 구조 변화에 관한 자료가 있다면 DIM이
                 어떤 피처로 다룰 수 있는지 먼저 확인해 보세요
               </p>
               <div className={styles.actions}>

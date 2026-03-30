@@ -4,6 +4,7 @@ import { ArticleArchiveBrowser } from "./_components/article-archive-browser";
 import { MagazineCategoryNav } from "@/components/magazine-category-nav";
 import { MagazineIntro } from "@/components/magazine-intro";
 import { getPublishedArticles } from "@/lib/content";
+import { buildArticlesArchiveStructuredData } from "@/lib/structured-data";
 
 export const metadata: Metadata = {
   title: "비즈니스 구조 분석 피처",
@@ -18,13 +19,29 @@ export const metadata: Metadata = {
       "스타트업 분석, 제품 출시 분석, 산업 구조 분석 피처를 한곳에서 보는 DIM 아카이브입니다.",
     url: "/articles",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "비즈니스 구조 분석 피처 | DIM",
+    description:
+      "스타트업 분석, 제품 출시 분석, 산업 구조 분석 피처를 한곳에서 보는 DIM 아카이브입니다.",
+  },
 };
 
 export default async function ArticlesPage() {
   const articles = await getPublishedArticles();
+  const structuredData = buildArticlesArchiveStructuredData(articles);
 
   return (
     <div className={styles.page}>
+      {structuredData.map((entry, index) => (
+        <script
+          key={`articles-structured-data-${index}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(entry),
+          }}
+        />
+      ))}
       <MagazineIntro
         eyebrow="비즈니스 구조 분석 아카이브"
         title="비즈니스 구조 분석 피처"

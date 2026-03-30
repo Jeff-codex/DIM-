@@ -5,6 +5,8 @@ export type Author = {
   name: string;
   bio: string;
   profileImage?: string;
+  schemaType?: "Person" | "Organization";
+  url?: string;
 };
 
 export type Category = {

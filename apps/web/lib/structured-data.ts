@@ -118,3 +118,55 @@ export function buildCategoryStructuredData(
     },
   ];
 }
+
+export function buildArticlesArchiveStructuredData(
+  articles: PublishedArticleSummary[],
+) {
+  const itemListId = `${siteConfig.url}/articles#item-list`;
+
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "@id": `${siteConfig.url}/articles#collection`,
+      url: `${siteConfig.url}/articles`,
+      name: "비즈니스 구조 분석 피처 | DIM",
+      description:
+        "스타트업 분석, 제품 출시 분석, 산업 구조 분석 피처를 한곳에서 보는 DIM 아카이브입니다.",
+      inLanguage: "ko-KR",
+      isPartOf: {
+        "@id": `${siteConfig.url}/#website`,
+      },
+      about: ["스타트업 분석", "제품 출시 분석", "산업 구조 분석"],
+      mainEntity: {
+        "@id": itemListId,
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "@id": `${siteConfig.url}/articles#breadcrumb`,
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "홈",
+          item: siteConfig.url,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "피처",
+          item: `${siteConfig.url}/articles`,
+        },
+      ],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "@id": itemListId,
+      name: "전체 비즈니스 구조 분석 피처",
+      itemListElement: buildArticleListElements(articles),
+    },
+  ];
+}
