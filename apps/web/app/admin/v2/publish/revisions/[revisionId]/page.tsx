@@ -26,8 +26,15 @@ function toDateLabel(value: string | null) {
   }).format(new Date(value));
 }
 
-function getSlugStatusLabel(status: "pass" | "revise" | "reject") {
-  switch (status) {
+function getSlugStatusLabel(input: {
+  status: "pass" | "revise" | "reject";
+  willAutoFixOnFirstPublish: boolean;
+}) {
+  if (input.status === "revise" && input.willAutoFixOnFirstPublish) {
+    return "자동 교체 예정";
+  }
+
+  switch (input.status) {
     case "pass":
       return "발행 가능";
     case "revise":
@@ -38,8 +45,15 @@ function getSlugStatusLabel(status: "pass" | "revise" | "reject") {
   }
 }
 
-function getSlugStatusClass(status: "pass" | "revise" | "reject") {
-  switch (status) {
+function getSlugStatusClass(input: {
+  status: "pass" | "revise" | "reject";
+  willAutoFixOnFirstPublish: boolean;
+}) {
+  if (input.status === "revise" && input.willAutoFixOnFirstPublish) {
+    return styles.signalChipPositive;
+  }
+
+  switch (input.status) {
     case "pass":
       return styles.signalChipPositive;
     case "revise":
@@ -207,9 +221,15 @@ export default async function AdminV2PublishRevisionPage({
                   <dt>slug 상태</dt>
                   <dd>
                     <span
-                      className={getSlugStatusClass(slugPreflight.currentValidation.status)}
+                      className={getSlugStatusClass({
+                        status: slugPreflight.currentValidation.status,
+                        willAutoFixOnFirstPublish: slugPreflight.willAutoFixOnFirstPublish,
+                      })}
                     >
-                      {getSlugStatusLabel(slugPreflight.currentValidation.status)}
+                      {getSlugStatusLabel({
+                        status: slugPreflight.currentValidation.status,
+                        willAutoFixOnFirstPublish: slugPreflight.willAutoFixOnFirstPublish,
+                      })}
                     </span>
                   </dd>
                 </div>

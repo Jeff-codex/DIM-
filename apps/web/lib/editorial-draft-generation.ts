@@ -185,6 +185,11 @@ export function humanizeDraftGenerationErrorMessage(raw?: string | null) {
     return "내부 작성 원고 카테고리는 스타트업 분석, 제품 출시 분석, 산업 구조 분석 중 하나만 선택할 수 있습니다.";
   }
 
+  if (trimmed.includes("feature_slug_preflight_failed:")) {
+    const detail = trimmed.replace("feature_slug_preflight_failed:", "").trim();
+    return detail || "현재 slug가 발행 기준을 통과하지 못했습니다. 추천 slug를 먼저 확인해 주세요.";
+  }
+
   if (trimmed.includes("editorial_image_generator_not_configured")) {
     return "이미지 파생본 생성기가 연결되지 않아 새 이미지 적용을 마치지 못했습니다.";
   }

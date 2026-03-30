@@ -1,34 +1,23 @@
 import "server-only";
-import { tags } from "@/content/tags";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
-import { getProposalDetail } from "@/lib/server/editorial/admin";
-import { getLegacyPublishedArticles } from "@/lib/legacy-content";
 import {
   getCmsPublishedArticleBySlug,
   getFeatureEntryById,
   getFeatureRevisionById,
-  getInternalAnalysisBriefByFeatureEntryId,
   listCmsPublishedArticles,
   listPublishEventsForEntry,
-  listReservedFeatureSlugs,
   resolveFeatureSlug,
 } from "@/lib/server/editorial-v2/repository";
+import {
+  ensureCanonicalSlugForFirstPublish,
+} from "@/lib/server/editorial-v2/slug-preflight";
 import { repairInternalIndustryAnalysisRevisionById } from "@/lib/server/editorial-v2/workflow";
 import type {
-  SlugSystemInput,
-  SlugSystemOutput,
-  SlugValidation,
-} from "@/lib/server/editorial-v2/slug-generator";
-import {
-  generateAndValidateDimSlug,
-  validateDimSlugCandidate,
-} from "@/lib/server/editorial-v2/slug-validator";
-import type {
-  FeatureEntryRecord,
   FeatureEntrySourceType,
-  FeatureRevisionRecord,
   FeatureRevisionStatus,
 } from "@/lib/server/editorial-v2/types";
+export { getFeatureSlugPreflightByRevisionId } from "@/lib/server/editorial-v2/slug-preflight";
+export type { FeatureSlugPreflight } from "@/lib/server/editorial-v2/slug-preflight";
 
 type WorkingRevisionStatus = Extract<
   FeatureRevisionStatus,
@@ -78,22 +67,6 @@ type WorkingRevisionRow = {
   assigneeEmail: string | null;
 };
 
-const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
-
-export type FeatureSlugPreflight = {
-  featureEntryId: string;
-  revisionId: string;
-  sourceType: FeatureEntrySourceType;
-  currentSlug: string;
-  currentValidation: SlugValidation;
-  recommendedSlug: string;
-  recommendedValidation: SlugValidation;
-  normalization: SlugSystemOutput["normalization"];
-  redirectStrategy: SlugSystemOutput["redirect_strategy"];
-  isFirstPublish: boolean;
-  willAutoFixOnFirstPublish: boolean;
-};
-
 async function resolvePublishedFeatureBySlug(slug: string) {
   const resolution = await resolveFeatureSlug(slug);
 
@@ -117,193 +90,6 @@ async function resolvePublishedFeatureBySlug(slug: string) {
   };
 }
 
-function joinSlugSignalParts(parts: Array<string | null | undefined>) {
-  return parts
-    .map((part) => part?.trim())
-    .filter((part): part is string => Boolean(part))
-    .join(" ");
-}
-
-async function buildSlugSystemInputForRevision(
-  revision: FeatureRevisionRecord,
-  featureEntry: FeatureEntryRecord,
-): Promise<SlugSystemInput> {
-  const tagNames = revision.tagIds
-    .map((tagId) => tagsById.get(tagId)?.name)
-    .filter((tagName): tagName is string => Boolean(tagName));
-
-  if (featureEntry.sourceType === "internal_industry_analysis") {
-    const brief = await getInternalAnalysisBriefByFeatureEntryId(featureEntry.id);
-
-    return {
-      mode: "validate",
-      current_slug: featureEntry.slug,
-      title: revision.title,
-      dek: revision.dek,
-      summary: joinSlugSignalParts([
-        revision.dek,
-        revision.verdict,
-        brief?.brief ?? "",
-        brief?.market ?? "",
-      ]),
-      tags: Array.from(new Set([...tagNames, ...(brief?.tags ?? [])])),
-      category: revision.categoryId,
-      entities: [brief?.workingTitle ?? "", revision.title].filter(Boolean),
-      topic_keywords: [brief?.market ?? "", revision.categoryId],
-      structural_keywords: [revision.verdict],
-    };
-  }
-
-  const proposal = revision.proposalId ? await getProposalDetail(revision.proposalId) : null;
-
-  return {
-    mode: "validate",
-    current_slug: featureEntry.slug,
-    title: revision.title,
-    subtitle: proposal?.projectName ?? undefined,
-    dek: revision.dek,
-    summary: joinSlugSignalParts([
-      revision.dek,
-      revision.verdict,
-      proposal?.summary ?? "",
-      proposal?.productDescription ?? "",
-      proposal?.whyNow ?? "",
-      proposal?.market ?? "",
-      proposal?.stage ?? "",
-    ]),
-    tags: tagNames,
-    category: revision.categoryId,
-    entities: [proposal?.projectName ?? "", revision.title].filter(Boolean),
-    topic_keywords: [proposal?.market ?? "", proposal?.stage ?? "", revision.categoryId],
-    structural_keywords: [revision.verdict],
-  };
-}
-
-function buildSlugPreflightFailureMessage(preflight: FeatureSlugPreflight) {
-  const currentSummary = [
-    ...preflight.currentValidation.reasons,
-    ...preflight.currentValidation.warnings,
-  ]
-    .filter(Boolean)
-    .join(" / ");
-  const recommendedSummary = [
-    ...preflight.recommendedValidation.reasons,
-    ...preflight.recommendedValidation.warnings,
-  ]
-    .filter(Boolean)
-    .join(" / ");
-
-  return [
-    currentSummary
-      ? `현재 slug ${preflight.currentSlug}: ${currentSummary}`
-      : `현재 slug ${preflight.currentSlug}가 발행 기준을 통과하지 못했습니다`,
-    preflight.recommendedSlug
-      ? `추천 slug ${preflight.recommendedSlug}: ${recommendedSummary || preflight.recommendedValidation.status}`
-      : "추천 slug를 만들지 못했습니다",
-  ]
-    .filter(Boolean)
-    .join(" / ");
-}
-
-async function getFeatureSlugPreflightForRevision(
-  revision: FeatureRevisionRecord,
-  featureEntry: FeatureEntryRecord,
-): Promise<FeatureSlugPreflight> {
-  const [existingSlugs, legacyArticles] = await Promise.all([
-    listReservedFeatureSlugs(featureEntry.id),
-    getLegacyPublishedArticles(),
-  ]);
-  const baseInput = await buildSlugSystemInputForRevision(revision, featureEntry);
-  const input = {
-    ...baseInput,
-    existing_slugs: Array.from(
-      new Set([
-        ...existingSlugs,
-        ...legacyArticles.map((article) => article.slug),
-      ]),
-    ),
-  } satisfies SlugSystemInput;
-  const generated = generateAndValidateDimSlug(input);
-  const currentValidation = validateDimSlugCandidate(input, featureEntry.slug);
-  const isFirstPublish = featureEntry.currentPublishedRevisionId === null;
-  const willAutoFixOnFirstPublish =
-    isFirstPublish &&
-    currentValidation.status !== "pass" &&
-    generated.validation.status === "pass" &&
-    Boolean(generated.recommended_slug) &&
-    generated.recommended_slug !== featureEntry.slug;
-
-  return {
-    featureEntryId: featureEntry.id,
-    revisionId: revision.id,
-    sourceType: featureEntry.sourceType,
-    currentSlug: featureEntry.slug,
-    currentValidation,
-    recommendedSlug: generated.recommended_slug,
-    recommendedValidation: generated.validation,
-    normalization: generated.normalization,
-    redirectStrategy: generated.redirect_strategy,
-    isFirstPublish,
-    willAutoFixOnFirstPublish,
-  };
-}
-
-async function ensureCanonicalSlugForFirstPublish(input: {
-  revision: FeatureRevisionRecord;
-  featureEntryRow: {
-    id: string;
-    slug: string;
-    currentPublishedRevisionId: string | null;
-  };
-}) {
-  const featureEntry = await getFeatureEntryById(input.revision.featureEntryId);
-
-  if (!featureEntry) {
-    throw new Error("feature_entry_not_found");
-  }
-
-  const preflight = await getFeatureSlugPreflightForRevision(input.revision, featureEntry);
-
-  if (preflight.currentValidation.status === "pass" || !preflight.isFirstPublish) {
-    return {
-      canonicalSlug: input.featureEntryRow.slug,
-      preflight,
-      slugRewritten: false,
-      previousSlug: input.featureEntryRow.slug,
-    };
-  }
-
-  if (
-    !preflight.recommendedSlug ||
-    preflight.recommendedValidation.status !== "pass" ||
-    preflight.recommendedSlug === input.featureEntryRow.slug
-  ) {
-    throw new Error(`feature_slug_preflight_failed:${buildSlugPreflightFailureMessage(preflight)}`);
-  }
-
-  return {
-    canonicalSlug: preflight.recommendedSlug,
-    preflight,
-    slugRewritten: true,
-    previousSlug: input.featureEntryRow.slug,
-  };
-}
-
-export async function getFeatureSlugPreflightByRevisionId(revisionId: string) {
-  const revision = await getFeatureRevisionById(revisionId);
-
-  if (!revision) {
-    return null;
-  }
-
-  const featureEntry = await getFeatureEntryById(revision.featureEntryId);
-
-  if (!featureEntry) {
-    return null;
-  }
-
-  return getFeatureSlugPreflightForRevision(revision, featureEntry);
-}
 
 function buildWorkingRevisionState(
   row: WorkingRevisionRow | null,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { humanizeDraftGenerationErrorMessage } from "@/lib/editorial-draft-generation";
 import { getAdminIdentity } from "@/lib/server/editorial/admin";
 import {
   getEditorialV2DraftByProposalId,
@@ -63,29 +64,45 @@ export async function POST(
     );
   }
 
-  const { proposalId } = await params;
-  const draft = await prepareEditorialV2RevisionForPublish(
-    proposalId,
-    identity.email,
-  );
+  try {
+    const { proposalId } = await params;
+    const draft = await prepareEditorialV2RevisionForPublish(
+      proposalId,
+      identity.email,
+    );
 
-  if (!draft) {
+    if (!draft) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "feature_revision_not_found",
+        },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      snapshot: {
+        articleSlug: draft.articleSlug,
+        title: draft.title,
+        updatedAt: draft.updatedAt,
+        status: draft.status,
+      },
+    });
+  } catch (error) {
+    const rawDetail = error instanceof Error ? error.message : null;
+
     return NextResponse.json(
       {
         ok: false,
-        error: "feature_revision_not_found",
+        error: "feature_revision_snapshot_failed",
+        detail:
+          humanizeDraftGenerationErrorMessage(rawDetail) ??
+          "발행 준비본을 만들지 못했습니다.",
+        rawDetail,
       },
-      { status: 404 },
+      { status: 400 },
     );
   }
-
-  return NextResponse.json({
-    ok: true,
-    snapshot: {
-      articleSlug: draft.articleSlug,
-      title: draft.title,
-      updatedAt: draft.updatedAt,
-      status: draft.status,
-    },
-  });
 }
