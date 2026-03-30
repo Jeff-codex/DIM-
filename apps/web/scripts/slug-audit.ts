@@ -34,6 +34,7 @@ type PublishedSlugRow = {
   proposalWhyNow: string | null;
   proposalMarket: string | null;
   proposalStage: string | null;
+  briefWorkingTitle: string | null;
   briefSummary: string | null;
   briefMarket: string | null;
   briefTagsJson: string | null;
@@ -239,9 +240,9 @@ function buildSlugSystemInput(
       dek: row.dek ?? undefined,
       summary: [row.dek, row.verdict, row.briefSummary, row.briefMarket].filter(Boolean).join(" "),
       tags: Array.from(new Set([...revisionTagNames, ...briefTags])),
-      category: categoryName,
-      entities: [],
-      topic_keywords: [row.briefMarket ?? "", categoryName],
+      category: row.categoryId,
+      entities: [row.briefWorkingTitle ?? "", row.title].filter(Boolean),
+      topic_keywords: [row.briefMarket ?? "", row.categoryId],
       structural_keywords: row.verdict ? [row.verdict] : [],
       existing_slugs: existingSlugs,
     };
@@ -306,6 +307,7 @@ SELECT
   p.stage AS proposalStage,
   iab.summary AS briefSummary,
   iab.market AS briefMarket,
+  iab.working_title AS briefWorkingTitle,
   iab.core_entities_json AS briefTagsJson
 FROM feature_entry fe
 JOIN feature_revision fr

@@ -86,6 +86,7 @@ const aliasRules: AliasRule[] = [
   { patterns: ["jd.com", "징둥", "jd"], slug: "jd", kind: "entity", strength: "specific" },
 
   { patterns: ["한국", "국내", "korea"], slug: "korea", kind: "topic", strength: "normal" },
+  { patterns: ["딥테크", "deeptech"], slug: "deeptech", kind: "topic", strength: "normal" },
   { patterns: ["ai", "인공지능", "artificial intelligence"], slug: "ai", kind: "topic", strength: "broad" },
   { patterns: ["이커머스", "커머스", "commerce"], slug: "commerce", kind: "topic", strength: "normal" },
   { patterns: ["보도자료", "pr", "press release"], slug: "pr", kind: "topic", strength: "normal" },
@@ -111,6 +112,8 @@ const aliasRules: AliasRule[] = [
 
   { patterns: ["욕망의 이동", "욕망 이동", "desire shift"], slug: "desire-shift", kind: "structure", strength: "specific" },
   { patterns: ["이익 풀", "profit pool"], slug: "profit-pool", kind: "structure", strength: "specific" },
+  { patterns: ["첫 번째 대형 고객", "첫 대형 고객", "첫 고객", "first customer", "lead customer"], slug: "first-customer", kind: "structure", strength: "specific" },
+  { patterns: ["고객 구조", "customer structure"], slug: "customer-structure", kind: "structure", strength: "specific" },
   { patterns: ["유통 전쟁", "distribution war"], slug: "distribution-war", kind: "structure", strength: "specific" },
   { patterns: ["유통 지배력", "distribution power"], slug: "distribution-power", kind: "structure", strength: "specific" },
   { patterns: ["플랫폼 파워", "platform power"], slug: "platform-power", kind: "structure", strength: "specific" },
@@ -253,6 +256,18 @@ function collectTexts(input: SlugSystemInput) {
 
 function collectTitleTexts(input: SlugSystemInput) {
   return [input.title, input.subtitle]
+    .map((value) => normalizeWhitespace(value))
+    .filter(Boolean);
+}
+
+function collectFrameAwareTitleTexts(input: SlugSystemInput) {
+  const titleFrame = extractTitleFrame(input.title);
+
+  if (!titleFrame) {
+    return collectTitleTexts(input);
+  }
+
+  return [titleFrame.context, titleFrame.structure]
     .map((value) => normalizeWhitespace(value))
     .filter(Boolean);
 }
@@ -409,7 +424,7 @@ function collectExplicitEntities(input: SlugSystemInput) {
 
 function choosePrimaryEntity(input: SlugSystemInput) {
   const explicit = collectExplicitEntities(input);
-  const titleTexts = collectTitleTexts(input);
+  const titleTexts = collectFrameAwareTitleTexts(input);
   const titleFrame = extractTitleFrame(input.title);
   const frameEntities = titleFrame
     ? collectAliasMatchesFromTexts([titleFrame.context], "entity")
@@ -475,7 +490,7 @@ function collectTopicCluster(input: SlugSystemInput, primaryEntity: string) {
   const frameTopics = titleFrame
     ? collectAliasMatchesFromTexts([titleFrame.context, titleFrame.structure], "topic")
     : [];
-  const titleTopics = collectAliasMatchesFromTexts(collectTitleTexts(input), "topic");
+  const titleTopics = collectAliasMatchesFromTexts(collectFrameAwareTitleTexts(input), "topic");
   const explicit = collectHintSlugs(input.topic_keywords, "topic");
   const tags = collectHintSlugs(input.tags, "topic");
   const matched = collectAliasMatches(input, "topic");
