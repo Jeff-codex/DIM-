@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "DIM",
   url: "https://depthintelligence.kr",
   description:
-    "스타트업 분석, 제품 출시 분석, 산업 구조 분석을 통해 무엇이 바뀌는지 설명하는 비즈니스 구조 매거진",
+    "DIM은 스타트업 분석, 제품 출시 분석, 산업 구조 분석을 통해 비즈니스 구조 변화와 시장 신호를 읽는 비즈니스 분석 매거진입니다.",
   company: {
     legalName: "뎁스코퍼레이션",
     representative: "강경현",
@@ -11,15 +11,15 @@ export const siteConfig = {
   publisher: {
     id: "https://depthintelligence.kr/#organization",
     name: "Depth Intelligence Magazine",
-    alternateName: "뎁스 인텔리전스 매거진",
+    alternateName: ["DIM", "뎁스인텔리전스매거진", "뎁스 인텔리전스 매거진"],
     logoPath: "/brand/dim-logo-black.png",
     sameAs: [] as string[],
   },
-  statement: "스타트업·제품 출시·산업 구조를 비즈니스 구조 관점에서 분석하는 매거진",
+  statement: "스타트업·제품 출시·산업 구조 변화를 읽는 비즈니스 분석 매거진",
   statementLines: [
-    "스타트업·제품 출시·산업 구조를",
-    "비즈니스 구조 관점에서",
-    "분석하는 매거진",
+    "스타트업·제품 출시·산업 구조 변화를",
+    "비즈니스 분석 관점에서",
+    "읽는 매거진",
   ],
   positioning:
     "DIM은 무엇이 나왔는지보다 무엇이 바뀌는지를 먼저 설명합니다",

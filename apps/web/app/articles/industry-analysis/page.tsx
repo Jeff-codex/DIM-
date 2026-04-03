@@ -21,6 +21,13 @@ export const metadata: Metadata = {
       "시장 구조 변화, 경쟁 질서, 운영 레이어 이동을 중심으로 산업을 해석하는 DIM 피처 모음입니다.",
     url: "/articles/industry-analysis",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: `${category?.seoTitle ?? "산업 구조 분석"} | DIM`,
+    description:
+      category?.seoDescription ??
+      "시장 구조 변화, 경쟁 질서, 운영 레이어 이동을 중심으로 산업을 해석하는 DIM 피처 모음입니다.",
+  },
 };
 
 export default async function IndustryAnalysisPage() {

@@ -10,13 +10,13 @@ import { buildHomeStructuredData } from "@/lib/structured-data";
 const defaultSocialImage = `${siteConfig.url}${siteConfig.publisher.logoPath}`;
 
 export const metadata: Metadata = {
-  title: "비즈니스 구조 분석 매거진",
+  title: "비즈니스 분석 매거진 | DIM",
   description: siteConfig.description,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "비즈니스 구조 분석 매거진 | DIM",
+    title: "비즈니스 분석 매거진 | DIM",
     description: siteConfig.description,
     url: siteConfig.url,
     images: [
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "비즈니스 구조 분석 매거진 | DIM",
+    title: "비즈니스 분석 매거진 | DIM",
     description: siteConfig.description,
     images: [defaultSocialImage],
   },
@@ -58,12 +58,12 @@ export default async function HomePage() {
         />
       ))}
       <MagazineIntro
-        eyebrow="비즈니스 구조 분석"
+        eyebrow="비즈니스 분석 매거진"
         title={siteConfig.statement}
         titleLines={siteConfig.statementLines}
         body={[
           siteConfig.positioning,
-          "각 피처는 브랜드 소개보다 구조 변화의 이유, 운영 방식의 이동, 판단의 근거를 함께 정리합니다",
+          "각 피처는 스타트업, 제품 출시, 산업 구조 변화가 시장과 운영에 남기는 신호를 함께 정리합니다",
         ]}
       />
       <MagazineCategoryNav centered />

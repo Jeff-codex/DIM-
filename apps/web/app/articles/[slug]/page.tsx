@@ -40,10 +40,12 @@ export async function generateMetadata({
 
   const canonical = `/articles/${resolved?.canonicalSlug ?? article.slug}`;
   const image = `${siteConfig.url}${article.coverImage}`;
+  const metaTitle = article.displayTitle ?? article.title;
+  const metaDescription = buildArticleMetaDescription(article.excerpt);
 
   return {
-    title: article.title,
-    description: article.excerpt,
+    title: metaTitle,
+    description: metaDescription,
     authors: [{ name: article.author.name }],
     alternates: {
       canonical,
@@ -51,16 +53,16 @@ export async function generateMetadata({
     openGraph: {
       type: "article",
       url: `${siteConfig.url}${canonical}`,
-      title: article.title,
-      description: article.excerpt,
+      title: metaTitle,
+      description: metaDescription,
       publishedTime: article.publishedAt,
       authors: [article.author.name],
-      images: [{ url: image, alt: article.title }],
+      images: [{ url: image, alt: metaTitle }],
     },
     twitter: {
       card: "summary_large_image",
-      title: article.title,
-      description: article.excerpt,
+      title: metaTitle,
+      description: metaDescription,
       images: [image],
     },
   };
@@ -76,6 +78,17 @@ function formatDotDate(value: string) {
 
 function isHttpUrl(value: string) {
   return /^https?:\/\//i.test(value.trim());
+}
+
+function buildArticleMetaDescription(excerpt: string) {
+  const normalized = excerpt.replace(/\s+/g, " ").trim();
+  const maxLength = 150;
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
@@ -94,6 +107,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const relatedArticles = await getRelatedArticles(article.slug, 3);
   const canonical = `${siteConfig.url}/articles/${article.slug}`;
   const image = `${siteConfig.url}${article.coverImage}`;
+  const metaTitle = article.displayTitle ?? article.title;
+  const metaDescription = buildArticleMetaDescription(article.excerpt);
   const authorId = `${siteConfig.url}/authors/${article.author.id}`;
   const articleAuthor =
     article.author.schemaType === "Organization"
@@ -145,8 +160,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: article.title,
-    description: article.excerpt,
+    headline: metaTitle,
+    description: metaDescription,
     datePublished: article.publishedAt,
     dateModified: article.analysisMeta?.lastUpdatedAt ?? article.publishedAt,
     inLanguage: "ko-KR",

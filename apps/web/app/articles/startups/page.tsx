@@ -21,6 +21,13 @@ export const metadata: Metadata = {
       "스타트업의 제품, 운영, 비즈니스 모델이 무엇을 바꾸는지 구조 관점에서 분석하는 DIM 피처 모음입니다.",
     url: "/articles/startups",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: `${category?.seoTitle ?? "스타트업 분석"} | DIM`,
+    description:
+      category?.seoDescription ??
+      "스타트업의 제품, 운영, 비즈니스 모델이 무엇을 바꾸는지 구조 관점에서 분석하는 DIM 피처 모음입니다.",
+  },
 };
 
 export default async function StartupsPage() {

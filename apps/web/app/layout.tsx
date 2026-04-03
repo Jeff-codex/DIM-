@@ -31,12 +31,14 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   applicationName: siteConfig.name,
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    icon: [{ url: `${siteConfig.url}/favicon.ico`, type: "image/x-icon" }],
+    apple: [
+      {
+        url: `${siteConfig.url}/apple-icon.png`,
+        sizes: "180x180",
+        type: "image/png",
+      },
     ],
-    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
-    shortcut: ["/favicon.ico"],
   },
   alternates: {
     canonical: "/",
@@ -45,9 +47,9 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ko_KR",
     url: siteConfig.url,
-    title: siteConfig.name,
+    title: siteConfig.publisher.name,
     description: siteConfig.description,
-    siteName: siteConfig.name,
+    siteName: siteConfig.publisher.name,
     images: [
       {
         url: defaultSocialImage,
