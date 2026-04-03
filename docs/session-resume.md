@@ -2,10 +2,11 @@
 
 ## Current checkpoint
 
-- Date: `2026-03-30`
+- Date: `2026-04-03`
 - Branch: `main`
-- Commit: `bf28cdc` (`Enforce canonical host redirects`)
+- Commit: `fc32238` (`Restore generated-path lint ignores`)
 - Remote: `origin -> https://github.com/Jeff-codex/DIM-.git`
+- Remote branch state: `origin/main` synced with local `main`
 - Public app: `apps/web`
 - Runtime target: `Cloudflare Workers`
 - Review preview target: `Cloudflare Pages` project `dim-preview`
@@ -83,6 +84,16 @@
   - local filter search bar on `/articles` and category landing pages
   - grayscale/black hover-active treatment aligned to DIM brand mood
 - favicon/app icons were replaced with DIM logo-based assets.
+- Live production is now deployed through commit `fc32238` (`Restore generated-path lint ignores`).
+  - `apps/web/eslint.config.mjs` again ignores generated paths:
+    - `.wrangler/**`
+    - `tmp/**`
+    - `dist/**`
+    - `coverage/**`
+  - `npm run lint`
+  - `npm run build`
+  - `npm run build:static`
+    all pass again from `apps/web`
 - Production article detail outage caused by article route param sealing was fixed.
   - production canonical article routes now return `200`
   - old weak slugs now return `308` to canonical slugs
@@ -114,13 +125,55 @@
 - Editorial runtime preview: `https://dim-web-editorial_preview.depthintelligence.workers.dev`
 - Production-candidate runtime: `https://dim-web-production_candidate.depthintelligence.workers.dev`
 - Deprecated legacy worker: `https://dim-web.depthintelligence.workers.dev` (do not use as a canonical review or hardening target)
-- Latest production-candidate public review used for archive/navigation polish:
+- Latest production-candidate shell/asset review reverified on `2026-04-03`:
   - `/`
   - `/articles`
-  - `/articles/startups`
-  - `/articles/product-launches`
-  - `/articles/industry-analysis`
-  - `/articles/ai`
+  - `/about`
+  - `/submit`
+  - `/favicon.ico`
+  - `/icon.png`
+  - `/apple-icon.png`
+  - `/robots.txt`
+  - `/sitemap.xml`
+- Production-candidate article-detail parity is still not ready:
+  - `/articles/ai-browser-interface-power` returns `404`
+  - `/articles/ai` returns `404`
+  - confirmed cause: candidate runtime does not currently contain mirrored published article rows
+- `npm run smoke:editorial-runtime -- --base-url=https://dim-web-production_candidate.depthintelligence.workers.dev` currently fails by design mismatch:
+  - `/api/proposals` returns `400`
+  - error code: `turnstile_required`
+  - the script assumes an unprotected submit path, so do not use it against candidate until the script or env policy is updated
+
+## Latest verified production
+
+- Live production was redeployed on `2026-04-03` at `fc32238`.
+- `npm run smoke:production-runtime` passed after deployment.
+- Verified live responses on `https://depthintelligence.kr`:
+  - `/` -> `200`
+  - `/articles` -> `200`
+  - `/articles/startups` -> `200`
+  - `/articles/product-launches` -> `200`
+  - `/articles/industry-analysis` -> `200`
+  - `/articles/ai-browser-interface-power` -> `200`
+  - `/articles/ai` -> `308` -> `/articles/ai-browser-interface-power`
+  - `/about` -> `200`
+  - `/submit` -> `200`
+  - `/api/public-config/submit` -> `200`
+  - `/robots.txt` -> `200`
+  - `/sitemap.xml` -> `200`
+- Live submit protection is confirmed:
+  - no token -> `400 turnstile_required`
+  - fake token -> `400 turnstile_failed`
+- Live admin protection is confirmed:
+  - `/admin/inbox` -> `302` to Cloudflare Access
+- Live icon assets are confirmed:
+  - `/favicon.ico` -> `200`
+  - `/icon.png` -> `200`
+  - `/apple-icon.png` -> `200`
+  - SHA256 hashes match the local files under `apps/web/public`
+- In the `2026-04-03` deploy shell, `CLOUDFLARE_SECURITY_TOKEN` was absent, so route reconcile was skipped.
+  - live domain routing still remained correct after deployment
+  - if a future release changes production route mappings, restore `CLOUDFLARE_SECURITY_TOKEN` before deploy instead of relying on the existing routes
 
 ## Guardrails
 
@@ -138,7 +191,7 @@
 2. Read `docs/production-hardening-rounds.md` only if the task returns to infra hardening.
 3. If the task needs planning or prioritization, read `docs/agent-kit/README.md` and `docs/agent-kit/dim/WEEKLY_BRIEF.md`.
 4. Check repository state with `git status --short`.
-5. Confirm the current checkpoint is still `main` at or ahead of `bf28cdc`.
+5. Confirm the current checkpoint is still `main` at or ahead of `fc32238`.
 6. Reuse the existing DIM agents first and continue from the latest integrated findings rather than starting fresh.
 7. If code changed, run from `apps/web`:
    - `npm run lint`
@@ -146,30 +199,41 @@
    - `npm run build:static`
 8. If the user wants a review URL, run:
    - `npm run preview:deploy -- <branch-name>`
-9. For editorial runtime work, verify:
-   - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-editorial_preview.depthintelligence.workers.dev`
+9. For editorial runtime work, verify whether the target environment intentionally allows submit without Turnstile before using `npm run smoke:editorial-runtime`.
+   - current evidence says `production_candidate` does not
+   - use the dedicated editorial preview runtime only if its policy still matches the smoke script assumptions
 10. For production hardening without the real domain, use:
    - `npm run preview:production-candidate`
-   - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-production_candidate.depthintelligence.workers.dev`
+   - `npm run smoke:production-candidate`
+   - then manually verify article detail routes only if candidate has mirrored published article rows
 11. For real production deploy, confirm both split tokens are present:
    - `CLOUDFLARE_WORKERS_TOKEN`
    - `CLOUDFLARE_SECURITY_TOKEN`
    - optional `CLOUDFLARE_ZONE_ID`
    - if `CLOUDFLARE_ZONE_ID` is not set, `CLOUDFLARE_SECURITY_TOKEN` must also be able to read the zone
+   - without `CLOUDFLARE_SECURITY_TOKEN`, service deploy can still succeed but route reconciliation will be skipped
 12. Verify public review paths:
    - `/`
    - `/articles`
-   - `/articles/deeptech-korea-first-customer`
-   - `/articles/microsoft-korea-profit-pool`
+   - `/articles/ai-browser-interface-power`
+   - `/articles/ai`
    - `/about`
    - `/submit`
    - `/robots.txt`
    - `/sitemap.xml`
 13. Share only the verified external preview URL. Never hand off localhost.
 14. Next likely infra follow-ups:
-   - expand production smoke so canonical/alias article samples cover more than one slug pair
-   - decide whether future slug changes should be exposed in CMS or continue to use the explicit backfill path only
+   - replace stale hardcoded article-route samples in smoke scripts with an authoritative current canonical/alias source
    - make production-candidate include published article rows so article detail routes can be verified before real-domain deploy
+   - align `smoke:editorial-runtime` with Turnstile-protected environments or run it only on a dedicated bypassed preview env
+
+## Open hardening checklist
+
+- [ ] Seed or mirror published article rows into `production_candidate` so canonical/alias article detail routes can be verified before real-domain deploy.
+- [ ] Update smoke scripts so canonical and alias samples come from one authoritative source instead of stale hardcoded slugs.
+- [ ] Decide whether `smoke:editorial-runtime` should support Turnstile-protected environments or remain preview-only with an explicit bypass policy.
+- [ ] Restore `CLOUDFLARE_SECURITY_TOKEN` availability for future releases that change production route mappings.
+- [ ] Expand production smoke to cover more than one canonical/alias article pair once the authoritative source is settled.
 
 ## Next queued product checklist
 

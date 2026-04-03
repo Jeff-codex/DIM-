@@ -27,11 +27,13 @@ Run from `apps/web`.
    - if the task touched article routing, also verify at least:
      - one current canonical article slug returns `200`
      - one legacy/alias article slug returns `308` to canonical
-   - if editorial runtime is part of the task, also run:
+   - if editorial runtime is part of the task, only run:
      - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-editorial_preview.depthintelligence.workers.dev`
+     after confirming that the target env intentionally allows submit without Turnstile
    - if production hardening is part of the task, use the candidate runtime instead of the stale legacy worker:
      - `npm run preview:production-candidate`
-     - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-production_candidate.depthintelligence.workers.dev`
+     - `npm run smoke:production-candidate`
+     - treat article-detail checks on candidate as a separate data-readiness step if published rows have not been mirrored there yet
 5. Share only the verified external URL.
 6. If resuming from the current checkpoint, the latest known-good review preview is:
    - canonical review alias: `https://review-current.dim-preview.pages.dev`
@@ -67,10 +69,10 @@ Run from `apps/web`.
 6. Run:
    - `npm run lint`
    - `npm run build`
-   - `npm run smoke:editorial-runtime -- --base-url=<prod-runtime-url>`
 7. Deploy:
    - `npm run deploy`
 8. Verify the production target after deployment:
+   - `npm run smoke:production-runtime`
    - home page
    - articles page
    - one article detail page
@@ -100,10 +102,12 @@ Run from `apps/web`.
   - host canonicalization is enforced to `https://depthintelligence.kr`
   - app-authored `robots.txt` is permissive again because Cloudflare managed robots is disabled
   - current canonical/alias article verification pair:
-    - canonical: `/articles/deeptech-korea-first-customer`
-    - alias redirect: `/articles/microsoft-korea-profit-pool`
+    - canonical: `/articles/ai-browser-interface-power`
+    - alias redirect: `/articles/ai`
 - The remaining post-preview work is production hardening, not additional public IA change, unless the user explicitly reopens design work.
 - Follow-up hardening item:
   - candidate currently validates shell routes but may not contain published article rows; when article routing changes, article-detail parity on candidate must be treated as a separate data-readiness check.
 - Follow-up hardening item:
   - production smoke should eventually sample multiple canonical/alias article pairs, not just a single detail route.
+- Follow-up hardening item:
+  - `smoke:editorial-runtime` currently expects an unprotected submit path and fails on Turnstile-protected candidate/prod environments; do not use it there until the script or env policy is updated.
