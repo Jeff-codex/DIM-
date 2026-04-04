@@ -132,6 +132,14 @@
   - script: `npm run candidate:sync-public-state`
   - mirrored data: published `feature_entry`, current `feature_revision`, active `feature_slug_alias`, public cover `asset_variant`, linked `asset_family`, linked `internal_analysis_brief`, and referenced R2 objects
 - `smoke:production-candidate` now loads canonical/alias samples from the authoritative published slug inventory instead of hardcoded slugs.
+- approved first-wave selective slug replacement file now exists:
+  - `docs/slug-backfill-wave1-2026-04-04.json`
+  - wave 1 scope:
+    - `korea-ai-profit-pool` -> `korea-defense-tech-procurement`
+    - `beauty-korea-profit-pool` -> `k-beauty-fragrance-export`
+    - `ai-platform-profit-pool` -> `ai-expert-boundaries`
+    - `korea-platform-profit-pool` -> `korea-shared-office-model`
+    - `korea-vclpm-a-profit-pool` -> `korea-vc-exit-liquidity`
 
 ## Latest verified preview
 
@@ -165,6 +173,14 @@
   - direct candidate asset verification also passed:
     - article detail HTML -> `200`
     - first `/api/editorial/assets/[assetId]` request -> `200`
+- Production-candidate first-wave slug replacement was applied on `2026-04-04`:
+  - `slug-backfill --env production_candidate --mode dry-run` returned all 5 mappings as `ready`
+  - `slug-backfill --env production_candidate --mode apply` returned all 5 mappings as `applied`
+  - candidate inventory now shows the new canonicals and preserves the old slugs as active aliases
+  - candidate runtime verification now passes for all 5 pairs:
+    - new canonical -> `200`
+    - old slug -> `308` -> new canonical
+    - `/articles` and `/sitemap.xml` emit only the new canonical slug
 - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-production_candidate.depthintelligence.workers.dev` currently fails by design mismatch:
   - `/api/proposals` returns `400`
   - error code: `turnstile_required`
@@ -203,6 +219,13 @@
 - In the `2026-04-03` deploy shell, `CLOUDFLARE_SECURITY_TOKEN` was absent, so route reconcile was skipped.
   - live domain routing still remained correct after deployment
   - if a future release changes production route mappings, restore `CLOUDFLARE_SECURITY_TOKEN` before deploy instead of relying on the existing routes
+- First-wave selective slug replacement is still pending on live production:
+  - `slug-backfill --env production --mode dry-run` returned all 5 mappings as `ready`
+  - live production was intentionally not changed in this session
+  - live spot check on `2026-04-04` still shows the old canonicals:
+    - old slug routes -> `200`
+    - new candidate canonical routes -> `404`
+  - do not report the first-wave slug replacement as production-complete until the live apply and post-apply smoke both finish
 
 ## Guardrails
 
@@ -253,8 +276,15 @@
    - `production_candidate` alias route redirect
    - if candidate data is missing, report `blocked` and do not substitute Pages evidence
 14. If production changed canonical/alias routing or sitemap output, add a Search Console follow-up item to the report.
-15. Share only the verified external preview URL. Never hand off localhost.
-16. Next likely infra follow-ups:
+15. If the next task is live rollout of the approved first-wave slug replacements:
+   - run `node --experimental-strip-types ./scripts/slug-backfill.ts --env production --mode apply --input ..\\..\\docs\\slug-backfill-wave1-2026-04-04.json`
+   - verify each changed pair on live:
+     - new canonical -> `200`
+     - old slug -> `308`
+     - `/articles` and `/sitemap.xml` expose canonical only
+   - then queue Search Console inspection for the changed old/new pairs
+16. Share only the verified external preview URL. Never hand off localhost.
+17. Next likely infra follow-ups:
    - tighten the slug recommendation generator so selective backfill suggestions are cleaner for broad/legacy slugs
    - decide whether `smoke:editorial-runtime` should support Turnstile-protected environments or remain preview-only on a bypassed env
    - expand production smoke to sample multiple canonical/alias article pairs from the authoritative mapping inventory
