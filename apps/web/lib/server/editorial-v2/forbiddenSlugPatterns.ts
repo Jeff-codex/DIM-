@@ -34,7 +34,9 @@ export const forbiddenSlugRegexes = [
 ];
 
 export const overlyBroadSlugTerms = new Set([
+  "korea",
   "ai",
+  "platform",
   "beauty",
   "retail",
   "media",

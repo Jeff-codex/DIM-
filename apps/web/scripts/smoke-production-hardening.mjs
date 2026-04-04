@@ -1,8 +1,13 @@
+import { spawnSync } from "node:child_process";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 const baseArg = process.argv.find((arg) => arg.startsWith("--base-url="));
 const modeArg = process.argv.find((arg) => arg.startsWith("--mode="));
 const baseUrl = (baseArg?.split("=")[1] ?? "").replace(/\/$/, "");
 const mode = modeArg?.split("=")[1] ?? "candidate";
 const canonicalHost = "https://depthintelligence.kr";
+const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 if (!baseUrl) {
   console.error("Missing --base-url=<url>");
@@ -21,8 +26,48 @@ const shellRoutes = [
   "/submit",
 ];
 
-const productionCanonicalArticleRoute = "/articles/ai-browser-interface-power";
-const productionAliasArticleRoute = "/articles/ai";
+function parseJsonFromStdout(rawOutput) {
+  const trimmed = `${rawOutput ?? ""}`.trim();
+  const jsonStart = trimmed.search(/^[\[{]/m);
+
+  if (jsonStart === -1) {
+    throw new Error(trimmed || "Missing JSON output");
+  }
+
+  return JSON.parse(trimmed.slice(jsonStart));
+}
+
+function loadSlugInventory() {
+  const targetEnv = mode === "production" ? "production" : "production_candidate";
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--experimental-strip-types",
+      "./scripts/slug-audit.ts",
+      "--mode",
+      "inventory",
+      "--env",
+      targetEnv,
+    ],
+    {
+      cwd: appRoot,
+      encoding: "utf8",
+    },
+  );
+
+  if (result.status !== 0) {
+    const failureOutput = [result.stderr, result.stdout].filter(Boolean).join("\n");
+    throw new Error(failureOutput || "slug_audit_inventory_failed");
+  }
+
+  return parseJsonFromStdout(result.stdout);
+}
+
+const slugInventory = loadSlugInventory();
+const canonicalArticleRoute = slugInventory?.smokeSamples?.canonical?.route ?? null;
+const aliasArticleRoute = slugInventory?.smokeSamples?.alias?.aliasRoute ?? null;
+const aliasCanonicalRoute =
+  slugInventory?.smokeSamples?.alias?.canonicalRoute ?? canonicalArticleRoute;
 
 async function expectStatus(url, expected, options) {
   const response = await fetch(url, {
@@ -75,23 +120,45 @@ async function expectRouteStatuses() {
     await expectStatus(`${baseUrl}${route}`, 200);
   }
 
-  if (mode !== "production") {
-    return;
+  if (!canonicalArticleRoute) {
+    if (mode === "production") {
+      throw new Error("No authoritative canonical article route is available in production inventory");
+    }
+
+    return {
+      status: "blocked",
+      reason: "no_published_slug_sample_in_target_env",
+    };
   }
 
-  await expectStatus(`${baseUrl}${productionCanonicalArticleRoute}`, 200);
+  await expectStatus(`${baseUrl}${canonicalArticleRoute}`, 200);
 
-  const aliasResponse = await expectStatus(
-    `${baseUrl}${productionAliasArticleRoute}`,
-    308,
-  );
+  if (!aliasArticleRoute || !aliasCanonicalRoute) {
+    if (mode === "production") {
+      throw new Error("No authoritative alias article route is available in production inventory");
+    }
+
+    return {
+      status: "partial",
+      reason: "no_active_alias_slug_sample_in_target_env",
+      canonicalRoute: canonicalArticleRoute,
+    };
+  }
+
+  const aliasResponse = await expectStatus(`${baseUrl}${aliasArticleRoute}`, 308);
   const location = aliasResponse.headers.get("location") ?? "";
 
-  if (location !== productionCanonicalArticleRoute) {
+  if (location !== aliasCanonicalRoute) {
     throw new Error(
-      `${baseUrl}${productionAliasArticleRoute} expected location ${productionCanonicalArticleRoute} but received ${location}`,
+      `${baseUrl}${aliasArticleRoute} expected location ${aliasCanonicalRoute} but received ${location}`,
     );
   }
+
+  return {
+    status: "verified",
+    canonicalRoute: canonicalArticleRoute,
+    aliasRoute: aliasArticleRoute,
+  };
 }
 
 async function expectRedirect(url, expectedLocation) {
@@ -140,19 +207,33 @@ async function verifySeoSurface() {
     "/about og:title",
   );
 
-  const canonicalArticle = await expectHtml(
-    `${baseUrl}${productionCanonicalArticleRoute}`,
-  );
+  if (!canonicalArticleRoute) {
+    if (mode === "production") {
+      throw new Error("No authoritative canonical article route is available for SEO verification");
+    }
+
+    return {
+      status: "blocked",
+      reason: "no_published_slug_sample_in_target_env",
+    };
+  }
+
+  const canonicalArticle = await expectHtml(`${baseUrl}${canonicalArticleRoute}`);
   expectSingleCanonical(
     canonicalArticle.html,
-    `${canonicalHost}${productionCanonicalArticleRoute}`,
-    productionCanonicalArticleRoute,
+    `${canonicalHost}${canonicalArticleRoute}`,
+    canonicalArticleRoute,
   );
   expectIncludes(
     canonicalArticle.html,
     '"@type":"BreadcrumbList"',
-    `${productionCanonicalArticleRoute} structured data`,
+    `${canonicalArticleRoute} structured data`,
   );
+
+  return {
+    status: "verified",
+    canonicalRoute: canonicalArticleRoute,
+  };
 }
 
 async function verifyPublicSubmitConfig() {
@@ -270,9 +351,9 @@ async function verifyAdminProtection() {
 }
 
 const publicConfig = await verifyPublicSubmitConfig();
-await expectRouteStatuses();
+const routeVerification = await expectRouteStatuses();
 await verifyProductionHostCanonicalization();
-await verifySeoSurface();
+const seoVerification = await verifySeoSurface();
 const submitProtection = await verifySubmitProtection();
 const adminProtection = await verifyAdminProtection();
 
@@ -282,6 +363,12 @@ console.log(
       ok: true,
       mode,
       baseUrl,
+      slugInventory: {
+        canonical: slugInventory?.smokeSamples?.canonical ?? null,
+        alias: slugInventory?.smokeSamples?.alias ?? null,
+      },
+      routeVerification,
+      seoVerification,
       publicConfig,
       submitProtection,
       adminProtection,

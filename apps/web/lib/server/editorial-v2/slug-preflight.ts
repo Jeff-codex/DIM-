@@ -278,15 +278,63 @@ export async function syncCanonicalSlugForFirstPublishRevision(input: {
     return decision;
   }
 
-  const now = new Date().toISOString();
-  await env.EDITORIAL_DB.prepare(
-    `UPDATE feature_entry
-     SET slug = ?,
-         updated_at = ?
-     WHERE id = ?`,
+  const existingAliasOwner = await env.EDITORIAL_DB.prepare(
+    `SELECT feature_entry_id AS featureEntryId
+     FROM feature_slug_alias
+     WHERE alias_slug = ?
+     LIMIT 1`,
   )
-    .bind(decision.canonicalSlug, now, revision.featureEntryId)
-    .run();
+    .bind(decision.previousSlug)
+    .first<{ featureEntryId: string }>();
+
+  if (
+    existingAliasOwner &&
+    existingAliasOwner.featureEntryId !== revision.featureEntryId
+  ) {
+    throw new Error(`feature_slug_alias_conflict:${decision.previousSlug}`);
+  }
+
+  const now = new Date().toISOString();
+  await env.EDITORIAL_DB.batch([
+    env.EDITORIAL_DB.prepare(
+      `UPDATE feature_entry
+       SET slug = ?,
+           updated_at = ?
+       WHERE id = ?`,
+    ).bind(decision.canonicalSlug, now, revision.featureEntryId),
+    env.EDITORIAL_DB.prepare(
+      `UPDATE feature_slug_alias
+       SET retired_at = ?
+       WHERE alias_slug = ?
+         AND feature_entry_id = ?
+         AND retired_at IS NULL`,
+    ).bind(now, decision.canonicalSlug, revision.featureEntryId),
+    env.EDITORIAL_DB.prepare(
+      `UPDATE feature_slug_alias
+       SET retired_at = NULL
+       WHERE alias_slug = ?
+         AND feature_entry_id = ?`,
+    ).bind(decision.previousSlug, revision.featureEntryId),
+    env.EDITORIAL_DB.prepare(
+      `INSERT INTO feature_slug_alias (
+         alias_slug,
+         feature_entry_id,
+         created_at,
+         retired_at
+       )
+       SELECT ?, ?, ?, NULL
+       WHERE NOT EXISTS (
+         SELECT 1
+         FROM feature_slug_alias
+         WHERE alias_slug = ?
+       )`,
+    ).bind(
+      decision.previousSlug,
+      revision.featureEntryId,
+      now,
+      decision.previousSlug,
+    ),
+  ]);
 
   return decision;
 }

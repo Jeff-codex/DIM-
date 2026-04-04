@@ -100,8 +100,11 @@ Run after live changes:
 
 ## Reporting rule
 
-- Report preview and production separately
+- Report Pages preview, `production_candidate`, and live production separately
+- Do not use Pages static preview as evidence for article-detail canonical/alias parity
+- Use `production_candidate` for pre-production canonical/alias article-detail validation
+- if candidate parity fails, distinguish `candidate sync/data issue` from `runtime routing issue`
 - Host redirect verification is production-only
 - Robots policy verification is production-only
+- Search Console follow-up is production-only and should be reported separately from HTTP smoke
 - Do not call the change complete until both live HTTP behavior and live `robots.txt` match the policy
-

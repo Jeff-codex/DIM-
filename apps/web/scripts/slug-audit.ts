@@ -11,40 +11,21 @@ import { categories } from "../content/categories.ts";
 import { tags } from "../content/tags.ts";
 import type { SlugSystemInput } from "../lib/server/editorial-v2/slug-generator.ts";
 import {
+  buildPublishedCanonicalInventorySql,
+  buildPublishedSlugMappingsSql,
+  getCanonicalPublishedSlugRows,
+  getPublishedSlugAliasRows,
+  pickPublishedSlugSmokeSample,
+  type PublishedSlugInventoryRow,
+  type PublishedSlugMappingRow,
+} from "../lib/server/editorial-v2/published-slug-mappings.ts";
+import {
   generateAndValidateDimSlug,
   validateDimSlugCandidate,
 } from "../lib/server/editorial-v2/slug-validator.ts";
 
 type AuditMode = "inventory" | "audit";
 type TargetEnv = "production" | "production_candidate" | "editorial_preview";
-
-type PublishedSlugRow = {
-  featureEntryId: string;
-  currentSlug: string;
-  sourceType: string;
-  title: string;
-  dek: string | null;
-  verdict: string | null;
-  categoryId: string;
-  tagIdsJson: string | null;
-  publishedAt: string;
-  projectName: string | null;
-  proposalSummary: string | null;
-  proposalDescription: string | null;
-  proposalWhyNow: string | null;
-  proposalMarket: string | null;
-  proposalStage: string | null;
-  briefWorkingTitle: string | null;
-  briefSummary: string | null;
-  briefMarket: string | null;
-  briefTagsJson: string | null;
-};
-
-type FeatureSlugAliasRow = {
-  aliasSlug: string;
-  featureEntryId: string;
-  retiredAt: string | null;
-};
 
 type AuditRecord = {
   featureEntryId: string;
@@ -201,14 +182,22 @@ function runD1Query<T>(env: TargetEnv, sql: string): T[] {
   return [];
 }
 
-function queryAliasRows(env: TargetEnv) {
+function loadPublishedSlugMappings(env: TargetEnv) {
   try {
-    return runD1Query<FeatureSlugAliasRow>(env, aliasRowsSql);
+    return runD1Query<PublishedSlugMappingRow>(
+      env,
+      buildPublishedSlugMappingsSql({
+        includeRetiredAliases: true,
+      }),
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
     if (message.includes("no such table: feature_slug_alias")) {
-      return [] as FeatureSlugAliasRow[];
+      return runD1Query<PublishedSlugMappingRow>(
+        env,
+        buildPublishedCanonicalInventorySql(),
+      );
     }
 
     throw error;
@@ -223,7 +212,7 @@ function listLegacyArticleSlugs() {
 }
 
 function buildSlugSystemInput(
-  row: PublishedSlugRow,
+  row: PublishedSlugInventoryRow,
   existingSlugs: string[],
 ): SlugSystemInput {
   const categoryName = categoriesById.get(row.categoryId)?.name ?? row.categoryId;
@@ -288,58 +277,19 @@ function writeOutput(outputPath: string | null, payload: unknown) {
   console.log(`Wrote ${absolutePath}`);
 }
 
-const publishedRowsSql = `
-SELECT
-  fe.id AS featureEntryId,
-  fe.slug AS currentSlug,
-  fe.source_type AS sourceType,
-  fr.title,
-  fr.dek,
-  fr.verdict,
-  fr.category_id AS categoryId,
-  fr.tag_ids_json AS tagIdsJson,
-  fr.published_at AS publishedAt,
-  p.project_name AS projectName,
-  p.summary AS proposalSummary,
-  p.product_description AS proposalDescription,
-  p.why_now AS proposalWhyNow,
-  p.market AS proposalMarket,
-  p.stage AS proposalStage,
-  iab.summary AS briefSummary,
-  iab.market AS briefMarket,
-  iab.working_title AS briefWorkingTitle,
-  iab.core_entities_json AS briefTagsJson
-FROM feature_entry fe
-JOIN feature_revision fr
-  ON fr.id = fe.current_published_revision_id
-LEFT JOIN proposal p
-  ON p.id = fr.proposal_id
-LEFT JOIN internal_analysis_brief iab
-  ON iab.feature_entry_id = fe.id
-WHERE fe.archived_at IS NULL
-  AND fr.status = 'published'
-ORDER BY datetime(fr.published_at) DESC, datetime(fr.updated_at) DESC;
-`;
-
-const aliasRowsSql = `
-SELECT
-  alias_slug AS aliasSlug,
-  feature_entry_id AS featureEntryId,
-  retired_at AS retiredAt
-FROM feature_slug_alias
-ORDER BY alias_slug ASC;
-`;
-
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const publishedRows = runD1Query<PublishedSlugRow>(args.env, publishedRowsSql);
-  const aliasRows = queryAliasRows(args.env);
+  const slugMappings = loadPublishedSlugMappings(args.env);
+  const publishedRows = getCanonicalPublishedSlugRows(slugMappings);
+  const aliasRows = getPublishedSlugAliasRows(slugMappings);
   const legacySlugs = listLegacyArticleSlugs();
+  const smokeSamples = pickPublishedSlugSmokeSample(slugMappings);
 
   if (args.mode === "inventory") {
     writeOutput(args.output, {
       env: args.env,
       generatedAt: new Date().toISOString(),
+      mappings: slugMappings,
       published: publishedRows.map((row) => ({
         featureEntryId: row.featureEntryId,
         currentSlug: row.currentSlug,
@@ -348,6 +298,24 @@ async function main() {
         publishedAt: row.publishedAt,
       })),
       aliases: aliasRows,
+      smokeSamples: {
+        canonical: smokeSamples.canonical
+          ? {
+              featureEntryId: smokeSamples.canonical.featureEntryId,
+              currentSlug: smokeSamples.canonical.currentSlug,
+              route: `/articles/${smokeSamples.canonical.currentSlug}`,
+            }
+          : null,
+        alias: smokeSamples.alias
+          ? {
+              featureEntryId: smokeSamples.alias.featureEntryId,
+              aliasSlug: smokeSamples.alias.aliasSlug,
+              canonicalSlug: smokeSamples.alias.currentSlug,
+              aliasRoute: `/articles/${smokeSamples.alias.aliasSlug}`,
+              canonicalRoute: `/articles/${smokeSamples.alias.currentSlug}`,
+            }
+          : null,
+      },
     });
     return;
   }

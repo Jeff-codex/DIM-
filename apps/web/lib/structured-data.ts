@@ -123,6 +123,8 @@ export function buildArticlesArchiveStructuredData(
   articles: PublishedArticleSummary[],
 ) {
   const itemListId = `${siteConfig.url}/articles#item-list`;
+  const archiveDescription =
+    "현재 공개된 DIM 피처를 카테고리별로 읽는 전체 아카이브입니다.";
 
   return [
     {
@@ -130,9 +132,8 @@ export function buildArticlesArchiveStructuredData(
       "@type": "CollectionPage",
       "@id": `${siteConfig.url}/articles#collection`,
       url: `${siteConfig.url}/articles`,
-      name: "비즈니스 분석 피처 아카이브 | DIM",
-      description:
-        "스타트업 분석, 제품 출시 분석, 산업 구조 분석 피처를 한곳에서 읽는 DIM 비즈니스 분석 아카이브입니다.",
+      name: "DIM 피처 아카이브 | DIM",
+      description: archiveDescription,
       inLanguage: "ko-KR",
       isPartOf: {
         "@id": `${siteConfig.url}/#website`,
@@ -165,7 +166,7 @@ export function buildArticlesArchiveStructuredData(
       "@context": "https://schema.org",
       "@type": "ItemList",
       "@id": itemListId,
-      name: "전체 비즈니스 분석 피처",
+      name: "DIM 전체 피처 목록",
       itemListElement: buildArticleListElements(articles),
     },
   ];

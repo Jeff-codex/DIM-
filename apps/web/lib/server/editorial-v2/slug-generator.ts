@@ -87,6 +87,12 @@ const aliasRules: AliasRule[] = [
 
   { patterns: ["한국", "국내", "korea"], slug: "korea", kind: "topic", strength: "normal" },
   { patterns: ["딥테크", "deeptech"], slug: "deeptech", kind: "topic", strength: "normal" },
+  { patterns: ["디펜스테크", "defense tech", "defense-tech", "방산"], slug: "defense-tech", kind: "topic", strength: "specific" },
+  { patterns: ["공유오피스", "shared office", "coworking", "coworking space"], slug: "shared-office", kind: "topic", strength: "specific" },
+  { patterns: ["향수", "향", "fragrance", "perfume"], slug: "fragrance", kind: "topic", strength: "specific" },
+  { patterns: ["웰니스", "wellness"], slug: "wellness", kind: "topic", strength: "specific" },
+  { patterns: ["전문가", "expert"], slug: "expert", kind: "topic", strength: "specific" },
+  { patterns: ["벤처캐피탈", "venture capital", "vc"], slug: "vc", kind: "topic", strength: "specific" },
   { patterns: ["ai", "인공지능", "artificial intelligence"], slug: "ai", kind: "topic", strength: "broad" },
   { patterns: ["이커머스", "커머스", "commerce"], slug: "commerce", kind: "topic", strength: "normal" },
   { patterns: ["보도자료", "pr", "press release"], slug: "pr", kind: "topic", strength: "normal" },
@@ -111,7 +117,6 @@ const aliasRules: AliasRule[] = [
   { patterns: ["유통", "distribution"], slug: "distribution", kind: "topic", strength: "normal" },
 
   { patterns: ["욕망의 이동", "욕망 이동", "desire shift"], slug: "desire-shift", kind: "structure", strength: "specific" },
-  { patterns: ["이익 풀", "profit pool"], slug: "profit-pool", kind: "structure", strength: "specific" },
   { patterns: ["첫 번째 대형 고객", "첫 대형 고객", "첫 고객", "first customer", "lead customer"], slug: "first-customer", kind: "structure", strength: "specific" },
   { patterns: ["고객 구조", "customer structure"], slug: "customer-structure", kind: "structure", strength: "specific" },
   { patterns: ["유통 전쟁", "distribution war"], slug: "distribution-war", kind: "structure", strength: "specific" },
@@ -129,6 +134,12 @@ const aliasRules: AliasRule[] = [
   { patterns: ["검색 가시성", "search visibility"], slug: "search-visibility", kind: "structure", strength: "specific" },
   { patterns: ["행동 인터페이스의 선점", "행동 인터페이스", "action interface", "behavior interface"], slug: "interface-power", kind: "structure", strength: "specific" },
   { patterns: ["지배 모델", "dominance model"], slug: "dominance-model", kind: "structure", strength: "specific" },
+  { patterns: ["조달", "procurement"], slug: "procurement", kind: "structure", strength: "specific" },
+  { patterns: ["모델", "model"], slug: "model", kind: "structure", strength: "specific" },
+  { patterns: ["수출", "export"], slug: "export", kind: "structure", strength: "specific" },
+  { patterns: ["경계", "boundaries", "boundary"], slug: "boundaries", kind: "structure", strength: "specific" },
+  { patterns: ["출구", "exit"], slug: "exit", kind: "structure", strength: "specific" },
+  { patterns: ["유동성", "liquidity"], slug: "liquidity", kind: "structure", strength: "specific" },
   { patterns: ["입점권", "entry rights"], slug: "entry-rights", kind: "structure", strength: "specific" },
   { patterns: ["운영권", "operating rights"], slug: "operating-rights", kind: "structure", strength: "specific" },
   { patterns: ["광고화", "시선의 광고화", "attention monetization"], slug: "attention-monetization", kind: "structure", strength: "specific" },
@@ -389,6 +400,10 @@ function composePrimaryTopic(titleTopics: string[]) {
   const second = uniqueTopics[1] ?? "";
 
   if ((first === "ai" || first === "korea") && second) {
+    return buildCandidateFromGroups([first, second]);
+  }
+
+  if (isOverlyBroadSlugTerm(first) && second && !isOverlyBroadSlugTerm(second)) {
     return buildCandidateFromGroups([first, second]);
   }
 

@@ -11,6 +11,7 @@ Public-facing DIM application built with `Next.js 16`, `TypeScript`, and the Clo
 - `npm run preview`: Worker-accurate local preview using OpenNext + Wrangler
 - `npm run preview:deploy -- <branch-name>`: deploy a review preview to the `dim-preview` Pages project
 - `npm run preview:editorial-runtime`: deploy the preview editorial runtime to Workers
+- `npm run candidate:sync-public-state`: mirror production published article rows, alias rows, and public asset objects into `production_candidate`
 - `npm run preview:production-candidate`: deploy the production-candidate hardening runtime to Workers
 - `npm run deploy`: production deploy using split tokens
   - `CLOUDFLARE_WORKERS_TOKEN` for worker service deploy
@@ -35,14 +36,25 @@ Public-facing DIM application built with `Next.js 16`, `TypeScript`, and the Clo
 
 - This app is isolated to the DIM repository and must not be wired to `Dliver` resources by mistake.
 - Review previews and real runtime deployment are intentionally split so Pages uploads do not interfere with Workers production settings.
+- `npm run preview:deploy` is a Pages static review step. Use it for shell/archive review, not for article-detail canonical/alias parity sign-off.
 - MVP content is driven by local MDX, not D1 or a CMS.
 - Preview-only editorial infrastructure bindings live under the Wrangler environment `editorial_preview`.
 - Production hardening should use the separate Wrangler environment `production_candidate` until the real domain is explicitly approved for deployment.
+- Article-detail canonical/alias parity must be validated on `production_candidate` first, then on live production. Do not substitute Pages static preview evidence.
 - Real production deploy is intentionally split into:
   - worker service deploy
   - real-domain route reconcile
   so the current token split does not block release.
 - Treat `dim-web.depthintelligence.workers.dev` as a deprecated legacy worker. Do not use it as a review or hardening target.
+- If canonical/alias routing or sitemap output changes, keep Search Console follow-up as a separate production reporting item after the HTTP smoke passes.
 - If `EDITORIAL_DRAFT_GENERATOR_URL` and `EDITORIAL_GENERATOR_SHARED_SECRET` are configured, editorial draft generation prefers the external DIM Draft Generator service over direct OpenAI calls from Workers.
 - In that mode, Cloudflare does not need its own `OPENAI_API_KEY`; the external generator holds the OpenAI credentials.
 - External generator source lives in `apps/editorial-generator`.
+
+## Reporting
+
+- Report `Pages preview`, `production_candidate`, and `live production` separately.
+- `Pages preview` proves the review shell and archive surface.
+- `production_candidate` proves pre-production runtime behavior, including article-detail canonical/alias parity when candidate data is present.
+- `npm run preview:production-candidate` now seeds `production_candidate` with mirrored published public state before deploying the runtime, so canonical/alias article-detail checks can be verified there instead of reported as blocked.
+- `live production` closes the final gate for canonical host behavior, robots, sitemap, and Search Console follow-up.

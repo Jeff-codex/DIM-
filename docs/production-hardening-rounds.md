@@ -124,6 +124,8 @@ Current status:
   - draft
   - preview
   - snapshot
+- Treat article-detail canonical/alias parity as a `production_candidate` gate, not as a Pages static preview gate
+- `preview:production-candidate` should first mirror production published public state into candidate so the article-detail gate is verifiable, not inferred
 - Only after candidate smoke is clean should the same checks be repeated against the real production runtime
 - Verify duplicate submit handling
 - Verify unauthorized `/admin` is blocked
@@ -137,6 +139,8 @@ Recommended commands:
 Current note:
 
 - `production-candidate` is the active hardening baseline
+- candidate public-state sync now exists via `npm run candidate:sync-public-state`
+- candidate smoke now reads canonical/alias samples from the authoritative published slug inventory instead of hardcoded slugs
 - `depthintelligence.kr` is now healthy after route reconcile and passes production smoke
 - repeatable real production deploy should use the split-token workflow:
   - `CLOUDFLARE_WORKERS_TOKEN` for service deploy
@@ -185,6 +189,7 @@ Current note:
 - Re-run production runtime smoke
 - Confirm preview/prod bindings are fully separated
 - Confirm no public `/submit` copy leaks internal workflow terms
+- If canonical/alias routing or sitemap output changed, queue Search Console follow-up separately from deploy smoke
 - Only after explicit user approval:
   - `npm run deploy`
   - verify `depthintelligence.kr`
@@ -192,5 +197,7 @@ Current note:
 ## Notes
 
 - Public Pages preview and editorial runtime preview are intentionally separate
+- Reporting should separate Pages preview, `production_candidate`, and live production results
+- Pages preview does not close article-detail canonical/alias parity; `production_candidate` and live production do
 - Do not deploy real domain before these rounds are signed off
 - If production hardening reveals copy/UI regressions on `/submit`, fix public wording before deployment

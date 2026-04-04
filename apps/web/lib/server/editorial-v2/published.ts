@@ -67,6 +67,80 @@ type WorkingRevisionRow = {
   assigneeEmail: string | null;
 };
 
+async function assertPreviousSlugAliasWritable(input: {
+  env: Awaited<ReturnType<typeof getEditorialEnv>>;
+  featureEntryId: string;
+  previousSlug: string;
+  nextSlug: string;
+}) {
+  if (input.previousSlug === input.nextSlug) {
+    return;
+  }
+
+  const existingAliasOwner = await input.env.EDITORIAL_DB.prepare(
+    `SELECT feature_entry_id AS featureEntryId
+     FROM feature_slug_alias
+     WHERE alias_slug = ?
+     LIMIT 1`,
+  )
+    .bind(input.previousSlug)
+    .first<{ featureEntryId: string }>();
+
+  if (
+    existingAliasOwner &&
+    existingAliasOwner.featureEntryId !== input.featureEntryId
+  ) {
+    throw new Error(`feature_slug_alias_conflict:${input.previousSlug}`);
+  }
+}
+
+function buildSlugAliasStatements(input: {
+  env: Awaited<ReturnType<typeof getEditorialEnv>>;
+  featureEntryId: string;
+  previousSlug: string;
+  nextSlug: string;
+  now: string;
+}) {
+  if (input.previousSlug === input.nextSlug) {
+    return [] as ReturnType<typeof input.env.EDITORIAL_DB.prepare>[];
+  }
+
+  return [
+    input.env.EDITORIAL_DB.prepare(
+      `UPDATE feature_slug_alias
+       SET retired_at = ?
+       WHERE alias_slug = ?
+         AND feature_entry_id = ?
+         AND retired_at IS NULL`,
+    ).bind(input.now, input.nextSlug, input.featureEntryId),
+    input.env.EDITORIAL_DB.prepare(
+      `UPDATE feature_slug_alias
+       SET retired_at = NULL
+       WHERE alias_slug = ?
+         AND feature_entry_id = ?`,
+    ).bind(input.previousSlug, input.featureEntryId),
+    input.env.EDITORIAL_DB.prepare(
+      `INSERT INTO feature_slug_alias (
+         alias_slug,
+         feature_entry_id,
+         created_at,
+         retired_at
+       )
+       SELECT ?, ?, ?, NULL
+       WHERE NOT EXISTS (
+         SELECT 1
+         FROM feature_slug_alias
+         WHERE alias_slug = ?
+       )`,
+    ).bind(
+      input.previousSlug,
+      input.featureEntryId,
+      input.now,
+      input.previousSlug,
+    ),
+  ];
+}
+
 async function resolvePublishedFeatureBySlug(slug: string) {
   const resolution = await resolveFeatureSlug(slug);
 
@@ -532,10 +606,17 @@ export async function publishFeatureRevisionFromProposal(
     revision,
     featureEntryRow,
   });
+  const previousSlug = featureEntryRow.slug;
   featureEntryRow.slug = slugDecision.canonicalSlug;
 
   const now = new Date().toISOString();
   const currentPublishedRevisionId = featureEntryRow.currentPublishedRevisionId ?? null;
+  await assertPreviousSlugAliasWritable({
+    env,
+    featureEntryId: revision.featureEntryId,
+    previousSlug,
+    nextSlug: featureEntryRow.slug,
+  });
   const statements = [
     env.EDITORIAL_DB.prepare(
       `UPDATE feature_revision
@@ -578,6 +659,13 @@ export async function publishFeatureRevisionFromProposal(
       }),
       now,
     ),
+    ...buildSlugAliasStatements({
+      env,
+      featureEntryId: revision.featureEntryId,
+      previousSlug,
+      nextSlug: featureEntryRow.slug,
+      now,
+    }),
   ];
 
   if (currentPublishedRevisionId && currentPublishedRevisionId !== revision.id) {
@@ -647,10 +735,17 @@ export async function publishFeatureRevisionById(
     revision,
     featureEntryRow,
   });
+  const previousSlug = featureEntryRow.slug;
   featureEntryRow.slug = slugDecision.canonicalSlug;
 
   const now = new Date().toISOString();
   const currentPublishedRevisionId = featureEntryRow.currentPublishedRevisionId ?? null;
+  await assertPreviousSlugAliasWritable({
+    env,
+    featureEntryId: revision.featureEntryId,
+    previousSlug,
+    nextSlug: featureEntryRow.slug,
+  });
   const statements = [
     env.EDITORIAL_DB.prepare(
       `UPDATE feature_revision
@@ -693,6 +788,13 @@ export async function publishFeatureRevisionById(
       }),
       now,
     ),
+    ...buildSlugAliasStatements({
+      env,
+      featureEntryId: revision.featureEntryId,
+      previousSlug,
+      nextSlug: featureEntryRow.slug,
+      now,
+    }),
   ];
 
   if (currentPublishedRevisionId && currentPublishedRevisionId !== revision.id) {

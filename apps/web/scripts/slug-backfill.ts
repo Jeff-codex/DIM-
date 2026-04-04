@@ -12,6 +12,14 @@ import { spawnSync } from "node:child_process";
 import { categories } from "../content/categories.ts";
 import { tags } from "../content/tags.ts";
 import type { SlugSystemInput } from "../lib/server/editorial-v2/slug-generator.ts";
+import {
+  buildPublishedCanonicalInventorySql,
+  buildPublishedSlugMappingsSql,
+  getCanonicalPublishedSlugRows,
+  getPublishedSlugAliasRows,
+  type PublishedSlugInventoryRow,
+  type PublishedSlugMappingRow,
+} from "../lib/server/editorial-v2/published-slug-mappings.ts";
 import { validateDimSlugCandidate } from "../lib/server/editorial-v2/slug-validator.ts";
 
 type BackfillMode = "dry-run" | "apply";
@@ -21,34 +29,6 @@ type ApprovedMapping = {
   featureEntryId: string;
   currentSlug: string;
   canonicalSlug: string;
-};
-
-type PublishedSlugRow = {
-  featureEntryId: string;
-  currentSlug: string;
-  sourceType: string;
-  title: string;
-  dek: string | null;
-  verdict: string | null;
-  categoryId: string;
-  tagIdsJson: string | null;
-  publishedAt: string;
-  projectName: string | null;
-  proposalSummary: string | null;
-  proposalDescription: string | null;
-  proposalWhyNow: string | null;
-  proposalMarket: string | null;
-  proposalStage: string | null;
-  briefWorkingTitle: string | null;
-  briefSummary: string | null;
-  briefMarket: string | null;
-  briefTagsJson: string | null;
-};
-
-type FeatureSlugAliasRow = {
-  aliasSlug: string;
-  featureEntryId: string;
-  retiredAt: string | null;
 };
 
 type FeatureEntrySlugStateRow = {
@@ -67,48 +47,6 @@ type BackfillDecision = {
 const categoriesById = new Map(categories.map((category) => [category.id, category]));
 const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-
-const publishedRowsSql = `
-SELECT
-  fe.id AS featureEntryId,
-  fe.slug AS currentSlug,
-  fe.source_type AS sourceType,
-  fr.title,
-  fr.dek,
-  fr.verdict,
-  fr.category_id AS categoryId,
-  fr.tag_ids_json AS tagIdsJson,
-  fr.published_at AS publishedAt,
-  p.project_name AS projectName,
-  p.summary AS proposalSummary,
-  p.product_description AS proposalDescription,
-  p.why_now AS proposalWhyNow,
-  p.market AS proposalMarket,
-  p.stage AS proposalStage,
-  iab.summary AS briefSummary,
-  iab.market AS briefMarket,
-  iab.working_title AS briefWorkingTitle,
-  iab.core_entities_json AS briefTagsJson
-FROM feature_entry fe
-JOIN feature_revision fr
-  ON fr.id = fe.current_published_revision_id
-LEFT JOIN proposal p
-  ON p.id = fr.proposal_id
-LEFT JOIN internal_analysis_brief iab
-  ON iab.feature_entry_id = fe.id
-WHERE fe.archived_at IS NULL
-  AND fr.status = 'published'
-ORDER BY datetime(fr.published_at) DESC, datetime(fr.updated_at) DESC;
-`;
-
-const aliasRowsSql = `
-SELECT
-  alias_slug AS aliasSlug,
-  feature_entry_id AS featureEntryId,
-  retired_at AS retiredAt
-FROM feature_slug_alias
-ORDER BY alias_slug ASC;
-`;
 
 function buildFeatureEntrySlugStateSql(featureEntryId: string) {
   return `
@@ -254,14 +192,22 @@ function runD1Query<T>(env: TargetEnv, sql: string): T[] {
   return [];
 }
 
-function queryAliasRows(env: TargetEnv) {
+function loadPublishedSlugMappings(env: TargetEnv) {
   try {
-    return runD1Query<FeatureSlugAliasRow>(env, aliasRowsSql);
+    return runD1Query<PublishedSlugMappingRow>(
+      env,
+      buildPublishedSlugMappingsSql({
+        includeRetiredAliases: true,
+      }),
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
     if (message.includes("no such table: feature_slug_alias")) {
-      return [] as FeatureSlugAliasRow[];
+      return runD1Query<PublishedSlugMappingRow>(
+        env,
+        buildPublishedCanonicalInventorySql(),
+      );
     }
 
     throw error;
@@ -329,7 +275,7 @@ function listLegacyArticleSlugs() {
 }
 
 function buildSlugSystemInput(
-  row: PublishedSlugRow,
+  row: PublishedSlugInventoryRow,
   existingSlugs: string[],
 ): SlugSystemInput {
   const categoryName = categoriesById.get(row.categoryId)?.name ?? row.categoryId;
@@ -424,6 +370,15 @@ function writeOutput(outputPath: string | null, payload: unknown) {
 function buildApplySql(mapping: ApprovedMapping, now: string) {
   return [
     `UPDATE feature_entry SET slug = ${sqlString(mapping.canonicalSlug)}, updated_at = ${sqlString(now)} WHERE id = ${sqlString(mapping.featureEntryId)} AND slug = ${sqlString(mapping.currentSlug)};`,
+    `UPDATE feature_slug_alias
+SET retired_at = ${sqlString(now)}
+WHERE alias_slug = ${sqlString(mapping.canonicalSlug)}
+  AND feature_entry_id = ${sqlString(mapping.featureEntryId)}
+  AND retired_at IS NULL;`,
+    `UPDATE feature_slug_alias
+SET retired_at = NULL
+WHERE alias_slug = ${sqlString(mapping.currentSlug)}
+  AND feature_entry_id = ${sqlString(mapping.featureEntryId)};`,
     `INSERT INTO feature_slug_alias (alias_slug, feature_entry_id, created_at, retired_at)
 SELECT ${sqlString(mapping.currentSlug)}, ${sqlString(mapping.featureEntryId)}, ${sqlString(now)}, NULL
 WHERE EXISTS (
@@ -446,7 +401,7 @@ function verifyAppliedMapping(env: TargetEnv, mapping: ApprovedMapping) {
     buildFeatureEntrySlugStateSql(mapping.featureEntryId),
   );
   const featureEntry = featureEntryRows[0] ?? null;
-  const aliasRows = queryAliasRows(env).filter(
+  const aliasRows = getPublishedSlugAliasRows(loadPublishedSlugMappings(env)).filter(
     (row) => row.aliasSlug === mapping.currentSlug && !row.retiredAt,
   );
   const alias = aliasRows[0] ?? null;
@@ -464,8 +419,9 @@ function verifyAppliedMapping(env: TargetEnv, mapping: ApprovedMapping) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const approvedMappings = loadApprovedMappings(args.input!);
-  const publishedRows = runD1Query<PublishedSlugRow>(args.env, publishedRowsSql);
-  const aliasRows = queryAliasRows(args.env);
+  const slugMappings = loadPublishedSlugMappings(args.env);
+  const publishedRows = getCanonicalPublishedSlugRows(slugMappings);
+  const aliasRows = getPublishedSlugAliasRows(slugMappings);
   const legacySlugs = listLegacyArticleSlugs();
 
   const canonicalById = new Map(publishedRows.map((row) => [row.featureEntryId, row]));
@@ -523,7 +479,7 @@ async function main() {
     }
 
     const aliasOwner = aliasBySlug.get(mapping.canonicalSlug);
-    if (aliasOwner) {
+    if (aliasOwner && aliasOwner.featureEntryId !== mapping.featureEntryId) {
       reasons.push(
         aliasOwner.retiredAt
           ? "retired alias와 충돌합니다"
@@ -536,7 +492,7 @@ async function main() {
     }
 
     const currentAliasOwner = aliasBySlug.get(mapping.currentSlug);
-    if (currentAliasOwner) {
+    if (currentAliasOwner && currentAliasOwner.featureEntryId !== mapping.featureEntryId) {
       reasons.push("currentSlug가 이미 alias로 존재합니다");
     }
 

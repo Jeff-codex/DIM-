@@ -20,10 +20,57 @@ function tokenize(value: string) {
   return value.split("-").map((entry) => entry.trim()).filter(Boolean);
 }
 
-function containsAllTokens(tokens: string[], signal: string) {
-  const signalTokens = tokenize(signal);
+const nonSpecificSlugTerms = new Set([
+  "ai",
+  "article",
+  "beauty",
+  "feature",
+  "industry",
+  "insight",
+  "korea",
+  "launch",
+  "launches",
+  "media",
+  "page",
+  "platform",
+  "pool",
+  "post",
+  "pr",
+  "product",
+  "profit",
+  "retail",
+  "search",
+  "shift",
+  "signal",
+  "startup",
+  "startups",
+  "story",
+  "structure",
+  "trend",
+]);
 
-  return signalTokens.length > 0 && signalTokens.every((token) => tokens.includes(token));
+function containsProfitPool(tokens: string[]) {
+  return tokens.includes("profit") && tokens.includes("pool");
+}
+
+function looksLikeTypoToken(token: string) {
+  if (token.length < 4) {
+    return false;
+  }
+
+  if (!/^[a-z]+$/u.test(token)) {
+    return false;
+  }
+
+  return !/[aeiouy]/u.test(token);
+}
+
+function hasSubjectToken(tokens: string[]) {
+  return tokens.some((token) => !nonSpecificSlugTerms.has(token));
+}
+
+function getSpecificSignalTokens(signal: string) {
+  return tokenize(signal).filter((token) => !nonSpecificSlugTerms.has(token));
 }
 
 function determineStatus(score: number, hardReject: boolean): SlugValidationStatus {
@@ -78,6 +125,19 @@ export function validateDimSlugCandidate(
     hardReject = true;
   }
 
+  if (containsProfitPool(tokens)) {
+    reasons.push("profit-pool은 DIM 내부 해석 언어이므로 canonical slug에 쓰지 않습니다");
+    score -= 70;
+    hardReject = true;
+  }
+
+  const typoTokens = tokens.filter(looksLikeTypoToken);
+  if (typoTokens.length > 0) {
+    reasons.push(`사람이 typo로 읽기 쉬운 token이 포함돼 있습니다: ${typoTokens.join(", ")}`);
+    score -= 60;
+    hardReject = true;
+  }
+
   if (tokens.length === 1) {
     if (slug === "everyonepr") {
       warnings.push("고유 브랜드 slug라 유지 가능하지만 구조 신호는 약합니다");
@@ -101,6 +161,12 @@ export function validateDimSlugCandidate(
     score -= 35;
   }
 
+  if (!hasSubjectToken(tokens)) {
+    reasons.push("대상 명사가 없어 URL 좌표가 모호합니다");
+    score -= 45;
+    hardReject = true;
+  }
+
   const normalization = buildSlugNormalization(input);
   const hasEntitySignal = Boolean(normalization.primary_entity);
   const hasTopicSignal = normalization.topic_cluster.length > 0;
@@ -116,10 +182,11 @@ export function validateDimSlugCandidate(
     score -= 15;
   }
 
+  const specificEntityTokens = getSpecificSignalTokens(normalization.primary_entity);
+
   if (
-    normalization.primary_entity &&
-    !isOverlyBroadSlugTerm(normalization.primary_entity) &&
-    !containsAllTokens(tokens, normalization.primary_entity)
+    specificEntityTokens.length > 0 &&
+    !specificEntityTokens.every((token) => tokens.includes(token))
   ) {
     reasons.push("핵심 플레이어 신호가 slug에 반영되지 않았습니다");
     score -= 18;

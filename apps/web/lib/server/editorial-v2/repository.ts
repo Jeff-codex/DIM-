@@ -5,6 +5,11 @@ import { tags } from "@/content/tags";
 import { renderEditorialMarkdown } from "@/lib/server/editorial/markdown";
 import { getEditorialEnv } from "@/lib/server/editorial/env";
 import { parseInternalIndustryAnalysisTemplate } from "@/lib/server/editorial-v2/internal-analysis-template";
+import {
+  buildPublishedCanonicalInventorySql,
+  buildPublishedSlugMappingsSql,
+  type PublishedSlugMappingRow,
+} from "@/lib/server/editorial-v2/published-slug-mappings";
 import type {
   AssetFamilyBundle,
   AssetFamilyRecord,
@@ -17,7 +22,6 @@ import type {
   DraftGenerationRunRecord,
   FeatureBodySection,
   FeatureEntryRecord,
-  FeatureSlugAliasRecord,
   FeatureEntrySourceType,
   FeatureRevisionRecord,
   FeatureRevisionStatus,
@@ -60,6 +64,13 @@ export type FeatureSlugResolution = {
   canonicalSlug: string;
   featureEntryId: string;
   via: "canonical" | "alias";
+};
+
+type FeatureSlugAliasRecord = {
+  aliasSlug: string;
+  featureEntryId: string;
+  createdAt: string | null;
+  retiredAt: string | null;
 };
 
 type ProposalQueueRow = {
@@ -521,66 +532,87 @@ export async function getCmsPublishedArticleBySlug(
   }
 }
 
-export async function getFeatureSlugAliasRecord(
-  aliasSlug: string,
-): Promise<FeatureSlugAliasRecord | null> {
+async function listPublishedSlugMappings(input: {
+  requestedSlug?: string;
+  includeRetiredAliases?: boolean;
+}): Promise<PublishedSlugMappingRow[]> {
   const env = await getEditorialEnv({
     requireBucket: false,
     requireQueue: false,
   });
+  const sql = buildPublishedSlugMappingsSql({
+    includeRetiredAliases: input.includeRetiredAliases,
+    whereClause: input.requestedSlug ? "requestedSlug = ?" : undefined,
+  });
 
   try {
-    const row = await env.EDITORIAL_DB.prepare(
-      `SELECT
-         alias_slug AS aliasSlug,
-         feature_entry_id AS featureEntryId,
-         created_at AS createdAt,
-         retired_at AS retiredAt
-       FROM feature_slug_alias
-       WHERE alias_slug = ?
-         AND retired_at IS NULL
-       LIMIT 1`,
-    )
-      .bind(aliasSlug)
-      .first<FeatureSlugAliasRecord>();
+    const result = input.requestedSlug
+      ? await env.EDITORIAL_DB.prepare(sql)
+          .bind(input.requestedSlug)
+          .all<PublishedSlugMappingRow>()
+      : await env.EDITORIAL_DB.prepare(sql).all<PublishedSlugMappingRow>();
 
-    return row ?? null;
-  } catch {
-    return null;
+    return result.results ?? [];
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (!message.includes("no such table: feature_slug_alias")) {
+      throw error;
+    }
+
+    const fallbackSql = buildPublishedCanonicalInventorySql({
+      whereClause: input.requestedSlug ? "currentSlug = ?" : undefined,
+    });
+    const fallbackResult = input.requestedSlug
+      ? await env.EDITORIAL_DB.prepare(fallbackSql)
+          .bind(input.requestedSlug)
+          .all<PublishedSlugMappingRow>()
+      : await env.EDITORIAL_DB.prepare(fallbackSql).all<PublishedSlugMappingRow>();
+
+    return fallbackResult.results ?? [];
   }
 }
 
-export async function resolveFeatureSlug(
-  requestedSlug: string,
-): Promise<FeatureSlugResolution | null> {
-  const canonical = await getFeatureEntryBySlug(requestedSlug);
-
-  if (canonical) {
-    return {
-      requestedSlug,
-      canonicalSlug: canonical.slug,
-      featureEntryId: canonical.id,
-      via: "canonical",
-    };
-  }
-
-  const alias = await getFeatureSlugAliasRecord(requestedSlug);
+export async function getFeatureSlugAliasRecord(
+  aliasSlug: string,
+): Promise<FeatureSlugAliasRecord | null> {
+  const rows = await listPublishedSlugMappings({
+    requestedSlug: aliasSlug,
+  });
+  const alias = rows.find(
+    (row): row is PublishedSlugMappingRow & { via: "alias"; aliasSlug: string } =>
+      row.via === "alias" && Boolean(row.aliasSlug),
+  );
 
   if (!alias) {
     return null;
   }
 
-  const featureEntry = await getFeatureEntryById(alias.featureEntryId);
+  return {
+    aliasSlug: alias.aliasSlug,
+    featureEntryId: alias.featureEntryId,
+    createdAt: null,
+    retiredAt: alias.retiredAt,
+  };
+}
 
-  if (!featureEntry) {
+export async function resolveFeatureSlug(
+  requestedSlug: string,
+): Promise<FeatureSlugResolution | null> {
+  const rows = await listPublishedSlugMappings({
+    requestedSlug,
+  });
+  const match = rows[0] ?? null;
+
+  if (!match) {
     return null;
   }
 
   return {
     requestedSlug,
-    canonicalSlug: featureEntry.slug,
-    featureEntryId: featureEntry.id,
-    via: "alias",
+    canonicalSlug: match.currentSlug,
+    featureEntryId: match.featureEntryId,
+    via: match.via,
   };
 }
 

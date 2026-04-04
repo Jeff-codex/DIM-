@@ -2,9 +2,9 @@
 
 ## Current checkpoint
 
-- Date: `2026-04-03`
+- Date: `2026-04-04`
 - Branch: `main`
-- Commit: `fc32238` (`Restore generated-path lint ignores`)
+- Commit: `working tree ahead of fc32238`
 - Remote: `origin -> https://github.com/Jeff-codex/DIM-.git`
 - Remote branch state: `origin/main` synced with local `main`
 - Public app: `apps/web`
@@ -118,6 +118,20 @@
 - Route reconcile was reverified with a valid `CLOUDFLARE_SECURITY_TOKEN`; production routes remain:
   - `depthintelligence.kr/* -> dim-web`
   - `www.depthintelligence.kr/* -> dim-web`
+- `/articles` archive contract is now aligned to `DIM 피처 아카이브` across page copy, metadata, and structured data.
+- Category archive zero-state handling is now split between:
+  - category has no published articles
+  - search query returned no matches
+- Low-volume categories now keep the current archive visible and can point readers back to the full archive instead of behaving like empty shelves.
+- Published slug governance now uses a shared read path:
+  - canonical source of truth: `feature_entry.slug`
+  - alias source of truth: `feature_slug_alias.alias_slug`
+  - runtime resolution, slug audit, slug backfill, and smoke inventory all read through the same published slug mapping query
+- Publish flows now preserve the previous canonical slug as an active alias in the same write transaction when the canonical slug changes.
+- `production_candidate` public-state mirroring now exists:
+  - script: `npm run candidate:sync-public-state`
+  - mirrored data: published `feature_entry`, current `feature_revision`, active `feature_slug_alias`, public cover `asset_variant`, linked `asset_family`, linked `internal_analysis_brief`, and referenced R2 objects
+- `smoke:production-candidate` now loads canonical/alias samples from the authoritative published slug inventory instead of hardcoded slugs.
 
 ## Latest verified preview
 
@@ -125,7 +139,11 @@
 - Editorial runtime preview: `https://dim-web-editorial_preview.depthintelligence.workers.dev`
 - Production-candidate runtime: `https://dim-web-production_candidate.depthintelligence.workers.dev`
 - Deprecated legacy worker: `https://dim-web.depthintelligence.workers.dev` (do not use as a canonical review or hardening target)
-- Latest production-candidate shell/asset review reverified on `2026-04-03`:
+- Reporting rule:
+  - report Pages static preview, editorial preview runtime, production-candidate runtime, and live production separately
+  - do not treat Pages static preview as evidence for article-detail canonical/alias parity
+  - article-detail canonical/alias parity belongs to `production_candidate` first, then live production
+- Latest production-candidate shell/asset review reverified on `2026-04-04`:
   - `/`
   - `/articles`
   - `/about`
@@ -135,10 +153,18 @@
   - `/apple-icon.png`
   - `/robots.txt`
   - `/sitemap.xml`
-- Production-candidate article-detail parity is still not ready:
-  - `/articles/ai-browser-interface-power` returns `404`
-  - `/articles/ai` returns `404`
-  - confirmed cause: candidate runtime does not currently contain mirrored published article rows
+- Production-candidate article-detail parity is now reverified on `2026-04-04`:
+  - candidate public-state sync succeeded before the smoke:
+    - published rows: `21`
+    - asset variants: `63`
+    - active aliases: `8`
+  - `npm run smoke:production-candidate` now passes with authoritative samples from candidate inventory
+  - current candidate smoke sample:
+    - canonical: `/articles/deeptech-korea-first-customer` -> `200`
+    - alias: `/articles/microsoft-korea-profit-pool` -> `308` -> canonical
+  - direct candidate asset verification also passed:
+    - article detail HTML -> `200`
+    - first `/api/editorial/assets/[assetId]` request -> `200`
 - `npm run smoke:editorial-runtime -- --base-url=https://dim-web-production_candidate.depthintelligence.workers.dev` currently fails by design mismatch:
   - `/api/proposals` returns `400`
   - error code: `turnstile_required`
@@ -161,6 +187,9 @@
   - `/api/public-config/submit` -> `200`
   - `/robots.txt` -> `200`
   - `/sitemap.xml` -> `200`
+- Production reporting gate:
+  - keep HTTP verification separate from Search Console follow-up
+  - if canonical/alias or sitemap output changes in a future deploy, queue Search Console inspection/submission work explicitly instead of treating smoke success as indexing completion
 - Live submit protection is confirmed:
   - no token -> `400 turnstile_required`
   - fake token -> `400 turnstile_failed`
@@ -205,35 +234,40 @@
 10. For production hardening without the real domain, use:
    - `npm run preview:production-candidate`
    - `npm run smoke:production-candidate`
-   - then manually verify article detail routes only if candidate has mirrored published article rows
+   - `preview:production-candidate` will first mirror published public state into candidate
+   - use this runtime, not Pages static preview, for article-detail canonical/alias verification
+   - if the sync step fails, report `blocked on candidate sync` rather than inferring parity from Pages preview
 11. For real production deploy, confirm both split tokens are present:
    - `CLOUDFLARE_WORKERS_TOKEN`
    - `CLOUDFLARE_SECURITY_TOKEN`
    - optional `CLOUDFLARE_ZONE_ID`
    - if `CLOUDFLARE_ZONE_ID` is not set, `CLOUDFLARE_SECURITY_TOKEN` must also be able to read the zone
    - without `CLOUDFLARE_SECURITY_TOKEN`, service deploy can still succeed but route reconciliation will be skipped
-12. Verify public review paths:
+12. Verify Pages review paths:
    - `/`
    - `/articles`
-   - `/articles/ai-browser-interface-power`
-   - `/articles/ai`
    - `/about`
    - `/submit`
-   - `/robots.txt`
-   - `/sitemap.xml`
-13. Share only the verified external preview URL. Never hand off localhost.
-14. Next likely infra follow-ups:
-   - replace stale hardcoded article-route samples in smoke scripts with an authoritative current canonical/alias source
-   - make production-candidate include published article rows so article detail routes can be verified before real-domain deploy
-   - align `smoke:editorial-runtime` with Turnstile-protected environments or run it only on a dedicated bypassed preview env
+13. Verify candidate/runtime article-detail paths separately:
+   - `production_candidate` canonical article route
+   - `production_candidate` alias route redirect
+   - if candidate data is missing, report `blocked` and do not substitute Pages evidence
+14. If production changed canonical/alias routing or sitemap output, add a Search Console follow-up item to the report.
+15. Share only the verified external preview URL. Never hand off localhost.
+16. Next likely infra follow-ups:
+   - tighten the slug recommendation generator so selective backfill suggestions are cleaner for broad/legacy slugs
+   - decide whether `smoke:editorial-runtime` should support Turnstile-protected environments or remain preview-only on a bypassed env
+   - expand production smoke to sample multiple canonical/alias article pairs from the authoritative mapping inventory
 
 ## Open hardening checklist
 
-- [ ] Seed or mirror published article rows into `production_candidate` so canonical/alias article detail routes can be verified before real-domain deploy.
-- [ ] Update smoke scripts so canonical and alias samples come from one authoritative source instead of stale hardcoded slugs.
+- [x] Seed or mirror published article rows into `production_candidate` so canonical/alias article detail routes can be verified before real-domain deploy.
+- [x] Update smoke scripts so canonical and alias samples come from one authoritative source instead of stale hardcoded slugs.
+- [x] Add report templates or checklist wording so Pages preview results and `production_candidate` canonical/alias results are always reported separately.
 - [ ] Decide whether `smoke:editorial-runtime` should support Turnstile-protected environments or remain preview-only with an explicit bypass policy.
 - [ ] Restore `CLOUDFLARE_SECURITY_TOKEN` availability for future releases that change production route mappings.
 - [ ] Expand production smoke to cover more than one canonical/alias article pair once the authoritative source is settled.
+- [x] Add Search Console follow-up to the production completion gate for canonical/alias or sitemap-changing releases.
 
 ## Next queued product checklist
 
