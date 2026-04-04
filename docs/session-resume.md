@@ -219,13 +219,22 @@
 - In the `2026-04-03` deploy shell, `CLOUDFLARE_SECURITY_TOKEN` was absent, so route reconcile was skipped.
   - live domain routing still remained correct after deployment
   - if a future release changes production route mappings, restore `CLOUDFLARE_SECURITY_TOKEN` before deploy instead of relying on the existing routes
-- First-wave selective slug replacement is still pending on live production:
+- First-wave selective slug replacement is now live on production as of `2026-04-04`:
   - `slug-backfill --env production --mode dry-run` returned all 5 mappings as `ready`
-  - live production was intentionally not changed in this session
-  - live spot check on `2026-04-04` still shows the old canonicals:
-    - old slug routes -> `200`
-    - new candidate canonical routes -> `404`
-  - do not report the first-wave slug replacement as production-complete until the live apply and post-apply smoke both finish
+  - `slug-backfill --env production --mode apply` returned all 5 mappings as `applied`
+  - post-apply production inventory now shows the new canonicals and preserves the old slugs as active aliases
+  - live verification passed for all 5 pairs:
+    - new canonical -> `200`
+    - old slug -> `308` -> new canonical
+    - article canonical link matches the new canonical URL
+    - `/articles` and `/sitemap.xml` expose only the new canonical slug
+  - wave 1 live pairs:
+    - `korea-ai-profit-pool` -> `korea-defense-tech-procurement`
+    - `beauty-korea-profit-pool` -> `k-beauty-fragrance-export`
+    - `ai-platform-profit-pool` -> `ai-expert-boundaries`
+    - `korea-platform-profit-pool` -> `korea-shared-office-model`
+    - `korea-vclpm-a-profit-pool` -> `korea-vc-exit-liquidity`
+  - Search Console follow-up for these 5 old/new pairs is still pending as an operational step
 
 ## Guardrails
 
@@ -277,12 +286,8 @@
    - if candidate data is missing, report `blocked` and do not substitute Pages evidence
 14. If production changed canonical/alias routing or sitemap output, add a Search Console follow-up item to the report.
 15. If the next task is live rollout of the approved first-wave slug replacements:
-   - run `node --experimental-strip-types ./scripts/slug-backfill.ts --env production --mode apply --input ..\\..\\docs\\slug-backfill-wave1-2026-04-04.json`
-   - verify each changed pair on live:
-     - new canonical -> `200`
-     - old slug -> `308`
-     - `/articles` and `/sitemap.xml` expose canonical only
-   - then queue Search Console inspection for the changed old/new pairs
+   - do not re-apply wave 1 blindly; first confirm whether Search Console inspection has already been queued for the 5 changed pairs
+   - only create a new wave file for additional slug changes after a fresh dry-run review
 16. Share only the verified external preview URL. Never hand off localhost.
 17. Next likely infra follow-ups:
    - tighten the slug recommendation generator so selective backfill suggestions are cleaner for broad/legacy slugs
