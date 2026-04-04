@@ -5,8 +5,23 @@ import { publishFeatureRevisionFromProposal } from "@/lib/server/editorial-v2/pu
 
 export const runtime = "nodejs";
 
+async function readPublishRequest(request: Request) {
+  try {
+    const payload = (await request.json()) as { finalSlug?: unknown } | null;
+
+    return {
+      finalSlug:
+        typeof payload?.finalSlug === "string" ? payload.finalSlug : null,
+    };
+  } catch {
+    return {
+      finalSlug: null,
+    };
+  }
+}
+
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ proposalId: string }> },
 ) {
   const identity = await getAdminIdentity();
@@ -23,9 +38,13 @@ export async function POST(
 
   try {
     const { proposalId } = await params;
+    const { finalSlug } = await readPublishRequest(request);
     const published = await publishFeatureRevisionFromProposal(
       proposalId,
       identity.email,
+      {
+        finalSlug,
+      },
     );
 
     if (!published) {
@@ -52,6 +71,9 @@ export async function POST(
     const rawDetail = error instanceof Error ? error.message : null;
     const detail = rawDetail?.startsWith("feature_revision_not_ready:")
       ? "발행실에서 먼저 발행 준비 상태를 만든 뒤 발행할 수 있습니다."
+      : rawDetail?.startsWith("feature_slug_publish_invalid:")
+        ? rawDetail.replace("feature_slug_publish_invalid:", "").trim() ||
+          "최종 slug가 비어 있거나 다른 경로와 충돌합니다."
       : rawDetail?.startsWith("feature_slug_preflight_failed:")
         ? rawDetail.replace("feature_slug_preflight_failed:", "").trim() ||
           "현재 slug가 발행 기준을 통과하지 못했습니다. 추천 slug를 먼저 확인해 주세요."

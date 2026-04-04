@@ -1,8 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./published-feature-actions.module.css";
+
+type PublishRoomSlugField = {
+  currentSlug: string;
+  initialValue: string;
+  recommendedSlug?: string | null;
+  recommendationPreferred: boolean;
+};
 
 type PublishRoomActionsProps = {
   proposalId: string;
@@ -13,6 +20,7 @@ type PublishRoomActionsProps = {
   publishActionPath?: string;
   snapshotHref?: string;
   publishedHref?: string;
+  slugField?: PublishRoomSlugField | null;
 };
 
 export function PublishRoomActions({
@@ -24,15 +32,21 @@ export function PublishRoomActions({
   publishActionPath,
   snapshotHref = `/admin/publish/${proposalId}`,
   publishedHref = "/admin/published",
+  slugField = null,
 }: PublishRoomActionsProps) {
   const router = useRouter();
   const resolvedActionTargetId = actionTargetId ?? proposalId;
   const [submitting, setSubmitting] = useState(false);
+  const [finalSlug, setFinalSlug] = useState(slugField?.initialValue ?? "");
   const [status, setStatus] = useState(
     hasSnapshot
-      ? "발행 준비는 끝났습니다. 아직 라이브에는 이전 버전이 보입니다. 지금 공개 반영을 눌러야 실제로 바뀝니다"
+      ? "발행 준비는 끝났습니다. 최종 slug를 확인한 뒤 공개 반영을 누르면 실제 라이브가 바뀝니다"
       : "먼저 발행 준비본을 만들면 마지막 확인과 공개 반영 단계로 넘어갑니다",
   );
+
+  useEffect(() => {
+    setFinalSlug(slugField?.initialValue ?? "");
+  }, [slugField?.initialValue]);
 
   const handlePublish = async () => {
     setSubmitting(true);
@@ -41,7 +55,13 @@ export function PublishRoomActions({
       const response = await fetch(
         publishActionPath ?? `${actionBasePath}/publish/${resolvedActionTargetId}`,
         {
-        method: "POST",
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            finalSlug,
+          }),
         },
       );
       const contentType = response.headers.get("content-type") ?? "";
@@ -129,6 +149,46 @@ export function PublishRoomActions({
   return (
     <div className={styles.panel}>
       <div className={styles.actions}>
+        {hasSnapshot && slugField ? (
+          <div className={styles.slugEditor}>
+            <label className={styles.slugLabel} htmlFor={`publish-slug-${resolvedActionTargetId}`}>
+              최종 canonical slug
+            </label>
+            <input
+              id={`publish-slug-${resolvedActionTargetId}`}
+              className={styles.slugInput}
+              type="text"
+              value={finalSlug}
+              onChange={(event) => setFinalSlug(event.target.value)}
+              spellCheck={false}
+              autoCapitalize="none"
+              autoCorrect="off"
+              placeholder="canonical-slug"
+              disabled={submitting}
+            />
+            <p className={styles.slugHint}>
+              공개 반영 시 <code>/articles/{finalSlug || "canonical-slug"}</code> 경로로 나갑니다.
+            </p>
+            <div className={styles.slugMeta}>
+              <p className={styles.slugHelper}>
+                {slugField.recommendationPreferred
+                  ? "현재 slug 신호가 약해 추천 slug를 입력칸에 채웠습니다. 필요하면 직접 수정하세요."
+                  : "현재 slug를 기준으로 채워뒀습니다. 발행 직전에 직접 수정할 수 있습니다."}
+              </p>
+              {slugField.recommendedSlug &&
+              slugField.recommendedSlug !== slugField.currentSlug ? (
+                <button
+                  type="button"
+                  className={styles.slugPreset}
+                  disabled={submitting}
+                  onClick={() => setFinalSlug(slugField.recommendedSlug ?? "")}
+                >
+                  추천 slug 적용
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         {hasSnapshot ? (
           <button
             type="button"

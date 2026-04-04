@@ -8,6 +8,69 @@
   gap: 8px;
 }
 
+.slugEditor {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(132, 151, 206, 0.14);
+  background: rgba(18, 23, 36, 0.72);
+}
+
+.slugLabel {
+  font-size: 0.79rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(192, 203, 228, 0.82);
+}
+
+.slugInput {
+  min-height: 42px;
+  border: 1px solid rgba(132, 151, 206, 0.18);
+  background: rgba(7, 10, 18, 0.92);
+  color: #f3f7ff;
+  padding: 0 12px;
+}
+
+.slugInput::placeholder {
+  color: rgba(192, 203, 228, 0.38);
+}
+
+.slugHint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: rgba(192, 203, 228, 0.66);
+}
+
+.slugHint code {
+  color: rgba(232, 238, 248, 0.9);
+}
+
+.slugMeta {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.slugHelper {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: rgba(232, 238, 248, 0.74);
+}
+
+.slugPreset {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(132, 151, 206, 0.14);
+  background: rgba(9, 13, 22, 0.9);
+  color: rgba(232, 238, 248, 0.84);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .primary {
   min-height: 46px;
   border: 1px solid rgba(82, 221, 255, 0.18);
@@ -54,4 +117,14 @@
   text-decoration: none;
   color: rgba(232, 238, 248, 0.78);
   background: rgba(18, 23, 36, 0.78);
+}
+
+@media (max-width: 720px) {
+  .slugMeta {
+    flex-direction: column;
+  }
+
+  .slugPreset {
+    width: 100%;
+  }
 }

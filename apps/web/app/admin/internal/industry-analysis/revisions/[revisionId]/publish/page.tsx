@@ -11,6 +11,10 @@ import {
 import { getEditorialV2DraftByRevisionId } from "@/lib/server/editorial-v2/workflow";
 import { parseInternalIndustryAnalysisTemplate } from "@/lib/server/editorial-v2/internal-analysis-template";
 import { getFeatureSlugPreflightByRevisionId } from "@/lib/server/editorial-v2/published";
+import {
+  getDefaultCanonicalSlugForPublish,
+  shouldPreferRecommendedSlugForPublish,
+} from "@/lib/server/editorial-v2/slug-preflight";
 import { AdminAccessRequired } from "../../../../../access-required";
 import styles from "../../../../../admin.module.css";
 
@@ -73,31 +77,21 @@ function getInternalPublishStatusLabel(status: string) {
 
 function getSlugStatusLabel(input: {
   status: "pass" | "revise" | "reject";
-  willAutoFixOnFirstPublish: boolean;
 }) {
-  if (input.status === "revise" && input.willAutoFixOnFirstPublish) {
-    return "자동 교체 예정";
-  }
-
   switch (input.status) {
     case "pass":
-      return "발행 가능";
+      return "현재 slug 통과";
     case "revise":
-      return "수정 권장";
+      return "재검토 권장";
     case "reject":
     default:
-      return "발행 차단";
+      return "조정 필요";
   }
 }
 
 function getSlugStatusClass(input: {
   status: "pass" | "revise" | "reject";
-  willAutoFixOnFirstPublish: boolean;
 }) {
-  if (input.status === "revise" && input.willAutoFixOnFirstPublish) {
-    return styles.signalChipPositive;
-  }
-
   switch (input.status) {
     case "pass":
       return styles.signalChipPositive;
@@ -229,6 +223,21 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
               publishActionPath={`/admin/actions/publish/revisions/${revision.id}`}
               snapshotHref={`/admin/internal/industry-analysis/revisions/${revision.id}/publish`}
               publishedHref="/admin/published"
+              slugField={
+                slugPreflight
+                  ? {
+                      currentSlug: slugPreflight.currentSlug,
+                      initialValue: getDefaultCanonicalSlugForPublish(slugPreflight),
+                      recommendedSlug:
+                        slugPreflight.recommendedSlug &&
+                        slugPreflight.recommendedSlug !== slugPreflight.currentSlug
+                          ? slugPreflight.recommendedSlug
+                          : null,
+                      recommendationPreferred:
+                        shouldPreferRecommendedSlugForPublish(slugPreflight),
+                    }
+                  : null
+              }
             />
           </div>
 
@@ -285,12 +294,10 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
                     <span
                       className={getSlugStatusClass({
                         status: slugPreflight.currentValidation.status,
-                        willAutoFixOnFirstPublish: slugPreflight.willAutoFixOnFirstPublish,
                       })}
                     >
                       {getSlugStatusLabel({
                         status: slugPreflight.currentValidation.status,
-                        willAutoFixOnFirstPublish: slugPreflight.willAutoFixOnFirstPublish,
                       })}
                     </span>
                   </dd>
@@ -307,8 +314,10 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
               ) : null}
             </dl>
             <p className={styles.actionCopy}>
-              {slugPreflight?.willAutoFixOnFirstPublish
-                ? "첫 공개 발행이라면 현재 slug가 기준을 통과하지 않아도 추천 slug로 자동 교체됩니다."
+              {slugPreflight
+                ? shouldPreferRecommendedSlugForPublish(slugPreflight)
+                  ? "현재 slug 신호가 약해 발행 입력칸을 추천 slug로 채워뒀습니다. 공개 반영 전 직접 조정할 수 있습니다."
+                  : "브리프 원문은 기록용으로 보관하고, 발행 입력칸에서는 현재 slug를 유지하거나 직접 수정할 수 있습니다."
                 : "브리프 원문은 기록용으로 보관하고, 원고실/발행실 미리보기는 구조화된 본문 기준으로 확인합니다."}
             </p>
             {slugPreflight?.currentValidation.reasons.length ? (

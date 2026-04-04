@@ -9,7 +9,7 @@ import {
   resolveFeatureSlug,
 } from "@/lib/server/editorial-v2/repository";
 import {
-  ensureCanonicalSlugForFirstPublish,
+  resolveCanonicalSlugForPublish,
 } from "@/lib/server/editorial-v2/slug-preflight";
 import { repairInternalIndustryAnalysisRevisionById } from "@/lib/server/editorial-v2/workflow";
 import type {
@@ -561,6 +561,9 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
 export async function publishFeatureRevisionFromProposal(
   proposalId: string,
   editorEmail: string,
+  options?: {
+    finalSlug?: string | null;
+  },
 ) {
   const latestWorkingRevision = await getLatestWorkingRevisionByProposalId(proposalId);
 
@@ -602,9 +605,10 @@ export async function publishFeatureRevisionFromProposal(
     throw new Error("feature_entry_not_found");
   }
 
-  const slugDecision = await ensureCanonicalSlugForFirstPublish({
+  const slugDecision = await resolveCanonicalSlugForPublish({
     revision,
     featureEntryRow,
+    editorProvidedSlug: options?.finalSlug,
   });
   const previousSlug = featureEntryRow.slug;
   featureEntryRow.slug = slugDecision.canonicalSlug;
@@ -656,6 +660,11 @@ export async function publishFeatureRevisionFromProposal(
         previousSlug: slugDecision.previousSlug,
         canonicalSlug: featureEntryRow.slug,
         slugRewritten: slugDecision.slugRewritten,
+        requestedSlug: slugDecision.editorProvidedSlug,
+        slugSource: slugDecision.source,
+        slugQualityStatus: slugDecision.qualityValidation.status,
+        slugQualityReasons: slugDecision.qualityValidation.reasons,
+        slugQualityWarnings: slugDecision.qualityValidation.warnings,
       }),
       now,
     ),
@@ -695,6 +704,9 @@ export async function publishFeatureRevisionFromProposal(
 export async function publishFeatureRevisionById(
   revisionId: string,
   editorEmail: string,
+  options?: {
+    finalSlug?: string | null;
+  },
 ) {
   await repairInternalIndustryAnalysisRevisionById(revisionId, editorEmail);
   const revision = await getFeatureRevisionById(revisionId);
@@ -731,9 +743,10 @@ export async function publishFeatureRevisionById(
     throw new Error("feature_entry_not_found");
   }
 
-  const slugDecision = await ensureCanonicalSlugForFirstPublish({
+  const slugDecision = await resolveCanonicalSlugForPublish({
     revision,
     featureEntryRow,
+    editorProvidedSlug: options?.finalSlug,
   });
   const previousSlug = featureEntryRow.slug;
   featureEntryRow.slug = slugDecision.canonicalSlug;
@@ -785,6 +798,11 @@ export async function publishFeatureRevisionById(
         previousSlug: slugDecision.previousSlug,
         canonicalSlug: featureEntryRow.slug,
         slugRewritten: slugDecision.slugRewritten,
+        requestedSlug: slugDecision.editorProvidedSlug,
+        slugSource: slugDecision.source,
+        slugQualityStatus: slugDecision.qualityValidation.status,
+        slugQualityReasons: slugDecision.qualityValidation.reasons,
+        slugQualityWarnings: slugDecision.qualityValidation.warnings,
       }),
       now,
     ),

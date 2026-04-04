@@ -9,6 +9,11 @@ import {
   getInternalAnalysisBriefByFeatureEntryId,
   listReservedFeatureSlugs,
 } from "@/lib/server/editorial-v2/repository";
+import {
+  hasForbiddenSlugFormat,
+  isForbiddenSlugExact,
+  matchesForbiddenSlugPattern,
+} from "@/lib/server/editorial-v2/forbiddenSlugPatterns";
 import type {
   SlugSystemInput,
   SlugSystemOutput,
@@ -45,6 +50,22 @@ export type CanonicalSlugDecision = {
   preflight: FeatureSlugPreflight;
   slugRewritten: boolean;
   previousSlug: string;
+};
+
+export type PublishCanonicalSlugDecision = {
+  canonicalSlug: string;
+  previousSlug: string;
+  slugRewritten: boolean;
+  preflight: FeatureSlugPreflight;
+  qualityValidation: SlugValidation;
+  source: "current" | "recommended" | "manual";
+  editorProvidedSlug: string | null;
+};
+
+type FeatureEntrySlugRow = {
+  id: string;
+  slug: string;
+  currentPublishedRevisionId: string | null;
 };
 
 function joinSlugSignalParts(parts: Array<string | null | undefined>) {
@@ -109,6 +130,27 @@ async function buildSlugSystemInputForRevision(
   };
 }
 
+async function buildSlugSystemInputWithReservedSlugs(
+  revision: FeatureRevisionRecord,
+  featureEntry: FeatureEntryRecord,
+): Promise<SlugSystemInput> {
+  const [existingSlugs, legacyArticles] = await Promise.all([
+    listReservedFeatureSlugs(featureEntry.id),
+    getLegacyPublishedArticles(),
+  ]);
+  const baseInput = await buildSlugSystemInputForRevision(revision, featureEntry);
+
+  return {
+    ...baseInput,
+    existing_slugs: Array.from(
+      new Set([
+        ...existingSlugs,
+        ...legacyArticles.map((article) => article.slug),
+      ]),
+    ),
+  } satisfies SlugSystemInput;
+}
+
 export function buildSlugPreflightFailureMessage(preflight: FeatureSlugPreflight) {
   const currentSummary = [
     ...preflight.currentValidation.reasons,
@@ -139,20 +181,7 @@ export async function getFeatureSlugPreflightForRevision(
   revision: FeatureRevisionRecord,
   featureEntry: FeatureEntryRecord,
 ): Promise<FeatureSlugPreflight> {
-  const [existingSlugs, legacyArticles] = await Promise.all([
-    listReservedFeatureSlugs(featureEntry.id),
-    getLegacyPublishedArticles(),
-  ]);
-  const baseInput = await buildSlugSystemInputForRevision(revision, featureEntry);
-  const input = {
-    ...baseInput,
-    existing_slugs: Array.from(
-      new Set([
-        ...existingSlugs,
-        ...legacyArticles.map((article) => article.slug),
-      ]),
-    ),
-  } satisfies SlugSystemInput;
+  const input = await buildSlugSystemInputWithReservedSlugs(revision, featureEntry);
   const generated = generateAndValidateDimSlug(input);
   const currentValidation = validateDimSlugCandidate(input, featureEntry.slug);
   const isFirstPublish = featureEntry.currentPublishedRevisionId === null;
@@ -178,13 +207,136 @@ export async function getFeatureSlugPreflightForRevision(
   };
 }
 
+export function shouldPreferRecommendedSlugForPublish(
+  preflight: FeatureSlugPreflight,
+) {
+  return (
+    preflight.currentValidation.status !== "pass" &&
+    preflight.recommendedValidation.status === "pass" &&
+    Boolean(preflight.recommendedSlug) &&
+    preflight.recommendedSlug !== preflight.currentSlug
+  );
+}
+
+export function getDefaultCanonicalSlugForPublish(
+  preflight: FeatureSlugPreflight,
+) {
+  return shouldPreferRecommendedSlugForPublish(preflight)
+    ? preflight.recommendedSlug
+    : preflight.currentSlug;
+}
+
+function resolvePublishSlugSource(input: {
+  preflight: FeatureSlugPreflight;
+  canonicalSlug: string;
+  editorProvidedSlug: string | null;
+}): PublishCanonicalSlugDecision["source"] {
+  if (input.editorProvidedSlug) {
+    if (input.canonicalSlug === input.preflight.currentSlug) {
+      return "current";
+    }
+
+    if (
+      input.preflight.recommendedSlug &&
+      input.canonicalSlug === input.preflight.recommendedSlug
+    ) {
+      return "recommended";
+    }
+
+    return "manual";
+  }
+
+  return shouldPreferRecommendedSlugForPublish(input.preflight)
+    ? "recommended"
+    : "current";
+}
+
+function buildPublishSlugValidationError(slug: string, reasons: string[]) {
+  return new Error(
+    `feature_slug_publish_invalid:${[
+      `최종 slug ${slug || "(empty)"}`,
+      ...reasons,
+    ].join(" / ")}`,
+  );
+}
+
+export async function resolveCanonicalSlugForPublish(input: {
+  revision: FeatureRevisionRecord;
+  featureEntryRow: FeatureEntrySlugRow;
+  editorProvidedSlug?: string | null;
+}): Promise<PublishCanonicalSlugDecision> {
+  const featureEntry = await getFeatureEntryById(input.revision.featureEntryId);
+
+  if (!featureEntry) {
+    throw new Error("feature_entry_not_found");
+  }
+
+  const preflight = await getFeatureSlugPreflightForRevision(
+    input.revision,
+    featureEntry,
+  );
+  const editorProvidedSlug =
+    typeof input.editorProvidedSlug === "string"
+      ? input.editorProvidedSlug.trim()
+      : null;
+  const canonicalSlug =
+    editorProvidedSlug !== null
+      ? editorProvidedSlug
+      : getDefaultCanonicalSlugForPublish(preflight);
+
+  if (!canonicalSlug) {
+    throw buildPublishSlugValidationError("", ["최종 slug가 비어 있습니다"]);
+  }
+
+  const slugInput = await buildSlugSystemInputWithReservedSlugs(
+    input.revision,
+    featureEntry,
+  );
+  const qualityValidation = validateDimSlugCandidate(slugInput, canonicalSlug);
+  const reasons: string[] = [];
+
+  if (hasForbiddenSlugFormat(canonicalSlug)) {
+    reasons.push("slug 형식이 DIM 규칙과 맞지 않습니다");
+  }
+
+  if (isForbiddenSlugExact(canonicalSlug)) {
+    reasons.push("금지된 일반 단어 slug입니다");
+  }
+
+  if (matchesForbiddenSlugPattern(canonicalSlug)) {
+    reasons.push("숫자 꼬리표 또는 임시 slug 패턴입니다");
+  }
+
+  const existingSlugs = new Set(slugInput.existing_slugs ?? []);
+  if (
+    canonicalSlug !== input.featureEntryRow.slug &&
+    existingSlugs.has(canonicalSlug)
+  ) {
+    reasons.push("기존 canonical 또는 alias slug와 충돌합니다");
+  }
+
+  if (reasons.length > 0) {
+    throw buildPublishSlugValidationError(canonicalSlug, reasons);
+  }
+
+  return {
+    canonicalSlug,
+    previousSlug: input.featureEntryRow.slug,
+    slugRewritten: canonicalSlug !== input.featureEntryRow.slug,
+    preflight,
+    qualityValidation,
+    source: resolvePublishSlugSource({
+      preflight,
+      canonicalSlug,
+      editorProvidedSlug,
+    }),
+    editorProvidedSlug,
+  };
+}
+
 export async function ensureCanonicalSlugForFirstPublish(input: {
   revision: FeatureRevisionRecord;
-  featureEntryRow: {
-    id: string;
-    slug: string;
-    currentPublishedRevisionId: string | null;
-  };
+  featureEntryRow: FeatureEntrySlugRow;
 }): Promise<CanonicalSlugDecision> {
   const featureEntry = await getFeatureEntryById(input.revision.featureEntryId);
 
@@ -259,11 +411,7 @@ export async function syncCanonicalSlugForFirstPublishRevision(input: {
      LIMIT 1`,
   )
     .bind(revision.featureEntryId)
-    .first<{
-      id: string;
-      slug: string;
-      currentPublishedRevisionId: string | null;
-    }>();
+    .first<FeatureEntrySlugRow>();
 
   if (!featureEntryRow) {
     throw new Error("feature_entry_not_found");

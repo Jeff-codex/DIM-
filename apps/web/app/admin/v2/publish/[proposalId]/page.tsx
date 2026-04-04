@@ -3,6 +3,11 @@ import { AdminWorkflowNav } from "@/components/admin-workflow-nav";
 import { EditorialDraftPreview } from "@/components/editorial-draft-preview";
 import { PublishRoomActions } from "@/components/publish-room-actions";
 import { getProposalDetail, requireAdminIdentity } from "@/lib/server/editorial/admin";
+import { getFeatureSlugPreflightByRevisionId } from "@/lib/server/editorial-v2/published";
+import {
+  getDefaultCanonicalSlugForPublish,
+  shouldPreferRecommendedSlugForPublish,
+} from "@/lib/server/editorial-v2/slug-preflight";
 import { getEditorialV2DraftByProposalId } from "@/lib/server/editorial-v2/workflow";
 import { AdminAccessRequired } from "../../../access-required";
 import styles from "../../../admin.module.css";
@@ -22,6 +27,30 @@ function toDateLabel(value: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function getSlugStatusLabel(status: "pass" | "revise" | "reject") {
+  switch (status) {
+    case "pass":
+      return "현재 slug 통과";
+    case "revise":
+      return "재검토 권장";
+    case "reject":
+    default:
+      return "조정 필요";
+  }
+}
+
+function getSlugStatusClass(status: "pass" | "revise" | "reject") {
+  switch (status) {
+    case "pass":
+      return styles.signalChipPositive;
+    case "revise":
+      return styles.signalChipWarning;
+    case "reject":
+    default:
+      return styles.signalChipDanger;
+  }
 }
 
 export default async function AdminV2PublishPage({
@@ -60,6 +89,8 @@ export default async function AdminV2PublishPage({
       </section>
     );
   }
+
+  const slugPreflight = await getFeatureSlugPreflightByRevisionId(draft.revisionId);
 
   const isReadyToPublish = draft.status === "ready_to_publish";
   const categoryName =
@@ -118,6 +149,21 @@ export default async function AdminV2PublishPage({
               hasSnapshot={isReadyToPublish}
               snapshotHref={`/admin/publish/${proposalId}`}
               publishedHref="/admin/published"
+              slugField={
+                slugPreflight
+                  ? {
+                      currentSlug: slugPreflight.currentSlug,
+                      initialValue: getDefaultCanonicalSlugForPublish(slugPreflight),
+                      recommendedSlug:
+                        slugPreflight.recommendedSlug &&
+                        slugPreflight.recommendedSlug !== slugPreflight.currentSlug
+                          ? slugPreflight.recommendedSlug
+                          : null,
+                      recommendationPreferred:
+                        shouldPreferRecommendedSlugForPublish(slugPreflight),
+                    }
+                  : null
+              }
             />
             <dl className={styles.summaryGrid}>
               <div>
@@ -136,6 +182,25 @@ export default async function AdminV2PublishPage({
                 <dt>slug</dt>
                 <dd>{draft.articleSlug ?? "-"}</dd>
               </div>
+              {slugPreflight ? (
+                <div>
+                  <dt>slug 상태</dt>
+                  <dd>
+                    <span className={getSlugStatusClass(slugPreflight.currentValidation.status)}>
+                      {getSlugStatusLabel(slugPreflight.currentValidation.status)}
+                    </span>
+                  </dd>
+                </div>
+              ) : null}
+              {slugPreflight &&
+              slugPreflight.recommendedSlug &&
+              slugPreflight.recommendedSlug !== slugPreflight.currentSlug &&
+              slugPreflight.currentValidation.status !== "pass" ? (
+                <div>
+                  <dt>추천 slug</dt>
+                  <dd>{slugPreflight.recommendedSlug}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt>카테고리</dt>
                 <dd>{categoryName}</dd>
@@ -145,6 +210,29 @@ export default async function AdminV2PublishPage({
                 <dd>{draft.coverImageUrl ? "있음" : "없음"}</dd>
               </div>
             </dl>
+            {slugPreflight ? (
+              <>
+                <p className={styles.actionCopy}>
+                  {shouldPreferRecommendedSlugForPublish(slugPreflight)
+                    ? "현재 slug 신호가 약해 발행 입력칸을 추천 slug로 채워뒀습니다. 공개 반영 전 직접 수정할 수 있습니다."
+                    : slugPreflight.currentValidation.status === "pass"
+                      ? "현재 slug가 공개 기준을 통과했습니다. 발행 입력칸에서 그대로 유지하거나 직접 수정할 수 있습니다."
+                      : "현재 slug 신호가 약합니다. 공개 반영 전 입력칸에서 직접 수정하거나 추천 slug를 참고해 조정해 주세요."}
+                </p>
+                {slugPreflight.currentValidation.reasons.length > 0 ? (
+                  <ul className={styles.slugPreflightList}>
+                    {slugPreflight.currentValidation.reasons.slice(0, 2).map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                {slugPreflight.currentValidation.warnings.length > 0 ? (
+                  <p className={styles.slugPreflightHint}>
+                    {slugPreflight.currentValidation.warnings.slice(0, 2).join(" / ")}
+                  </p>
+                ) : null}
+              </>
+            ) : null}
           </div>
         </aside>
       </div>

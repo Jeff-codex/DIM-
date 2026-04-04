@@ -43,7 +43,6 @@ import {
   clampEditorialDraftExcerpt,
   clampEditorialDraftInterpretiveFrame,
 } from "@/lib/server/editorial-v2/draft-limits";
-import { syncCanonicalSlugForFirstPublishRevision } from "@/lib/server/editorial-v2/slug-preflight";
 import {
   parseInternalIndustryAnalysisBodySections,
   parseInternalIndustryAnalysisTemplate,
@@ -1803,11 +1802,7 @@ export async function prepareEditorialV2RevisionForPublish(
     return null;
   }
 
-  const slugDecision = await syncCanonicalSlugForFirstPublishRevision({
-    revisionId: revision.id,
-    editorEmail,
-  });
-  const articleSlug = slugDecision?.canonicalSlug ?? revision.slug;
+  const articleSlug = revision.slug;
   const now = new Date().toISOString();
 
   await env.EDITORIAL_DB.batch([
@@ -1838,8 +1833,8 @@ export async function prepareEditorialV2RevisionForPublish(
       JSON.stringify({
         proposalId,
         articleSlug,
-        previousSlug: slugDecision?.previousSlug ?? revision.slug,
-        slugRewritten: slugDecision?.slugRewritten ?? false,
+        previousSlug: revision.slug,
+        slugRewritten: false,
       }),
       now,
     ),
@@ -1871,11 +1866,7 @@ export async function prepareEditorialV2RevisionForPublishByRevisionId(
     return null;
   }
 
-  const slugDecision = await syncCanonicalSlugForFirstPublishRevision({
-    revisionId: revision.id,
-    editorEmail,
-  });
-  const articleSlug = slugDecision?.canonicalSlug ?? revision.slug;
+  const articleSlug = revision.slug;
   const now = new Date().toISOString();
   console.info("Preparing editorial revision for publish", {
     revisionId,
@@ -1910,8 +1901,8 @@ export async function prepareEditorialV2RevisionForPublishByRevisionId(
       JSON.stringify({
         proposalId: revision.proposalId,
         articleSlug,
-        previousSlug: slugDecision?.previousSlug ?? revision.slug,
-        slugRewritten: slugDecision?.slugRewritten ?? false,
+        previousSlug: revision.slug,
+        slugRewritten: false,
         revisionId: revision.id,
       }),
       now,
