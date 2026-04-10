@@ -170,6 +170,9 @@ export default async function AdminV2PublishRevisionPage({
             interpretiveFrame={draft.interpretiveFrame}
             categoryName={categoryName}
             coverImageUrl={draft.coverImageUrl}
+            coverImageCardUrl={draft.coverImageCardUrl}
+            coverImageDetailUrl={draft.coverImageDetailUrl}
+            coverImageAltText={draft.coverImageAltText}
             bodyMarkdown={draft.bodyMarkdown}
           />
         </section>
@@ -201,6 +204,10 @@ export default async function AdminV2PublishRevisionPage({
                     }
                   : null
               }
+              coverAltField={{
+                initialValue: draft.coverImageAltText ?? "",
+                fallbackValue: draft.title,
+              }}
             />
           </div>
 
@@ -250,6 +257,10 @@ export default async function AdminV2PublishRevisionPage({
                   <dd>{slugPreflight.recommendedSlug}</dd>
                 </div>
               ) : null}
+              <div>
+                <dt>커버 alt</dt>
+                <dd>{draft.coverImageAltText?.trim() || `제목 fallback · ${draft.title}`}</dd>
+              </div>
             </dl>
             {slugPreflight ? (
               <>

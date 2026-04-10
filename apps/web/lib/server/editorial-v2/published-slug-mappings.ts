@@ -11,6 +11,9 @@ export type PublishedSlugMappingRow = {
   title: string;
   dek: string | null;
   verdict: string | null;
+  coverImageAltText: string | null;
+  cardImage: string | null;
+  detailImage: string | null;
   categoryId: string;
   tagIdsJson: string | null;
   publishedAt: string;
@@ -50,6 +53,9 @@ WITH published_feature AS (
     fr.title,
     fr.dek,
     fr.verdict,
+    fr.cover_image_alt_text AS coverImageAltText,
+    card.public_url AS cardImage,
+    detail.public_url AS detailImage,
     fr.category_id AS categoryId,
     fr.tag_ids_json AS tagIdsJson,
     fr.published_at AS publishedAt,
@@ -70,6 +76,12 @@ WITH published_feature AS (
     ON p.id = fr.proposal_id
   LEFT JOIN internal_analysis_brief iab
     ON iab.feature_entry_id = fe.id
+  LEFT JOIN asset_variant card
+    ON card.asset_family_id = fr.cover_asset_family_id
+   AND card.variant_key = 'card'
+  LEFT JOIN asset_variant detail
+    ON detail.asset_family_id = fr.cover_asset_family_id
+   AND detail.variant_key = 'detail'
   WHERE fe.archived_at IS NULL
     AND fr.status = 'published'
 ),
@@ -85,6 +97,9 @@ published_slug_mapping AS (
     pf.title,
     pf.dek,
     pf.verdict,
+    pf.coverImageAltText,
+    pf.cardImage,
+    pf.detailImage,
     pf.categoryId,
     pf.tagIdsJson,
     pf.publishedAt,
@@ -113,6 +128,9 @@ published_slug_mapping AS (
     pf.title,
     pf.dek,
     pf.verdict,
+    pf.coverImageAltText,
+    pf.cardImage,
+    pf.detailImage,
     pf.categoryId,
     pf.tagIdsJson,
     pf.publishedAt,
@@ -168,6 +186,9 @@ SELECT
   title,
   dek,
   verdict,
+  coverImageAltText,
+  cardImage,
+  detailImage,
   categoryId,
   tagIdsJson,
   publishedAt,
@@ -207,6 +228,9 @@ SELECT
   title,
   dek,
   verdict,
+  coverImageAltText,
+  cardImage,
+  detailImage,
   categoryId,
   tagIdsJson,
   publishedAt,
@@ -238,6 +262,9 @@ export function getCanonicalPublishedSlugRows(
       title: row.title,
       dek: row.dek,
       verdict: row.verdict,
+      coverImageAltText: row.coverImageAltText,
+      cardImage: row.cardImage,
+      detailImage: row.detailImage,
       categoryId: row.categoryId,
       tagIdsJson: row.tagIdsJson,
       publishedAt: row.publishedAt,

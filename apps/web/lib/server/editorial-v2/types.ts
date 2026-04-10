@@ -120,6 +120,7 @@ export type FeatureRevisionRecord = {
   authorId: string;
   tagIds: string[];
   coverAssetFamilyId: string | null;
+  coverImageAltText: string | null;
   bodyMarkdown: string;
   bodySections: FeatureBodySection[];
   visibilityMetadata: VisibilityMetadata | null;
@@ -235,6 +236,7 @@ export type InternalAnalysisListItem = {
 export type CmsPublishedArticle = PublishedArticleSummary & {
   coverImageCard?: string;
   coverImageDetail?: string;
+  coverImageAltText?: string | null;
   featureEntryId: string;
   featureRevisionId: string;
 };
@@ -242,6 +244,7 @@ export type CmsPublishedArticle = PublishedArticleSummary & {
 export type CmsArticleDetail = ArticleDetail & {
   coverImageCard?: string;
   coverImageDetail?: string;
+  coverImageAltText?: string | null;
   featureEntryId: string;
   featureRevisionId: string;
 };
@@ -249,6 +252,7 @@ export type CmsArticleDetail = ArticleDetail & {
 export type CmsArticleSummary = ArticleSummary & {
   coverImageCard?: string;
   coverImageDetail?: string;
+  coverImageAltText?: string | null;
   featureEntryId: string;
   featureRevisionId: string;
 };

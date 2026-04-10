@@ -9,6 +9,10 @@ import {
   getRelatedArticles,
   resolveArticleBySlug,
 } from "@/lib/content";
+import {
+  getArticleCoverAltText,
+  getArticleDetailImageSrc,
+} from "@/lib/article-cover";
 import { formatDate } from "@/lib/format";
 import { siteConfig } from "@/lib/site";
 
@@ -39,9 +43,10 @@ export async function generateMetadata({
   }
 
   const canonical = `/articles/${resolved?.canonicalSlug ?? article.slug}`;
-  const image = `${siteConfig.url}${article.coverImage}`;
+  const image = `${siteConfig.url}${getArticleDetailImageSrc(article)}`;
   const metaTitle = article.displayTitle ?? article.title;
   const metaDescription = buildArticleMetaDescription(article.excerpt);
+  const imageAlt = getArticleCoverAltText(article);
 
   return {
     title: metaTitle,
@@ -57,7 +62,7 @@ export async function generateMetadata({
       description: metaDescription,
       publishedTime: article.publishedAt,
       authors: [article.author.name],
-      images: [{ url: image, alt: metaTitle }],
+      images: [{ url: image, alt: imageAlt }],
     },
     twitter: {
       card: "summary_large_image",
@@ -106,9 +111,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   const relatedArticles = await getRelatedArticles(article.slug, 3);
   const canonical = `${siteConfig.url}/articles/${article.slug}`;
-  const image = `${siteConfig.url}${article.coverImage}`;
+  const image = `${siteConfig.url}${getArticleDetailImageSrc(article)}`;
   const metaTitle = article.displayTitle ?? article.title;
   const metaDescription = buildArticleMetaDescription(article.excerpt);
+  const imageAlt = getArticleCoverAltText(article);
   const authorId = `${siteConfig.url}/authors/${article.author.id}`;
   const articleAuthor =
     article.author.schemaType === "Organization"
@@ -225,8 +231,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
         <div className={`reading-width ${styles.coverWrap}`}>
           <RepresentativeImage
-            src={article.coverImage}
-            alt={article.title}
+            src={getArticleDetailImageSrc(article)}
+            alt={imageAlt}
             variant="detail"
             priority
           />

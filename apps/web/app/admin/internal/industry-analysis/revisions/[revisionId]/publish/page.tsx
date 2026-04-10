@@ -33,6 +33,9 @@ function buildInternalDraftFallback(input: {
     interpretiveFrame: input.revision.verdict,
     categoryId: input.revision.categoryId,
     coverImageUrl: undefined,
+    coverImageCardUrl: undefined,
+    coverImageDetailUrl: undefined,
+    coverImageAltText: input.revision.coverImageAltText ?? undefined,
     bodyMarkdown: input.revision.bodyMarkdown,
     draftGeneratedAt: input.revision.createdAt,
     sourceProposalUpdatedAt: null,
@@ -203,6 +206,9 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
             interpretiveFrame={resolvedDraft.interpretiveFrame}
             categoryName={categoryName}
             coverImageUrl={resolvedDraft.coverImageUrl}
+            coverImageCardUrl={resolvedDraft.coverImageCardUrl}
+            coverImageDetailUrl={resolvedDraft.coverImageDetailUrl}
+            coverImageAltText={resolvedDraft.coverImageAltText}
             imageSource={brief.photoSource ?? undefined}
             bodyMarkdown={resolvedDraft.bodyMarkdown}
             mode="internal"
@@ -238,6 +244,10 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
                     }
                   : null
               }
+              coverAltField={{
+                initialValue: resolvedDraft.coverImageAltText ?? "",
+                fallbackValue: resolvedDraft.title,
+              }}
             />
           </div>
 
@@ -261,6 +271,12 @@ export default async function AdminInternalIndustryAnalysisPublishPage({
               <div>
                 <dt>최종 수정</dt>
                 <dd>{toDateLabel(resolvedDraft.updatedAt)}</dd>
+              </div>
+              <div>
+                <dt>커버 alt</dt>
+                <dd>
+                  {resolvedDraft.coverImageAltText?.trim() || `제목 fallback · ${resolvedDraft.title}`}
+                </dd>
               </div>
             </dl>
           </div>

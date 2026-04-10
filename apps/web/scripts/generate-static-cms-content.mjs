@@ -28,6 +28,7 @@ SELECT
   fr.category_id AS categoryId,
   fr.author_id AS authorId,
   fr.tag_ids_json AS tagIdsJson,
+  fr.cover_image_alt_text AS coverImageAltText,
   fr.body_markdown AS bodyMarkdown,
   fr.published_at AS publishedAt,
   fr.updated_at AS updatedAt,
@@ -194,6 +195,7 @@ async function main() {
       coverImage,
       coverImageCard: row.cardImage ?? undefined,
       coverImageDetail: row.detailImage ?? undefined,
+      coverImageAltText: row.coverImageAltText ?? undefined,
       analysisMeta:
         row.sourceType === "internal_industry_analysis"
           ? {
@@ -225,6 +227,7 @@ async function main() {
   coverImage: string;
   coverImageCard?: string;
   coverImageDetail?: string;
+  coverImageAltText?: string;
   analysisMeta?: {
     market: string | null;
     photoSource: string | null;

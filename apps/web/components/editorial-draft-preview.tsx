@@ -9,6 +9,9 @@ type EditorialDraftPreviewProps = {
   interpretiveFrame: string;
   categoryName: string;
   coverImageUrl?: string;
+  coverImageCardUrl?: string;
+  coverImageDetailUrl?: string;
+  coverImageAltText?: string;
   imageSource?: string;
   bodyMarkdown: string;
   mode?: "external" | "internal";
@@ -78,11 +81,18 @@ export function EditorialDraftPreview({
   interpretiveFrame,
   categoryName,
   coverImageUrl,
+  coverImageCardUrl,
+  coverImageDetailUrl,
+  coverImageAltText,
   imageSource,
   bodyMarkdown,
   mode = "external",
   sticky = true,
 }: EditorialDraftPreviewProps) {
+  const resolvedCardUrl = coverImageCardUrl ?? coverImageUrl;
+  const resolvedDetailUrl = coverImageDetailUrl ?? coverImageUrl;
+  const resolvedCoverAltText = coverImageAltText?.trim() || title;
+
   return (
     <aside
       className={[styles.preview, !sticky ? styles.previewStatic : null]
@@ -118,16 +128,49 @@ export function EditorialDraftPreview({
         </header>
 
         <div className={styles.coverWrap}>
-          {coverImageUrl ? (
-            <div className={styles.coverFrame}>
-              <img src={coverImageUrl} alt={title} className={styles.coverImage} />
+          <div className={styles.coverPreviewGrid}>
+            <div className={styles.coverPreviewBlock}>
+              <p className={styles.coverPreviewLabel}>카드 미리보기 · 4:3</p>
+              {resolvedCardUrl ? (
+                <div className={`${styles.coverFrame} ${styles.coverFrameCard}`}>
+                  <img
+                    src={resolvedCardUrl}
+                    alt={resolvedCoverAltText}
+                    className={styles.coverImage}
+                  />
+                </div>
+              ) : (
+                <div
+                  className={`${styles.coverFrame} ${styles.coverFrameCard} ${styles.placeholder}`}
+                >
+                  커버 이미지를 넣으면 홈과 아카이브 카드에서 이 비율로 보입니다
+                </div>
+              )}
             </div>
-          ) : (
-            <div className={`${styles.coverFrame} ${styles.placeholder}`}>
-              커버 이미지를 넣으면 public feature와 비슷한 비율로 이 영역에 보입니다
+
+            <div className={styles.coverPreviewBlock}>
+              <p className={styles.coverPreviewLabel}>상세 미리보기 · 8:5</p>
+              {resolvedDetailUrl ? (
+                <div className={`${styles.coverFrame} ${styles.coverFrameDetail}`}>
+                  <img
+                    src={resolvedDetailUrl}
+                    alt={resolvedCoverAltText}
+                    className={styles.coverImage}
+                  />
+                </div>
+              ) : (
+                <div
+                  className={`${styles.coverFrame} ${styles.coverFrameDetail} ${styles.placeholder}`}
+                >
+                  커버 이미지를 넣으면 개별 피처 상세에서 이 비율로 보입니다
+                </div>
+              )}
             </div>
-          )}
-          {coverImageUrl && imageSource ? (
+          </div>
+          <p className={styles.coverAltHint}>
+            이미지 alt · {resolvedCoverAltText}
+          </p>
+          {resolvedDetailUrl && imageSource ? (
             <p className={styles.coverSource}>사진 출처 · {imageSource}</p>
           ) : null}
         </div>

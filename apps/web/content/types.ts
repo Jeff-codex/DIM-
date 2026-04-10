@@ -39,6 +39,9 @@ export type ArticleFrontmatter = {
   excerpt: string;
   interpretiveFrame: string;
   coverImage: string;
+  coverImageCard?: string;
+  coverImageDetail?: string;
+  coverImageAltText?: string | null;
   categoryId: string;
   tagIds: string[];
   authorId: string;

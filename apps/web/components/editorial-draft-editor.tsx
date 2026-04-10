@@ -31,6 +31,9 @@ type EditorialDraftRecord = {
   interpretiveFrame: string;
   categoryId: string;
   coverImageUrl?: string;
+  coverImageCardUrl?: string;
+  coverImageDetailUrl?: string;
+  coverImageAltText?: string;
   bodyMarkdown: string;
   draftGeneratedAt: string;
   sourceProposalUpdatedAt: string | null;
@@ -124,6 +127,9 @@ function serializeDraft(record: EditorialDraftRecord) {
     interpretiveFrame: record.interpretiveFrame,
     categoryId: record.categoryId,
     coverImageUrl: record.coverImageUrl ?? "",
+    coverImageCardUrl: record.coverImageCardUrl ?? "",
+    coverImageDetailUrl: record.coverImageDetailUrl ?? "",
+    coverImageAltText: record.coverImageAltText ?? "",
     bodyMarkdown: record.bodyMarkdown,
   });
 }
@@ -134,6 +140,32 @@ function isFilled(value: string | null | undefined) {
 
 function resolveEditorialFamilyCoverUrl(family: EditorialAssetFamilyRecord) {
   return family.detail?.publicUrl ?? family.master?.publicUrl ?? undefined;
+}
+
+function resolveEditorialFamilyCardUrl(family: EditorialAssetFamilyRecord) {
+  return family.card?.publicUrl ?? family.master?.publicUrl ?? family.detail?.publicUrl;
+}
+
+function resolveEditorialFamilyDetailUrl(family: EditorialAssetFamilyRecord) {
+  return family.detail?.publicUrl ?? family.master?.publicUrl ?? family.card?.publicUrl;
+}
+
+function matchesDraftCoverFamily(
+  draft: EditorialDraftRecord,
+  family: EditorialAssetFamilyRecord,
+) {
+  const draftUrls = [
+    draft.coverImageUrl,
+    draft.coverImageCardUrl,
+    draft.coverImageDetailUrl,
+  ].filter((value): value is string => Boolean(value));
+  const familyUrls = [
+    family.master?.publicUrl,
+    family.card?.publicUrl,
+    family.detail?.publicUrl,
+  ].filter((value): value is string => Boolean(value));
+
+  return draftUrls.some((url) => familyUrls.includes(url));
 }
 
 export function EditorialDraftEditor({
@@ -468,6 +500,8 @@ export function EditorialDraftEditor({
     const nextDraft = {
       ...draft,
       coverImageUrl: previewUrl,
+      coverImageCardUrl: undefined,
+      coverImageDetailUrl: undefined,
     };
 
     await persistDraft(nextDraft, {
@@ -543,6 +577,8 @@ export function EditorialDraftEditor({
       }
 
       const nextCoverUrl = resolveEditorialFamilyCoverUrl(data.family);
+      const nextCoverCardUrl = resolveEditorialFamilyCardUrl(data.family);
+      const nextCoverDetailUrl = resolveEditorialFamilyDetailUrl(data.family);
 
       if (!nextCoverUrl) {
         setStatus("새 이미지를 추가했습니다. master, 카드, 상세 파생본도 함께 준비했습니다");
@@ -559,6 +595,8 @@ export function EditorialDraftEditor({
       const nextDraft = {
         ...draft,
         coverImageUrl: nextCoverUrl,
+        coverImageCardUrl: nextCoverCardUrl,
+        coverImageDetailUrl: nextCoverDetailUrl,
       };
 
       await persistDraft(nextDraft, {
@@ -628,6 +666,8 @@ export function EditorialDraftEditor({
       }
 
       const nextCoverUrl = resolveEditorialFamilyCoverUrl(data.family);
+      const nextCoverCardUrl = resolveEditorialFamilyCardUrl(data.family);
+      const nextCoverDetailUrl = resolveEditorialFamilyDetailUrl(data.family);
 
       if (!nextCoverUrl) {
         setStatus(`${label} 이미지를 커버용 편집 자산으로 준비했습니다`);
@@ -644,6 +684,8 @@ export function EditorialDraftEditor({
       const nextDraft = {
         ...draft,
         coverImageUrl: nextCoverUrl,
+        coverImageCardUrl: nextCoverCardUrl,
+        coverImageDetailUrl: nextCoverDetailUrl,
       };
 
       await persistDraft(nextDraft, {
@@ -798,9 +840,7 @@ export function EditorialDraftEditor({
                       }
 
                       const familyCoverUrl = resolveEditorialFamilyCoverUrl(family);
-                      const isCurrentCover = Boolean(
-                        familyCoverUrl && draft.coverImageUrl === familyCoverUrl,
-                      );
+                      const isCurrentCover = matchesDraftCoverFamily(draft, family);
                       const sourceBadge =
                         family.sourceType === "admin_upload" ? "새로 올림" : "원본 승격";
 
@@ -995,6 +1035,24 @@ export function EditorialDraftEditor({
                   </label>
                 )}
               </div>
+
+              <label className={styles.field}>
+                <span>커버 이미지 alt</span>
+                <textarea
+                  rows={3}
+                  value={draft.coverImageAltText ?? ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      coverImageAltText: event.target.value || undefined,
+                    }))
+                  }
+                  placeholder="이미지에 무엇이 보이는지 간단하고 명료하게 적습니다"
+                />
+                <p className={styles.fieldHint}>
+                  공개면 이미지 HTML과 OG 이미지 설명에 우선 사용됩니다. 비어 있으면 현재는 기사 제목으로 대체됩니다.
+                </p>
+              </label>
             </section>
 
             <section className={styles.fieldGroup}>
@@ -1082,6 +1140,9 @@ export function EditorialDraftEditor({
           interpretiveFrame={draft.interpretiveFrame}
           categoryName={selectedCategoryName}
           coverImageUrl={draft.coverImageUrl}
+          coverImageCardUrl={draft.coverImageCardUrl}
+          coverImageDetailUrl={draft.coverImageDetailUrl}
+          coverImageAltText={draft.coverImageAltText}
           imageSource={previewImageSource}
           bodyMarkdown={draft.bodyMarkdown}
           mode={isInternalWorkflow ? "internal" : "external"}

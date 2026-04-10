@@ -31,6 +31,12 @@ export const editorialV2DraftInputSchema = z.object({
     .max(2048)
     .optional()
     .transform((value) => value || undefined),
+  coverImageAltText: z
+    .string()
+    .trim()
+    .max(240)
+    .optional()
+    .transform((value) => value || undefined),
   bodyMarkdown: z.string().trim().min(1).max(editorialDraftBodyMaxLength),
 });
 

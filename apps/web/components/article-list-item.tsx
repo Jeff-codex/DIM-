@@ -3,6 +3,10 @@ import { EditorialHeading } from "@/components/editorial-heading";
 import styles from "./article-list-item.module.css";
 import { RepresentativeImage } from "@/components/representative-image";
 import type { PublishedArticleSummary } from "@/content/types";
+import {
+  getArticleCardImageSrc,
+  getArticleCoverAltText,
+} from "@/lib/article-cover";
 
 type ArticleListItemProps = {
   article: PublishedArticleSummary;
@@ -17,8 +21,8 @@ export function ArticleListItem({
       <Link href={`/articles/${article.slug}`} className={styles.link}>
         <div className={styles.media}>
           <RepresentativeImage
-            src={article.coverImage}
-            alt={article.title}
+            src={getArticleCardImageSrc(article)}
+            alt={getArticleCoverAltText(article)}
             variant="card"
           />
         </div>

@@ -45,6 +45,7 @@ export type PublishedFeatureV2AdminItem = {
   excerpt: string;
   interpretiveFrame: string;
   coverImage: string;
+  coverImageAltText?: string | null;
   categoryName: string;
   publishedAt: string;
   featured: boolean;
@@ -139,6 +140,11 @@ function buildSlugAliasStatements(input: {
       input.previousSlug,
     ),
   ];
+}
+
+function resolveFinalCoverImageAltText(value: string | null | undefined) {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
 }
 
 async function resolvePublishedFeatureBySlug(slug: string) {
@@ -331,6 +337,7 @@ export async function listPublishedFeaturesForAdminV2(): Promise<
       excerpt: article.excerpt,
       interpretiveFrame: article.interpretiveFrame,
       coverImage: article.coverImage,
+      coverImageAltText: article.coverImageAltText,
       categoryName: article.category.name,
       publishedAt: article.publishedAt,
       featured: article.featured,
@@ -360,6 +367,7 @@ export async function getPublishedFeatureDetailForAdminV2(
     excerpt: resolved.article.excerpt,
     interpretiveFrame: resolved.article.interpretiveFrame,
     coverImage: resolved.article.coverImage,
+    coverImageAltText: resolved.article.coverImageAltText,
     categoryName: resolved.article.category.name,
     publishedAt: resolved.article.publishedAt,
     featured: resolved.article.featured,
@@ -467,10 +475,11 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
          dek,
          verdict,
          category_id,
-         author_id,
-         tag_ids_json,
-         cover_asset_family_id,
-         body_markdown,
+       author_id,
+       tag_ids_json,
+       cover_asset_family_id,
+       cover_image_alt_text,
+       body_markdown,
          body_sections_json,
          visibility_metadata_json,
          citations_json,
@@ -484,7 +493,7 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
          updated_by,
          created_at,
          updated_at
-       ) VALUES (?, ?, ?, 'editing', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, ?, 'editing', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?)`,
     ).bind(
       revisionId,
       featureEntry.id,
@@ -498,6 +507,7 @@ export async function createOrOpenFeatureRevisionForPublishedFeature(
       sourceRevision.authorId,
       JSON.stringify(sourceRevision.tagIds),
       sourceRevision.coverAssetFamilyId,
+      sourceRevision.coverImageAltText,
       sourceRevision.bodyMarkdown,
       JSON.stringify(sourceRevision.bodySections),
       JSON.stringify(sourceRevision.visibilityMetadata),
@@ -563,6 +573,7 @@ export async function publishFeatureRevisionFromProposal(
   editorEmail: string,
   options?: {
     finalSlug?: string | null;
+    finalCoverImageAltText?: string | null;
   },
 ) {
   const latestWorkingRevision = await getLatestWorkingRevisionByProposalId(proposalId);
@@ -610,6 +621,9 @@ export async function publishFeatureRevisionFromProposal(
     featureEntryRow,
     editorProvidedSlug: options?.finalSlug,
   });
+  const finalCoverImageAltText = resolveFinalCoverImageAltText(
+    options?.finalCoverImageAltText ?? revision.coverImageAltText,
+  );
   const previousSlug = featureEntryRow.slug;
   featureEntryRow.slug = slugDecision.canonicalSlug;
 
@@ -625,11 +639,12 @@ export async function publishFeatureRevisionFromProposal(
     env.EDITORIAL_DB.prepare(
       `UPDATE feature_revision
        SET status = 'published',
+           cover_image_alt_text = ?,
            published_at = ?,
            updated_by = ?,
            updated_at = ?
        WHERE id = ?`,
-    ).bind(now, editorEmail, now, revision.id),
+    ).bind(finalCoverImageAltText, now, editorEmail, now, revision.id),
     env.EDITORIAL_DB.prepare(
       `UPDATE feature_entry
        SET current_published_revision_id = ?,
@@ -665,6 +680,7 @@ export async function publishFeatureRevisionFromProposal(
         slugQualityStatus: slugDecision.qualityValidation.status,
         slugQualityReasons: slugDecision.qualityValidation.reasons,
         slugQualityWarnings: slugDecision.qualityValidation.warnings,
+        coverImageAltText: finalCoverImageAltText,
       }),
       now,
     ),
@@ -706,6 +722,7 @@ export async function publishFeatureRevisionById(
   editorEmail: string,
   options?: {
     finalSlug?: string | null;
+    finalCoverImageAltText?: string | null;
   },
 ) {
   await repairInternalIndustryAnalysisRevisionById(revisionId, editorEmail);
@@ -748,6 +765,9 @@ export async function publishFeatureRevisionById(
     featureEntryRow,
     editorProvidedSlug: options?.finalSlug,
   });
+  const finalCoverImageAltText = resolveFinalCoverImageAltText(
+    options?.finalCoverImageAltText ?? revision.coverImageAltText,
+  );
   const previousSlug = featureEntryRow.slug;
   featureEntryRow.slug = slugDecision.canonicalSlug;
 
@@ -763,11 +783,12 @@ export async function publishFeatureRevisionById(
     env.EDITORIAL_DB.prepare(
       `UPDATE feature_revision
        SET status = 'published',
+           cover_image_alt_text = ?,
            published_at = ?,
            updated_by = ?,
            updated_at = ?
        WHERE id = ?`,
-    ).bind(now, editorEmail, now, revision.id),
+    ).bind(finalCoverImageAltText, now, editorEmail, now, revision.id),
     env.EDITORIAL_DB.prepare(
       `UPDATE feature_entry
        SET current_published_revision_id = ?,
@@ -803,6 +824,7 @@ export async function publishFeatureRevisionById(
         slugQualityStatus: slugDecision.qualityValidation.status,
         slugQualityReasons: slugDecision.qualityValidation.reasons,
         slugQualityWarnings: slugDecision.qualityValidation.warnings,
+        coverImageAltText: finalCoverImageAltText,
       }),
       now,
     ),

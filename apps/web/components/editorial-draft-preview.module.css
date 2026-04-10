@@ -99,6 +99,25 @@
   min-width: 0;
 }
 
+.coverPreviewGrid {
+  display: grid;
+  gap: 16px;
+}
+
+.coverPreviewBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.coverPreviewLabel {
+  margin: 0;
+  color: rgba(17, 17, 17, 0.56);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 .coverSource {
   margin: 10px 0 0;
   color: rgba(17, 17, 17, 0.5);
@@ -107,10 +126,24 @@
   overflow-wrap: anywhere;
 }
 
+.coverAltHint {
+  margin: 10px 0 0;
+  color: rgba(17, 17, 17, 0.62);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
 .coverFrame {
   overflow: hidden;
   border: 1px solid rgba(145, 163, 217, 0.12);
   background: #f0f3f9;
+}
+
+.coverFrameCard {
+  aspect-ratio: 4 / 3;
+}
+
+.coverFrameDetail {
   aspect-ratio: 8 / 5;
 }
 

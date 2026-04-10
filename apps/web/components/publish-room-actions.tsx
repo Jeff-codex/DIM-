@@ -11,6 +11,11 @@ type PublishRoomSlugField = {
   recommendationPreferred: boolean;
 };
 
+type PublishRoomCoverAltField = {
+  initialValue: string;
+  fallbackValue: string;
+};
+
 type PublishRoomActionsProps = {
   proposalId: string;
   actionTargetId?: string;
@@ -21,6 +26,7 @@ type PublishRoomActionsProps = {
   snapshotHref?: string;
   publishedHref?: string;
   slugField?: PublishRoomSlugField | null;
+  coverAltField?: PublishRoomCoverAltField | null;
 };
 
 export function PublishRoomActions({
@@ -33,11 +39,15 @@ export function PublishRoomActions({
   snapshotHref = `/admin/publish/${proposalId}`,
   publishedHref = "/admin/published",
   slugField = null,
+  coverAltField = null,
 }: PublishRoomActionsProps) {
   const router = useRouter();
   const resolvedActionTargetId = actionTargetId ?? proposalId;
   const [submitting, setSubmitting] = useState(false);
   const [finalSlug, setFinalSlug] = useState(slugField?.initialValue ?? "");
+  const [finalCoverImageAltText, setFinalCoverImageAltText] = useState(
+    coverAltField?.initialValue ?? "",
+  );
   const [status, setStatus] = useState(
     hasSnapshot
       ? "발행 준비는 끝났습니다. 최종 slug를 확인한 뒤 공개 반영을 누르면 실제 라이브가 바뀝니다"
@@ -47,6 +57,10 @@ export function PublishRoomActions({
   useEffect(() => {
     setFinalSlug(slugField?.initialValue ?? "");
   }, [slugField?.initialValue]);
+
+  useEffect(() => {
+    setFinalCoverImageAltText(coverAltField?.initialValue ?? "");
+  }, [coverAltField?.initialValue]);
 
   const handlePublish = async () => {
     setSubmitting(true);
@@ -61,6 +75,7 @@ export function PublishRoomActions({
           },
           body: JSON.stringify({
             finalSlug,
+            finalCoverImageAltText,
           }),
         },
       );
@@ -187,6 +202,31 @@ export function PublishRoomActions({
                 </button>
               ) : null}
             </div>
+          </div>
+        ) : null}
+        {hasSnapshot && coverAltField ? (
+          <div className={styles.slugEditor}>
+            <label
+              className={styles.slugLabel}
+              htmlFor={`publish-cover-alt-${resolvedActionTargetId}`}
+            >
+              최종 cover alt
+            </label>
+            <textarea
+              id={`publish-cover-alt-${resolvedActionTargetId}`}
+              className={`${styles.slugInput} ${styles.slugTextarea}`}
+              value={finalCoverImageAltText}
+              onChange={(event) => setFinalCoverImageAltText(event.target.value)}
+              rows={3}
+              spellCheck={false}
+              placeholder={coverAltField.fallbackValue}
+              disabled={submitting}
+            />
+            <p className={styles.slugHint}>
+              공개 HTML 이미지 설명과 OG 이미지 설명에 우선 사용됩니다. 비어 있으면
+              <code>{coverAltField.fallbackValue}</code>
+              를 제목 fallback으로 사용합니다.
+            </p>
           </div>
         ) : null}
         {hasSnapshot ? (

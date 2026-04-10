@@ -51,6 +51,7 @@ type CmsPublishedRow = {
   categoryId: string;
   authorId: string;
   tagIdsJson: string;
+  coverImageAltText: string | null;
   bodyMarkdown: string;
   publishedAt: string;
   updatedAt: string;
@@ -218,6 +219,7 @@ function buildArticleSummary(row: CmsPublishedRow): CmsPublishedArticle | null {
     coverImage,
     coverImageCard: row.cardImage ?? undefined,
     coverImageDetail: row.detailImage ?? undefined,
+    coverImageAltText: row.coverImageAltText ?? undefined,
     category,
     author,
     tags: resolvedTags,
@@ -389,6 +391,7 @@ export async function listCmsPublishedArticles(): Promise<CmsPublishedArticle[]>
          fr.category_id AS categoryId,
          fr.author_id AS authorId,
          fr.tag_ids_json AS tagIdsJson,
+         fr.cover_image_alt_text AS coverImageAltText,
          fr.body_markdown AS bodyMarkdown,
          fr.published_at AS publishedAt,
          fr.updated_at AS updatedAt,
@@ -443,6 +446,7 @@ export async function getCmsPublishedArticleBySlug(
          fr.category_id AS categoryId,
          fr.author_id AS authorId,
          fr.tag_ids_json AS tagIdsJson,
+         fr.cover_image_alt_text AS coverImageAltText,
          fr.body_markdown AS bodyMarkdown,
          fr.published_at AS publishedAt,
          fr.updated_at AS updatedAt,
@@ -903,6 +907,7 @@ export async function getFeatureRevisionById(
        author_id AS authorId,
        tag_ids_json AS tagIdsJson,
        cover_asset_family_id AS coverAssetFamilyId,
+       cover_image_alt_text AS coverImageAltText,
        body_markdown AS bodyMarkdown,
        body_sections_json AS bodySectionsJson,
        visibility_metadata_json AS visibilityMetadataJson,
@@ -935,6 +940,7 @@ export async function getFeatureRevisionById(
       authorId: string;
       tagIdsJson: string;
       coverAssetFamilyId: string | null;
+      coverImageAltText: string | null;
       bodyMarkdown: string;
       bodySectionsJson: string | null;
       visibilityMetadataJson: string | null;
@@ -968,6 +974,7 @@ export async function getFeatureRevisionById(
     authorId: row.authorId,
     tagIds: parseStringArray(row.tagIdsJson),
     coverAssetFamilyId: row.coverAssetFamilyId,
+    coverImageAltText: row.coverImageAltText,
     bodyMarkdown: row.bodyMarkdown,
     bodySections: parseBodySections(row.bodySectionsJson),
     visibilityMetadata: parseVisibilityMetadata(row.visibilityMetadataJson),

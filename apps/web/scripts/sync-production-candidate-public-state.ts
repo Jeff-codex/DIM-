@@ -38,6 +38,7 @@ type PublishedFeatureStateRow = {
   authorId: string;
   tagIdsJson: string;
   coverAssetFamilyId: string | null;
+  coverImageAltText: string | null;
   bodyMarkdown: string;
   bodySectionsJson: string | null;
   visibilityMetadataJson: string | null;
@@ -125,6 +126,7 @@ SELECT
   fr.author_id AS authorId,
   fr.tag_ids_json AS tagIdsJson,
   fr.cover_asset_family_id AS coverAssetFamilyId,
+  fr.cover_image_alt_text AS coverImageAltText,
   fr.body_markdown AS bodyMarkdown,
   fr.body_sections_json AS bodySectionsJson,
   fr.visibility_metadata_json AS visibilityMetadataJson,
@@ -490,6 +492,7 @@ INSERT INTO feature_revision (
   author_id,
   tag_ids_json,
   cover_asset_family_id,
+  cover_image_alt_text,
   body_markdown,
   body_sections_json,
   visibility_metadata_json,
@@ -517,6 +520,7 @@ INSERT INTO feature_revision (
   ${sqlString(row.authorId)},
   ${sqlString(row.tagIdsJson)},
   ${sqlString(row.coverAssetFamilyId)},
+  ${sqlString(row.coverImageAltText)},
   ${sqlString(row.bodyMarkdown)},
   ${sqlString(row.bodySectionsJson ?? "[]")},
   ${sqlString(row.visibilityMetadataJson)},
@@ -543,6 +547,7 @@ INSERT INTO feature_revision (
   author_id = excluded.author_id,
   tag_ids_json = excluded.tag_ids_json,
   cover_asset_family_id = excluded.cover_asset_family_id,
+  cover_image_alt_text = excluded.cover_image_alt_text,
   body_markdown = excluded.body_markdown,
   body_sections_json = excluded.body_sections_json,
   visibility_metadata_json = excluded.visibility_metadata_json,
@@ -821,33 +826,68 @@ function copyCandidateAssets(
   }
 }
 
-function verifyCandidatePublishedState(expectedMappings: PublishedSlugMappingRow[]) {
+function verifyCandidatePublishedState(input: {
+  expectedPublishedRows: PublishedFeatureStateRow[];
+  expectedAssetVariantRows: AssetVariantRow[];
+  expectedMappings: PublishedSlugMappingRow[];
+}) {
+  const candidatePublishedRows = runD1Query<PublishedFeatureStateRow>(
+    targetEnv,
+    publishedFeatureStateSql,
+  );
   const candidateMappings = runD1Query<PublishedSlugMappingRow>(
     targetEnv,
     buildPublishedSlugMappingsSql(),
   );
-  const expectedCanonical = getCanonicalPublishedSlugRows(expectedMappings).map(
+  const expectedCanonical = getCanonicalPublishedSlugRows(input.expectedMappings).map(
     (row) => row.currentSlug,
   );
   const actualCanonical = getCanonicalPublishedSlugRows(candidateMappings).map(
     (row) => row.currentSlug,
   );
-  const expectedAliases = getPublishedSlugAliasRows(expectedMappings).map(
+  const expectedAliases = getPublishedSlugAliasRows(input.expectedMappings).map(
     (row) => row.aliasSlug,
   );
   const actualAliases = getPublishedSlugAliasRows(candidateMappings).map(
     (row) => row.aliasSlug,
   );
+  const assetFamilyIds = input.expectedPublishedRows
+    .map((row) => row.assetFamilyId)
+    .filter((value): value is string => Boolean(value));
+  const assetVariantsSql = buildAssetVariantSql(assetFamilyIds);
+  const candidateAssetVariants = assetVariantsSql
+    ? runD1Query<AssetVariantRow>(targetEnv, assetVariantsSql)
+    : [];
+  const expectedCoverAlt = input.expectedPublishedRows
+    .map((row) => `${row.featureRevisionId}:${row.coverImageAltText ?? ""}`)
+    .sort();
+  const actualCoverAlt = candidatePublishedRows
+    .map((row) => `${row.featureRevisionId}:${row.coverImageAltText ?? ""}`)
+    .sort();
+  const expectedVariantKeys = input.expectedAssetVariantRows
+    .map((row) => `${row.assetFamilyId}:${row.variantKey}`)
+    .sort();
+  const actualVariantKeys = candidateAssetVariants
+    .map((row) => `${row.assetFamilyId}:${row.variantKey}`)
+    .sort();
 
   return {
     expectedCanonicalCount: expectedCanonical.length,
     actualCanonicalCount: actualCanonical.length,
     expectedAliasCount: expectedAliases.length,
     actualAliasCount: actualAliases.length,
+    expectedPublishedCount: input.expectedPublishedRows.length,
+    actualPublishedCount: candidatePublishedRows.length,
+    expectedAssetVariantCount: input.expectedAssetVariantRows.length,
+    actualAssetVariantCount: candidateAssetVariants.length,
     canonicalMismatch:
       expectedCanonical.join("|") !== actualCanonical.join("|"),
     aliasMismatch:
       expectedAliases.join("|") !== actualAliases.join("|"),
+    coverAltMismatch:
+      expectedCoverAlt.join("|") !== actualCoverAlt.join("|"),
+    assetVariantMismatch:
+      expectedVariantKeys.join("|") !== actualVariantKeys.join("|"),
   };
 }
 
@@ -893,9 +933,18 @@ function main() {
     }),
   );
 
-  const verification = verifyCandidatePublishedState(sourceMappings);
+  const verification = verifyCandidatePublishedState({
+    expectedPublishedRows: sourcePublishedRows,
+    expectedAssetVariantRows: assetVariantRows,
+    expectedMappings: sourceMappings,
+  });
 
-  if (verification.canonicalMismatch || verification.aliasMismatch) {
+  if (
+    verification.canonicalMismatch ||
+    verification.aliasMismatch ||
+    verification.coverAltMismatch ||
+    verification.assetVariantMismatch
+  ) {
     throw new Error(
       `candidate_public_state_verify_failed:${JSON.stringify(verification)}`,
     );

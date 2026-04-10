@@ -75,6 +75,9 @@ export default async function AdminPreviewPage({
             interpretiveFrame={draft.interpretiveFrame}
             categoryName={categoryName}
             coverImageUrl={draft.coverImageUrl}
+            coverImageCardUrl={draft.coverImageCardUrl}
+            coverImageDetailUrl={draft.coverImageDetailUrl}
+            coverImageAltText={draft.coverImageAltText}
             bodyMarkdown={draft.bodyMarkdown}
           />
         </section>

@@ -303,6 +303,10 @@ async function main() {
           ? {
               featureEntryId: smokeSamples.canonical.featureEntryId,
               currentSlug: smokeSamples.canonical.currentSlug,
+              title: smokeSamples.canonical.title,
+              coverImageAltText: smokeSamples.canonical.coverImageAltText,
+              cardImage: smokeSamples.canonical.cardImage,
+              detailImage: smokeSamples.canonical.detailImage,
               route: `/articles/${smokeSamples.canonical.currentSlug}`,
             }
           : null,

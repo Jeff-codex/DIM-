@@ -7,15 +7,23 @@ export const runtime = "nodejs";
 
 async function readPublishRequest(request: Request) {
   try {
-    const payload = (await request.json()) as { finalSlug?: unknown } | null;
+    const payload = (await request.json()) as {
+      finalSlug?: unknown;
+      finalCoverImageAltText?: unknown;
+    } | null;
 
     return {
       finalSlug:
         typeof payload?.finalSlug === "string" ? payload.finalSlug : null,
+      finalCoverImageAltText:
+        typeof payload?.finalCoverImageAltText === "string"
+          ? payload.finalCoverImageAltText
+          : null,
     };
   } catch {
     return {
       finalSlug: null,
+      finalCoverImageAltText: null,
     };
   }
 }
@@ -38,12 +46,13 @@ export async function POST(
 
   try {
     const { proposalId } = await params;
-    const { finalSlug } = await readPublishRequest(request);
+    const { finalSlug, finalCoverImageAltText } = await readPublishRequest(request);
     const published = await publishFeatureRevisionFromProposal(
       proposalId,
       identity.email,
       {
         finalSlug,
+        finalCoverImageAltText,
       },
     );
 

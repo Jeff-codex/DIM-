@@ -68,6 +68,9 @@ export type EditorialV2DraftRecord = {
   interpretiveFrame: string;
   categoryId: string;
   coverImageUrl?: string;
+  coverImageCardUrl?: string;
+  coverImageDetailUrl?: string;
+  coverImageAltText?: string;
   bodyMarkdown: string;
   draftGeneratedAt: string;
   sourceProposalUpdatedAt: string | null;
@@ -100,6 +103,7 @@ type FeatureRevisionRow = {
   authorId: string;
   tagIdsJson: string;
   coverAssetFamilyId: string | null;
+  coverImageAltText: string | null;
   bodyMarkdown: string;
   sourceSnapshotHash: string | null;
   sourceSnapshotJson: string | null;
@@ -606,6 +610,7 @@ async function getRevisionByIdWithSlugAnyStatus(revisionId: string) {
        fr.author_id AS authorId,
        fr.tag_ids_json AS tagIdsJson,
        fr.cover_asset_family_id AS coverAssetFamilyId,
+       fr.cover_image_alt_text AS coverImageAltText,
        fr.body_markdown AS bodyMarkdown,
        fr.source_snapshot_hash AS sourceSnapshotHash,
        fr.source_snapshot_json AS sourceSnapshotJson,
@@ -747,6 +752,7 @@ export async function createInternalIndustryAnalysisEntry(
          author_id,
          tag_ids_json,
          cover_asset_family_id,
+         cover_image_alt_text,
          body_markdown,
          body_sections_json,
          visibility_metadata_json,
@@ -761,7 +767,7 @@ export async function createInternalIndustryAnalysisEntry(
          updated_by,
          created_at,
          updated_at
-       ) VALUES (?, ?, NULL, 'editing', 1, ?, '[]', ?, ?, ?, ?, '[]', NULL, ?, '[]', NULL, '[]', '[]', ?, ?, ?, NULL, NULL, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, NULL, 'editing', 1, ?, '[]', ?, ?, ?, ?, '[]', NULL, NULL, ?, '[]', NULL, '[]', '[]', ?, ?, ?, NULL, NULL, ?, ?, ?, ?)`,
     ).bind(
       revisionId,
       featureEntryId,
@@ -1029,6 +1035,7 @@ async function getLatestDraftRevisionByProposalId(proposalId: string) {
        fr.author_id AS authorId,
        fr.tag_ids_json AS tagIdsJson,
        fr.cover_asset_family_id AS coverAssetFamilyId,
+       fr.cover_image_alt_text AS coverImageAltText,
        fr.body_markdown AS bodyMarkdown,
        fr.source_snapshot_hash AS sourceSnapshotHash,
        fr.source_snapshot_json AS sourceSnapshotJson,
@@ -1068,6 +1075,7 @@ async function getDraftRevisionById(revisionId: string) {
        fr.author_id AS authorId,
        fr.tag_ids_json AS tagIdsJson,
        fr.cover_asset_family_id AS coverAssetFamilyId,
+       fr.cover_image_alt_text AS coverImageAltText,
        fr.body_markdown AS bodyMarkdown,
        fr.source_snapshot_hash AS sourceSnapshotHash,
        fr.source_snapshot_json AS sourceSnapshotJson,
@@ -1102,6 +1110,8 @@ function mapRevisionToDraftView(input: {
   revision: FeatureRevisionRow;
   articleSlug: string;
   coverImageUrl?: string;
+  coverImageCardUrl?: string;
+  coverImageDetailUrl?: string;
 }): EditorialV2DraftRecord {
   const sourceSnapshot = parseSourceSnapshot(input.revision.sourceSnapshotJson);
 
@@ -1117,6 +1127,9 @@ function mapRevisionToDraftView(input: {
     interpretiveFrame: clampEditorialDraftInterpretiveFrame(input.revision.verdict),
     categoryId: input.revision.categoryId,
     coverImageUrl: input.coverImageUrl,
+    coverImageCardUrl: input.coverImageCardUrl,
+    coverImageDetailUrl: input.coverImageDetailUrl,
+    coverImageAltText: input.revision.coverImageAltText ?? undefined,
     bodyMarkdown: input.revision.bodyMarkdown,
     draftGeneratedAt: input.revision.createdAt,
     sourceProposalUpdatedAt: sourceSnapshot?.updatedAt ?? null,
@@ -1198,15 +1211,41 @@ function resolveBundleCoverImageUrl(bundle: AssetFamilyBundle | null) {
   );
 }
 
-async function resolveCoverImageUrlForRevision(
+function resolveBundleCoverImageUrls(bundle: AssetFamilyBundle | null) {
+  if (!bundle) {
+    return {
+      coverImageUrl: undefined,
+      coverImageCardUrl: undefined,
+      coverImageDetailUrl: undefined,
+    };
+  }
+
+  return {
+    coverImageUrl: resolveBundleCoverImageUrl(bundle),
+    coverImageCardUrl:
+      bundle.variants.card?.publicUrl ??
+      bundle.variants.master?.publicUrl ??
+      bundle.variants.detail?.publicUrl,
+    coverImageDetailUrl:
+      bundle.variants.detail?.publicUrl ??
+      bundle.variants.master?.publicUrl ??
+      bundle.variants.card?.publicUrl,
+  };
+}
+
+async function resolveCoverImageUrlsForRevision(
   coverAssetFamilyId: string | null,
 ) {
   if (!coverAssetFamilyId) {
-    return undefined;
+    return {
+      coverImageUrl: undefined,
+      coverImageCardUrl: undefined,
+      coverImageDetailUrl: undefined,
+    };
   }
 
   const bundle = await getAssetFamilyBundle(coverAssetFamilyId);
-  return resolveBundleCoverImageUrl(bundle);
+  return resolveBundleCoverImageUrls(bundle);
 }
 
 function mapAssetBundleToEditorFamily(
@@ -1405,14 +1444,14 @@ async function getCanonicalDraftViewByProposalId(proposalId: string) {
     return null;
   }
 
-  const coverImageUrl = await resolveCoverImageUrlForRevision(
+  const coverImages = await resolveCoverImageUrlsForRevision(
     revision.coverAssetFamilyId,
   );
 
   return mapRevisionToDraftView({
     revision,
     articleSlug: revision.slug,
-    coverImageUrl,
+    ...coverImages,
   });
 }
 
@@ -1445,6 +1484,7 @@ async function upsertFeatureRevisionFromLegacyDraft(input: {
            category_id = ?,
            author_id = ?,
            tag_ids_json = ?,
+           cover_image_alt_text = ?,
            body_markdown = ?,
            body_sections_json = ?,
            visibility_metadata_json = ?,
@@ -1465,6 +1505,7 @@ async function upsertFeatureRevisionFromLegacyDraft(input: {
         input.draft.categoryId,
         defaultAuthorId,
         JSON.stringify([]),
+        input.draft.coverImageAltText ?? null,
         input.draft.bodyMarkdown,
         JSON.stringify([]),
         JSON.stringify((visibility ?? null) as VisibilityMetadata | null),
@@ -1511,6 +1552,7 @@ async function upsertFeatureRevisionFromLegacyDraft(input: {
        author_id,
        tag_ids_json,
        cover_asset_family_id,
+       cover_image_alt_text,
        body_markdown,
        body_sections_json,
        visibility_metadata_json,
@@ -1523,7 +1565,7 @@ async function upsertFeatureRevisionFromLegacyDraft(input: {
        updated_by,
        created_at,
        updated_at
-     ) VALUES (?, ?, ?, 'draft_ready', ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     ) VALUES (?, ?, ?, 'draft_ready', ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       revisionId,
@@ -1537,6 +1579,7 @@ async function upsertFeatureRevisionFromLegacyDraft(input: {
       input.draft.categoryId,
       defaultAuthorId,
       JSON.stringify([]),
+      input.draft.coverImageAltText ?? null,
       input.draft.bodyMarkdown,
       JSON.stringify([]),
       JSON.stringify((visibility ?? null) as VisibilityMetadata | null),
@@ -1572,14 +1615,14 @@ export async function getEditorialV2DraftByRevisionId(revisionId: string) {
   const repairedRevision =
     (await getInternalAnalysisRepairedRevision(revision)) ?? revision;
 
-  const coverImageUrl = await resolveCoverImageUrlForRevision(
+  const coverImages = await resolveCoverImageUrlsForRevision(
     repairedRevision.coverAssetFamilyId,
   );
 
   return mapRevisionToDraftView({
     revision: repairedRevision,
     articleSlug: repairedRevision.slug,
-    coverImageUrl,
+    ...coverImages,
   });
 }
 
@@ -1694,6 +1737,7 @@ export async function updateEditorialV2Draft(
          dek = ?,
          verdict = ?,
          category_id = ?,
+         cover_image_alt_text = ?,
          body_markdown = ?,
          source_snapshot_hash = ?,
          source_snapshot_json = ?,
@@ -1707,6 +1751,7 @@ export async function updateEditorialV2Draft(
       parsed.excerpt,
       parsed.interpretiveFrame,
       parsed.categoryId,
+      parsed.coverImageAltText ?? null,
       parsed.bodyMarkdown,
       sourceSnapshotHash,
       sourceSnapshotJson,
@@ -1763,6 +1808,7 @@ export async function updateEditorialV2DraftByRevisionId(
          dek = ?,
          verdict = ?,
          category_id = ?,
+         cover_image_alt_text = ?,
          body_markdown = ?,
          source_snapshot_hash = ?,
          source_snapshot_json = ?,
@@ -1776,6 +1822,7 @@ export async function updateEditorialV2DraftByRevisionId(
       canonicalParsed.excerpt,
       canonicalParsed.interpretiveFrame,
       canonicalParsed.categoryId,
+      canonicalParsed.coverImageAltText ?? null,
       canonicalParsed.bodyMarkdown,
       sourceSnapshotHash,
       sourceSnapshotJson,

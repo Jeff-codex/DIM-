@@ -5,6 +5,10 @@ import { CTAButton } from "@/components/cta-button";
 import { EditorialFrame } from "@/components/editorial-frame";
 import { RepresentativeImage } from "@/components/representative-image";
 import type { PublishedArticleSummary } from "@/content/types";
+import {
+  getArticleCardImageSrc,
+  getArticleCoverAltText,
+} from "@/lib/article-cover";
 import { formatDate } from "@/lib/format";
 
 type FeaturedArticleProps = {
@@ -37,8 +41,8 @@ export function FeaturedArticle({ article }: FeaturedArticleProps) {
 
         <div className={styles.media}>
           <RepresentativeImage
-            src={article.coverImage}
-            alt={article.title}
+            src={getArticleCardImageSrc(article)}
+            alt={getArticleCoverAltText(article)}
             href={`/articles/${article.slug}`}
             variant="lead"
             priority

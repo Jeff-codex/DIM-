@@ -39,10 +39,21 @@ export const editorialDraftInputSchema = z.object({
     .max(2048)
     .optional()
     .transform((value) => value || undefined),
+  coverImageAltText: z
+    .string()
+    .trim()
+    .max(240)
+    .optional()
+    .transform((value) => value || undefined),
   bodyMarkdown: z.string().trim().min(1).max(24000),
 });
 
-export type EditorialDraftInput = z.infer<typeof editorialDraftInputSchema>;
+export type EditorialDraftInput = Omit<
+  z.infer<typeof editorialDraftInputSchema>,
+  "coverImageAltText"
+> & {
+  coverImageAltText?: string;
+};
 
 export type EditorialDraftRecord = EditorialDraftInput & {
   id: string;

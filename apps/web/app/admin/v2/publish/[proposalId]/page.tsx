@@ -127,6 +127,9 @@ export default async function AdminV2PublishPage({
             interpretiveFrame={draft.interpretiveFrame}
             categoryName={categoryName}
             coverImageUrl={draft.coverImageUrl}
+            coverImageCardUrl={draft.coverImageCardUrl}
+            coverImageDetailUrl={draft.coverImageDetailUrl}
+            coverImageAltText={draft.coverImageAltText}
             bodyMarkdown={draft.bodyMarkdown}
           />
         </section>
@@ -164,6 +167,10 @@ export default async function AdminV2PublishPage({
                     }
                   : null
               }
+              coverAltField={{
+                initialValue: draft.coverImageAltText ?? "",
+                fallbackValue: draft.title,
+              }}
             />
             <dl className={styles.summaryGrid}>
               <div>
@@ -208,6 +215,10 @@ export default async function AdminV2PublishPage({
               <div>
                 <dt>커버</dt>
                 <dd>{draft.coverImageUrl ? "있음" : "없음"}</dd>
+              </div>
+              <div>
+                <dt>커버 alt</dt>
+                <dd>{draft.coverImageAltText?.trim() || `제목 fallback · ${draft.title}`}</dd>
               </div>
             </dl>
             {slugPreflight ? (

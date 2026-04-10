@@ -68,6 +68,19 @@ const canonicalArticleRoute = slugInventory?.smokeSamples?.canonical?.route ?? n
 const aliasArticleRoute = slugInventory?.smokeSamples?.alias?.aliasRoute ?? null;
 const aliasCanonicalRoute =
   slugInventory?.smokeSamples?.alias?.canonicalRoute ?? canonicalArticleRoute;
+const canonicalSampleTitle = slugInventory?.smokeSamples?.canonical?.title ?? null;
+const expectedCardImage =
+  slugInventory?.smokeSamples?.canonical?.cardImage ??
+  slugInventory?.smokeSamples?.canonical?.detailImage ??
+  null;
+const expectedDetailImage =
+  slugInventory?.smokeSamples?.canonical?.detailImage ??
+  slugInventory?.smokeSamples?.canonical?.cardImage ??
+  null;
+const expectedCoverAltText =
+  slugInventory?.smokeSamples?.canonical?.coverImageAltText?.trim() ||
+  canonicalSampleTitle ||
+  null;
 
 async function expectStatus(url, expected, options) {
   const response = await fetch(url, {
@@ -113,6 +126,115 @@ function expectSingleCanonical(html, expectedHref, routeLabel) {
       `${routeLabel} expected canonical ${expectedHref} but received ${href}`,
     );
   }
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function decodeHtmlEntities(value) {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function normalizeText(value) {
+  return decodeHtmlEntities(value).replace(/\s+/g, " ").trim();
+}
+
+function extractAttribute(tag, name) {
+  const match = tag.match(new RegExp(`${name}="([^"]*)"`, "i"));
+  return match?.[1] ?? null;
+}
+
+function extractMetaContent(html, property) {
+  const regex = new RegExp(
+    `<meta[^>]+property="${escapeRegExp(property)}"[^>]+content="([^"]*)"[^>]*>`,
+    "i",
+  );
+  const directMatch = html.match(regex);
+
+  if (directMatch?.[1]) {
+    return decodeHtmlEntities(directMatch[1]);
+  }
+
+  const reverseRegex = new RegExp(
+    `<meta[^>]+content="([^"]*)"[^>]+property="${escapeRegExp(property)}"[^>]*>`,
+    "i",
+  );
+  const reverseMatch = html.match(reverseRegex);
+  return reverseMatch?.[1] ? decodeHtmlEntities(reverseMatch[1]) : null;
+}
+
+function extractLinkedImage(html, route) {
+  const anchorRegex = new RegExp(
+    `<a[^>]+href="${escapeRegExp(route)}"[^>]*>([\\s\\S]*?)<\\/a>`,
+    "i",
+  );
+  const anchorMatch = html.match(anchorRegex);
+
+  if (!anchorMatch?.[1]) {
+    throw new Error(`Expected /articles HTML to include anchor for ${route}`);
+  }
+
+  const imageMatch = anchorMatch[1].match(/<img\b[^>]*>/i);
+
+  if (!imageMatch?.[0]) {
+    throw new Error(`Expected /articles card for ${route} to include an image`);
+  }
+
+  const src = extractAttribute(imageMatch[0], "src");
+  const alt = extractAttribute(imageMatch[0], "alt");
+
+  if (!src) {
+    throw new Error(`Expected /articles card image for ${route} to expose src`);
+  }
+
+  return {
+    src: decodeHtmlEntities(src),
+    alt: normalizeText(alt ?? ""),
+  };
+}
+
+function extractFirstArticleImage(html, routeLabel) {
+  const articleMatch = html.match(/<article[\s\S]*?<\/article>/i);
+
+  if (!articleMatch?.[0]) {
+    throw new Error(`Expected ${routeLabel} HTML to include an <article> block`);
+  }
+
+  const imageMatch = articleMatch[0].match(/<img\b[^>]*>/i);
+
+  if (!imageMatch?.[0]) {
+    throw new Error(`Expected ${routeLabel} article block to include a representative image`);
+  }
+
+  const src = extractAttribute(imageMatch[0], "src");
+  const alt = extractAttribute(imageMatch[0], "alt");
+
+  if (!src) {
+    throw new Error(`Expected ${routeLabel} representative image to expose src`);
+  }
+
+  return {
+    src: decodeHtmlEntities(src),
+    alt: normalizeText(alt ?? ""),
+  };
+}
+
+function toCanonicalAbsoluteUrl(src) {
+  if (/^https?:\/\//i.test(src)) {
+    return src;
+  }
+
+  if (!src.startsWith("/")) {
+    return `${canonicalHost}/${src}`;
+  }
+
+  return `${canonicalHost}${src}`;
 }
 
 async function expectRouteStatuses() {
@@ -230,9 +352,78 @@ async function verifySeoSurface() {
     `${canonicalArticleRoute} structured data`,
   );
 
+  const archiveCardImage = extractLinkedImage(articles.html, canonicalArticleRoute);
+  const detailImage = extractFirstArticleImage(canonicalArticle.html, canonicalArticleRoute);
+  const ogImage = extractMetaContent(canonicalArticle.html, "og:image");
+  const ogImageAlt = extractMetaContent(canonicalArticle.html, "og:image:alt");
+
+  if (!archiveCardImage.alt) {
+    throw new Error(`/articles card image alt is empty for ${canonicalArticleRoute}`);
+  }
+
+  if (!detailImage.alt) {
+    throw new Error(`${canonicalArticleRoute} detail image alt is empty`);
+  }
+
+  if (!expectedCardImage || !expectedDetailImage || !expectedCoverAltText) {
+    throw new Error(
+      `${canonicalArticleRoute} inventory is missing expected card/detail/alt metadata`,
+    );
+  }
+
+  if (archiveCardImage.src !== expectedCardImage) {
+    throw new Error(
+      `${canonicalArticleRoute} expected archive card image ${expectedCardImage} but received ${archiveCardImage.src}`,
+    );
+  }
+
+  if (detailImage.src !== expectedDetailImage) {
+    throw new Error(
+      `${canonicalArticleRoute} expected detail image ${expectedDetailImage} but received ${detailImage.src}`,
+    );
+  }
+
+  if (!ogImage) {
+    throw new Error(`${canonicalArticleRoute} is missing og:image`);
+  }
+
+  if (!ogImageAlt) {
+    throw new Error(`${canonicalArticleRoute} is missing og:image:alt`);
+  }
+
+  if (normalizeText(archiveCardImage.alt) !== normalizeText(detailImage.alt)) {
+    throw new Error(
+      `${canonicalArticleRoute} archive/detail alt mismatch: ${archiveCardImage.alt} vs ${detailImage.alt}`,
+    );
+  }
+
+  if (normalizeText(detailImage.alt) !== normalizeText(expectedCoverAltText)) {
+    throw new Error(
+      `${canonicalArticleRoute} expected cover alt ${expectedCoverAltText} but received ${detailImage.alt}`,
+    );
+  }
+
+  if (normalizeText(detailImage.alt) !== normalizeText(ogImageAlt)) {
+    throw new Error(
+      `${canonicalArticleRoute} detail/og:image:alt mismatch: ${detailImage.alt} vs ${ogImageAlt}`,
+    );
+  }
+
+  const expectedOgImage = toCanonicalAbsoluteUrl(detailImage.src);
+
+  if (ogImage !== expectedOgImage) {
+    throw new Error(
+      `${canonicalArticleRoute} expected og:image ${expectedOgImage} but received ${ogImage}`,
+    );
+  }
+
   return {
     status: "verified",
     canonicalRoute: canonicalArticleRoute,
+    archiveCardImage,
+    detailImage,
+    ogImage,
+    ogImageAlt,
   };
 }
 
