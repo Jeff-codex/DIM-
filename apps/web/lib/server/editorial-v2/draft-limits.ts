@@ -1,6 +1,6 @@
 export const editorialDraftTitleMaxLength = 200;
 export const editorialDraftExcerptMaxLength = 320;
-export const editorialDraftInterpretiveFrameMaxLength = 320;
+export const editorialDraftInterpretiveFrameMaxLength = 350;
 export const editorialDraftBodyMaxLength = 24000;
 
 export function truncateEditorialDraftText(value: string, maxLength: number) {

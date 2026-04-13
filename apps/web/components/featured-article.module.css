@@ -53,24 +53,29 @@
   max-width: none;
   margin-top: 28px;
   font-family: var(--font-display), serif;
-  font-size: clamp(2rem, 3.5vw, 3.4rem);
+  font-size: clamp(1.72rem, 2.9vw, 2.85rem);
   font-weight: 500;
   line-height: 1.06;
   letter-spacing: -0.046em;
 }
 
 .titleLink {
-  display: inline-flex;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
   color: inherit;
 }
 
 .titleLines {
   display: grid;
   gap: 0;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .titleLine {
   display: block;
+  white-space: nowrap;
 }
 
 .titleLink:hover {
@@ -110,6 +115,15 @@
 
   .title {
     width: auto;
+  }
+
+  .titleLink,
+  .titleLines {
+    width: 100%;
+  }
+
+  .titleLine {
+    white-space: normal;
   }
 
   .frame {
