@@ -42,10 +42,13 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-.iconImage {
+.iconGlyph {
   display: block;
   width: 30px;
   height: 30px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
 }
 
 @media (max-width: 760px) {
@@ -58,7 +61,7 @@
     height: 38px;
   }
 
-  .iconImage {
+  .iconGlyph {
     width: 28px;
     height: 28px;
   }

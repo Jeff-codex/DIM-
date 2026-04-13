@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useState } from "react";
 import styles from "./article-share-preview.module.css";
 
@@ -33,24 +32,6 @@ function buildThreadsIntent(url: string, title: string) {
   });
 
   return `https://www.threads.com/intent/post?${params.toString()}`;
-}
-
-function ShareIcon({
-  src,
-  alt,
-}: {
-  src: string;
-  alt: string;
-}) {
-  return (
-    <Image
-      src={src}
-      alt={alt}
-      width={30}
-      height={30}
-      className={styles.iconImage}
-    />
-  );
 }
 
 export function ArticleSharePreviewRow({
@@ -92,27 +73,39 @@ export function ArticleSharePreviewRow({
         target="_blank"
         rel="noreferrer"
         className={styles.iconButton}
-        aria-label="X 공유"
+        aria-label="X에 공유"
       >
-        <ShareIcon src="/share/x.svg" alt="" />
+        <span
+          className={styles.iconGlyph}
+          aria-hidden="true"
+          style={{ backgroundImage: "url('/share/x.svg')" }}
+        />
       </a>
       <a
         href={facebookIntent}
         target="_blank"
         rel="noreferrer"
         className={styles.iconButton}
-        aria-label="Facebook 공유"
+        aria-label="Facebook에 공유"
       >
-        <ShareIcon src="/share/facebook.svg" alt="" />
+        <span
+          className={styles.iconGlyph}
+          aria-hidden="true"
+          style={{ backgroundImage: "url('/share/facebook.svg')" }}
+        />
       </a>
       <a
         href={threadsIntent}
         target="_blank"
         rel="noreferrer"
         className={styles.iconButton}
-        aria-label="Threads 공유"
+        aria-label="Threads에 공유"
       >
-        <ShareIcon src="/share/threads.svg" alt="" />
+        <span
+          className={styles.iconGlyph}
+          aria-hidden="true"
+          style={{ backgroundImage: "url('/share/threads.svg')" }}
+        />
       </a>
       <button
         type="button"
@@ -125,7 +118,15 @@ export function ArticleSharePreviewRow({
           .join(" ")}
         aria-label="링크 복사"
       >
-        <ShareIcon src={copied ? "/share/check.svg" : "/share/copy.svg"} alt="" />
+        <span
+          className={styles.iconGlyph}
+          aria-hidden="true"
+          style={{
+            backgroundImage: copied
+              ? "url('/share/check.svg')"
+              : "url('/share/copy.svg')",
+          }}
+        />
       </button>
     </div>
   );
