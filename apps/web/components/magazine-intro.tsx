@@ -6,6 +6,7 @@ type MagazineIntroProps = {
   title: string;
   titleLines?: readonly string[];
   body: string[];
+  variant?: "default" | "compact";
 };
 
 export function MagazineIntro({
@@ -13,9 +14,14 @@ export function MagazineIntro({
   title,
   titleLines,
   body,
+  variant = "default",
 }: MagazineIntroProps) {
   return (
-    <section className={styles.section}>
+    <section
+      className={[styles.section, variant === "compact" ? styles.compact : ""]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div className={`container ${styles.inner}`}>
         <p className={styles.eyebrow}>{eyebrow}</p>
         <EditorialHeading

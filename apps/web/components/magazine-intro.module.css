@@ -5,6 +5,10 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.compact {
+  padding: 64px 0 68px;
+}
+
 .inner {
   display: grid;
   gap: 20px;
@@ -35,6 +39,10 @@
 @media (max-width: 760px) {
   .section {
     padding: 60px 0 64px;
+  }
+
+  .compact {
+    padding: 50px 0 54px;
   }
 
   .body {

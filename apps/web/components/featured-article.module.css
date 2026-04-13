@@ -21,12 +21,12 @@
   display: grid;
   grid-template-columns: minmax(0, 0.84fr) minmax(420px, 1.16fr);
   gap: 72px;
-  align-items: start;
+  align-items: center;
 }
 
 .copy {
   display: grid;
-  align-content: start;
+  align-content: center;
   gap: 0;
 }
 
@@ -51,17 +51,29 @@
 
 .title {
   max-width: none;
-  width: fit-content;
   margin-top: 28px;
   font-family: var(--font-display), serif;
   font-size: clamp(2rem, 3.5vw, 3.4rem);
   font-weight: 500;
   line-height: 1.06;
   letter-spacing: -0.046em;
-  white-space: nowrap;
 }
 
-.title a:hover {
+.titleLink {
+  display: inline-flex;
+  color: inherit;
+}
+
+.titleLines {
+  display: grid;
+  gap: 0;
+}
+
+.titleLine {
+  display: block;
+}
+
+.titleLink:hover {
   color: var(--color-accent);
 }
 
@@ -70,23 +82,11 @@
   margin-top: 20px;
 }
 
-.excerpt {
-  max-width: 23rem;
-  margin-top: 26px;
-  color: var(--color-text-secondary);
-  font-size: 1rem;
-  line-height: 1.86;
-}
-
 .date {
   color: var(--color-text-secondary);
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   opacity: 0.82;
-}
-
-.actions {
-  padding-top: 32px;
 }
 
 .media {
@@ -110,14 +110,9 @@
 
   .title {
     width: auto;
-    white-space: normal;
   }
 
   .frame {
-    max-width: 100%;
-  }
-
-  .excerpt {
     max-width: 100%;
   }
 

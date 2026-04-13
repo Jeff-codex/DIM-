@@ -2,27 +2,245 @@
   background: #ffffff;
 }
 
-.archiveSection {
-  padding: 54px 0 136px;
+.leadSection {
+  padding: 60px 0 0;
 }
 
-.inner {
-  display: block;
+.sectionInner {
+  display: grid;
+  gap: 30px;
 }
 
-.grid {
+.sectionHeader {
+  display: grid;
+  gap: 12px;
+  max-width: 44rem;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px 24px;
+}
+
+.sectionLabel {
+  color: var(--color-accent);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.sectionTitle {
+  max-width: 16.5ch;
+}
+
+.sectionBody,
+.sectionAside {
+  color: var(--color-text-secondary);
+  font-size: 0.96rem;
+  line-height: 1.76;
+}
+
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(17, 17, 17, 0.82);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.18);
+  padding-bottom: 6px;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.inlineLink:hover {
+  color: var(--color-accent);
+  border-color: rgba(215, 32, 19, 0.42);
+}
+
+.channelSection {
+  padding: 72px 0 0;
+}
+
+.channelGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.channelCard {
+  display: grid;
+  gap: 18px;
+  border-top: 1px solid rgba(17, 17, 17, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #faf9f6 100%);
+  padding: 22px 0 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.channelName {
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.channelDescription,
+.channelSignal {
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.72;
+}
+
+.channelFooter {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+  padding-top: 16px;
+}
+
+.channelFooterLabel {
+  color: rgba(17, 17, 17, 0.82);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.channelCard:hover .channelName,
+.channelCard:hover .channelFooterLabel {
+  color: var(--color-accent);
+}
+
+.channelFooterTitle {
+  color: rgba(17, 17, 17, 0.84);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.56;
+}
+
+.channelCard:hover .channelFooterTitle {
+  color: var(--color-accent);
+}
+
+.supportingSection {
+  padding: 88px 0 0;
+}
+
+.supportingGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 52px 32px;
+  align-items: stretch;
+}
+
+.closingSection {
+  padding: 56px 0 136px;
+}
+
+.closingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 36px;
+  align-items: start;
+  border-top: 1px solid rgba(17, 17, 17, 0.12);
+  padding-top: 28px;
+}
+
+.closingPanel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.archivePanel {
+  padding-right: 8px;
+}
+
+.submitPanel {
+  max-width: 32rem;
+  padding-left: 36px;
+  border-left: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.archiveActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 10px;
+}
+
+.submitRail {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.submitNote {
+  max-width: 32rem;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.72;
+}
+
+.submitActions {
+  display: flex;
+  gap: 0;
 }
 
 @media (max-width: 760px) {
+  .leadSection,
+  .channelSection,
+  .supportingSection,
   .archiveSection {
-    padding: 40px 0 108px;
+    padding-top: 40px;
   }
 
-  .grid {
+  .sectionInner {
+    gap: 24px;
+  }
+
+  .sectionHeaderRow {
+    align-items: start;
+  }
+
+  .channelGrid,
+  .supportingGrid {
     grid-template-columns: 1fr;
     gap: 34px;
+  }
+
+  .closingGrid {
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+
+  .closingSection {
+    padding: 56px 0 108px;
+  }
+
+  .archivePanel,
+  .submitPanel {
+    max-width: 100%;
+    padding: 0;
+    border-left: 0;
+  }
+
+  .submitActions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .submitActions :global(a) {
+    width: fit-content;
   }
 }
