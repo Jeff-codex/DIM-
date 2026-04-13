@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import styles from "./page.module.css";
 import { EditorialHeading } from "@/components/editorial-heading";
+import { ArticleSharePreviewRow } from "@/components/article-share-preview";
 import { RelatedArticles } from "@/components/related-articles";
 import { RepresentativeImage } from "@/components/representative-image";
 import {
@@ -226,6 +227,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             <p className={styles.meta}>
               {formatDate(article.publishedAt)} · {article.author.name}
             </p>
+            <ArticleSharePreviewRow
+              title={metaTitle}
+              canonicalUrl={canonical}
+              className={styles.heroShareSlot}
+            />
           </div>
         </header>
 
@@ -293,6 +299,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </div>
           </div>
         ) : null}
+
       </article>
 
       <section className={styles.relatedSection}>
