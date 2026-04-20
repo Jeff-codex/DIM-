@@ -239,6 +239,7 @@ export type CmsPublishedArticle = PublishedArticleSummary & {
   coverImageAltText?: string | null;
   featureEntryId: string;
   featureRevisionId: string;
+  updatedAt: string;
 };
 
 export type CmsArticleDetail = ArticleDetail & {

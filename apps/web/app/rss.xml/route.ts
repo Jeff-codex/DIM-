@@ -16,8 +16,11 @@ function escapeXml(value: string) {
 export async function GET() {
   const articles = await getPublishedArticles();
   const channelLink = `${siteConfig.url}/rss.xml`;
-  const lastBuildDate = articles[0]?.publishedAt
-    ? new Date(articles[0].publishedAt).toUTCString()
+  const latestContentDate = articles
+    .map((article) => article.updatedAt ?? article.publishedAt)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+  const lastBuildDate = latestContentDate
+    ? new Date(latestContentDate).toUTCString()
     : new Date().toUTCString();
 
   const items = articles

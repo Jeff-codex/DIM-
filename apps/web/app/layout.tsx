@@ -31,7 +31,11 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   applicationName: siteConfig.name,
   icons: {
-    icon: [{ url: `${siteConfig.url}/favicon.ico`, type: "image/x-icon" }],
+    icon: [
+      { url: `${siteConfig.url}/favicon.ico`, type: "image/x-icon", sizes: "any" },
+      { url: `${siteConfig.url}/icon.png`, type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: [{ url: `${siteConfig.url}/favicon.ico`, type: "image/x-icon" }],
     apple: [
       {
         url: `${siteConfig.url}/apple-icon.png`,
@@ -96,6 +100,14 @@ export default function RootLayout({
 
   return (
     <html lang="ko">
+      <head>
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title={`${siteConfig.name} RSS`}
+          href={`${siteConfig.url}/rss.xml`}
+        />
+      </head>
       <body className={`${notoSansKr.variable} ${notoSerifKr.variable}`}>
         <script
           dangerouslySetInnerHTML={{

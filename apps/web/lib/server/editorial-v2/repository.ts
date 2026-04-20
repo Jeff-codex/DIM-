@@ -228,6 +228,7 @@ function buildArticleSummary(row: CmsPublishedRow): CmsPublishedArticle | null {
     tagIds: resolvedTags.map((tag) => tag.id),
     authorId: row.authorId,
     publishedAt: row.publishedAt,
+    updatedAt: row.updatedAt,
     featured: row.featured === 1,
   };
 }

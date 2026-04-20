@@ -114,6 +114,7 @@ function buildStaticCmsSummary(article: StaticCmsArticle): PublishedArticleSumma
     tagIds: article.tagIds,
     authorId: article.authorId,
     publishedAt: article.publishedAt,
+    updatedAt: article.updatedAt,
     featured: article.featured,
   };
 }

@@ -6,27 +6,33 @@ export const dynamic = "force-static";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const articles = await getPublishedArticles();
+  const latestContentDate =
+    articles
+      .map((article) => article.updatedAt ?? article.publishedAt)
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ??
+    new Date().toISOString();
+  const latestContentTimestamp = new Date(latestContentDate);
 
   return [
     {
       url: siteConfig.url,
-      lastModified: new Date(),
+      lastModified: latestContentTimestamp,
     },
     {
       url: `${siteConfig.url}/articles`,
-      lastModified: new Date(),
+      lastModified: latestContentTimestamp,
     },
     {
       url: `${siteConfig.url}/articles/startups`,
-      lastModified: new Date(),
+      lastModified: latestContentTimestamp,
     },
     {
       url: `${siteConfig.url}/articles/product-launches`,
-      lastModified: new Date(),
+      lastModified: latestContentTimestamp,
     },
     {
       url: `${siteConfig.url}/articles/industry-analysis`,
-      lastModified: new Date(),
+      lastModified: latestContentTimestamp,
     },
     {
       url: `${siteConfig.url}/about`,
@@ -46,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     ...articles.map((article) => ({
       url: `${siteConfig.url}/articles/${article.slug}`,
-      lastModified: new Date(article.publishedAt),
+      lastModified: new Date(article.updatedAt ?? article.publishedAt),
     })),
   ];
 }

@@ -47,6 +47,7 @@ export type ArticleFrontmatter = {
   authorId: string;
   status: ArticleStatus;
   publishedAt: string;
+  updatedAt?: string;
   featured: boolean;
 };
 
