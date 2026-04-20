@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Noto_Sans_KR, Noto_Serif_KR } from "next/font/google";
 import { PageTransition } from "@/components/page-transition";
 import { SiteFooter } from "@/components/site-footer";
@@ -7,6 +8,8 @@ import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
 const defaultSocialImage = `${siteConfig.url}${siteConfig.publisher.logoPath}`;
+const googleAnalyticsMeasurementId = "G-5VWW1YQ295";
+const naverAnalyticsSiteId = "ce73dbb492c340";
 
 const notoSansKr = Noto_Sans_KR({
   variable: "--font-body",
@@ -107,6 +110,14 @@ export default function RootLayout({
           title={`${siteConfig.name} RSS`}
           href={`${siteConfig.url}/rss.xml`}
         />
+        <Script
+          id="google-analytics-loader"
+          src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsMeasurementId}`}
+          strategy="beforeInteractive"
+        />
+        <Script id="google-analytics-init" strategy="beforeInteractive">
+          {`window.dataLayer = window.dataLayer || []; function gtag(){window.dataLayer.push(arguments);} window.gtag = gtag; gtag('js', new Date()); gtag('config', '${googleAnalyticsMeasurementId}');`}
+        </Script>
       </head>
       <body className={`${notoSansKr.variable} ${notoSerifKr.variable}`}>
         <script
@@ -128,6 +139,14 @@ export default function RootLayout({
           </main>
           <SiteFooter />
         </div>
+        <Script
+          id="naver-analytics-loader"
+          src="//wcs.pstatic.net/wcslog.js"
+          strategy="afterInteractive"
+        />
+        <Script id="naver-analytics-init" strategy="afterInteractive">
+          {`if(!window.wcs_add) window.wcs_add = {}; window.wcs_add["wa"] = "${naverAnalyticsSiteId}"; if(window.wcs) { window.wcs_do(); }`}
+        </Script>
       </body>
     </html>
   );
